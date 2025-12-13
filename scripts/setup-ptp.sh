@@ -104,9 +104,8 @@ create_config() {
     info "Creating $PTP_CONFIG"
     $SUDO tee "$PTP_CONFIG" >/dev/null <<EOF
 [global]
-clientOnly              1
-BMCA                    noop
 time_stamping           hardware
+domainNumber            0
 
 [$PTP_INTERFACE]
 EOF
