@@ -1,7 +1,7 @@
 ---
 # win_base — Layer 0: Windows VM base configuration
 # Ensures SSH, WinRM, firewall, auto-logon, and power settings are correct.
-# Prerequisite: bootstrap-winrm.ps1 must have been run via Proxmox console first.
+# Prerequisite: scripts/bootstrap-ansible.ps1 must have been run via Proxmox console first.
 
 - name: Ensure OpenSSH Server is installed
   ansible.windows.win_optional_feature:
@@ -58,18 +58,18 @@
     state: present
     enabled: true
 
-- name: Verify auto-logon is configured
-  ansible.windows.win_shell: |
-    $path = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"
-    $val = Get-ItemProperty -Path $path -Name AutoAdminLogon -ErrorAction SilentlyContinue
-    if ($val.AutoAdminLogon -eq "1") { "enabled" } else { "disabled" }
-  register: autologon_check
-  changed_when: false
-
-- name: Warn if auto-logon is not configured
-  ansible.builtin.debug:
-    msg: "WARNING: Auto-logon is not enabled on {{ inventory_hostname }}. Run bootstrap-winrm.ps1 on the node to configure it."
-  when: "'disabled' in autologon_check.stdout"
+- name: Configure auto-logon
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon
+    name: "{{ item.name }}"
+    data: "{{ item.data }}"
+    type: string
+  loop:
+    - { name: AutoAdminLogon, data: "1" }
+    - { name: DefaultUserName, data: "{{ ansible_user }}" }
+    - { name: DefaultPassword, data: "{{ ansible_password }}" }
+    - { name: DefaultDomainName, data: "" }
+  no_log: true
 
 - name: Disable lock screen
   ansible.windows.win_regedit:

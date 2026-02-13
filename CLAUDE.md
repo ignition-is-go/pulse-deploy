@@ -74,14 +74,14 @@ ansible-galaxy collection install -r collections/requirements.yml
 - `inventories/hrlv/group_vars/ue_nodes.yml` — UE paths, Plastic, worker config
 - `playbooks/site.yml` — Master convergence playbook
 - `playbooks/deploy.yml` — Day-to-day Plastic sync + worker deploy
-- `scripts/setup-windows.ps1` — Run once per Windows VM via Proxmox console
+- `scripts/bootstrap-ansible.ps1` — Run once per Windows VM via Proxmox console
 
 ## Adding a New Node
 
 ```bash
 # Windows VM:
 # 1. Create VM in Proxmox
-# 2. Run scripts/setup-windows.ps1 via Proxmox console
+# 2. Run scripts/bootstrap-ansible.ps1 via Proxmox console
 # 3. Add to inventories/hrlv/hosts.yml under ue_nodes or arnold_nodes
 # 4. ansible-playbook playbooks/site.yml --limit <hostname>
 
@@ -107,3 +107,4 @@ Managed via Ansible Vault in `inventories/hrlv/group_vars/all/vault.yml`. Vault 
 - Windows playbooks use `ansible.windows.*` modules
 - Linux playbooks use `ansible.builtin.*` modules
 - All secrets go through vault, never env vars or plaintext
+- **WinRM runs in Session 0 (isolated service session)** — NOT the interactive desktop. Anything session-scoped (mapped drives, NFS mounts, env vars, GPU/display access) will be invisible to the logged-in user if done through `win_shell`. Use scheduled tasks targeting the interactive session for anything the desktop user needs to see. The `render_worker` and `smb_share` roles do this correctly.

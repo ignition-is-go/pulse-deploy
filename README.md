@@ -43,7 +43,7 @@ pulse-deploy/
 ├── collections/              # Ansible Galaxy requirements
 ├── infra/                    # Terraform (Proxmox provisioning)
 ├── scripts/                  # Bootstrap scripts
-│   └── setup-windows.ps1     # One-time Windows VM bootstrap
+│   └── bootstrap-ansible.ps1     # One-time Windows VM bootstrap
 ├── setup.sh                  # Shell orchestrator (Optik VM-level config)
 ├── config/
 │   └── defaults.conf         # Default configuration values
