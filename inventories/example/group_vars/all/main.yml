@@ -1,0 +1,9 @@
+---
+# Global variables for all hosts
+#
+# Reference secrets from vault.yml using the vault_ prefix convention:
+#   ansible_user: "{{ vault_ansible_user }}"
+#   ansible_password: "{{ vault_ansible_password }}"
+
+ansible_user: "{{ vault_ansible_user }}"
+ansible_password: "{{ vault_ansible_password }}"

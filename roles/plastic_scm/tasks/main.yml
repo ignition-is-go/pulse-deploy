@@ -1,0 +1,22 @@
+---
+# plastic_scm — Layer 2: Plastic SCM installation, authentication, and workspace sync
+#
+# Cross-platform role:
+#   - Windows: Authenticates via API key, syncs workspace using Plastic GUI CLI
+#   - Linux (Debian/Ubuntu): Installs Plastic CLI via apt, syncs workspace using cm
+
+- name: Skip Plastic SCM (skip_plastic=true)
+  ansible.builtin.debug:
+    msg: "Skipping Plastic SCM operations"
+  when: skip_plastic | bool
+
+- name: Include platform tasks
+  when: not (skip_plastic | bool)
+  block:
+    - name: Windows — Plastic SCM
+      ansible.builtin.include_tasks: windows.yml
+      when: ansible_os_family == "Windows"
+
+    - name: Linux — Plastic SCM
+      ansible.builtin.include_tasks: linux.yml
+      when: ansible_os_family == "Debian"

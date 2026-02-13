@@ -8,7 +8,8 @@ Pulse runs on heterogeneous hardware configurations with different node types se
 
 - **Optik nodes** - Video/camera processing with EVT cameras, GPU-direct, PTP boundary clock
 - **Unreal nodes** - Real-time graphics rendering
-- **Inference nodes** - AI/ML workloads
+- **Arnold nodes** - Offline rendering (Arnold/Fusion)
+- **rship nodes** - Real-time communication infrastructure
 - **Control nodes** - System orchestration
 
 This repository automates deployment across these configurations, abstracting platform differences (Proxmox VMs today, RHEL bare-metal in future).
@@ -27,42 +28,84 @@ Future target: **Red Hat OpenShift Virtualization** (KubeVirt-based)
 
 ```
 pulse-deploy/
-├── setup.sh              # Main orchestrator
+├── ansible.cfg               # Ansible configuration (default inventory: hrlv)
+├── inventories/              # Deployment environments
+│   ├── hrlv/                 # HRLV production environment
+│   │   ├── hosts.yml
+│   │   └── group_vars/
+│   └── example/              # Template for new environments
+├── playbooks/                # Ansible playbooks
+│   ├── site.yml              # Full convergence
+│   ├── deploy.yml            # Day-to-day Plastic sync + worker
+│   ├── build.yml             # UE build pipeline
+│   └── status.yml            # Fleet status checks
+├── roles/                    # Composable Ansible roles
+├── collections/              # Ansible Galaxy requirements
+├── infra/                    # Terraform (Proxmox provisioning)
+├── scripts/                  # Bootstrap scripts
+│   └── setup-windows.ps1     # One-time Windows VM bootstrap
+├── setup.sh                  # Shell orchestrator (Optik VM-level config)
 ├── config/
-│   └── defaults.conf     # Default configuration values
-├── lib/                  # Shared shell libraries
-│   ├── common.sh         # Logging, utilities
-│   ├── detect.sh         # Hardware detection
-│   └── validation.sh     # Input validation
-├── modules/              # Deployment modules
-│   ├── hugepages/        # RDMA/Rivermax memory
-│   ├── network/          # EVT camera network
-│   ├── ptp/              # PTP time sync
-│   └── evt/              # EVT camera routes
-├── tests/                # Validation scripts
-└── docs/                 # Documentation
+│   └── defaults.conf         # Default configuration values
+├── lib/                      # Shared shell libraries
+│   ├── common.sh             # Logging, utilities
+│   ├── detect.sh             # Hardware detection
+│   └── validation.sh         # Input validation
+├── modules/                  # Shell deployment modules
+│   ├── hugepages/            # RDMA/Rivermax memory
+│   ├── network/              # EVT camera network
+│   ├── ptp/                  # PTP time sync
+│   └── evt/                  # EVT camera routes
+├── tests/                    # Validation scripts
+└── docs/                     # Documentation
 ```
 
-## Quick Start
+## Ansible Fleet Management
+
+Manages the full render farm fleet via composable role layers:
+
+```
+Layer 0: OS base       → win_base, linux_base, lxc_base
+Layer 1: Drivers       → nvidia_gpu_win, nvidia_gpu_linux, rivermax
+Layer 2: Shared infra  → smb_share, linux_storage, plastic_scm
+Layer 3: Applications  → unreal_engine, render_worker, arnold, optik, rship
+```
 
 ```bash
-git clone https://github.com/ignition-is-go/pulse-deploy.git
-cd pulse-deploy
+# Full convergence (uses default inventory from ansible.cfg)
+ansible-playbook playbooks/site.yml
 
+# Day-to-day deploy (Plastic sync + worker update)
+ansible-playbook playbooks/deploy.yml
+
+# Target specific nodes
+ansible-playbook playbooks/site.yml --limit ue_nodes
+
+# Use a different environment
+ansible-playbook playbooks/site.yml -i inventories/staging/hosts.yml
+
+# Status checks
+ansible-playbook playbooks/status.yml
+```
+
+### New Environment
+
+```bash
+cp -r inventories/example inventories/mysite
+# Edit inventories/mysite/hosts.yml
+# Encrypt vault: ansible-vault encrypt inventories/mysite/group_vars/all/vault.yml
+ansible-playbook playbooks/site.yml -i inventories/mysite/hosts.yml
+```
+
+See [`CLAUDE.md`](CLAUDE.md) for full Ansible architecture reference.
+
+## Shell Modules (Optik VM Config)
+
+```bash
 # Preview changes (safe, no modifications)
 DRY_RUN=1 ./setup.sh
 
-# Deploy
-sudo ./setup.sh
-
-# Validate
-./tests/validate-all.sh
-```
-
-## Usage
-
-```bash
-# Full deployment
+# Deploy all modules
 sudo ./setup.sh
 
 # Single module
@@ -71,11 +114,11 @@ sudo ./setup.sh --module ptp
 # List modules
 ./setup.sh --list
 
-# Debug output
-DEPLOY_DEBUG=1 sudo ./setup.sh
+# Validate
+./tests/validate-all.sh
 ```
 
-## Configuration
+### Configuration
 
 Edit `config/defaults.conf` or override via environment:
 
@@ -87,27 +130,12 @@ Edit `config/defaults.conf` or override via environment:
 | `CX6_MTU` | 9000 | ConnectX MTU |
 | `PTP_DOMAIN` | 0 | PTP domain number |
 
-## Current Scope
-
-This repo currently handles **VM-level configuration** for Optik nodes:
-- Huge pages for Rivermax DMA
-- ConnectX-6 network configuration
-- PTP boundary clock (patched linuxptp for Symmetricom S300)
-- EVT camera routing
-
-## Future Work
-
-- [ ] Node role profiles (optik, unreal, inference, control)
-- [ ] Platform abstraction (Proxmox vs OpenShift Virtualization)
-- [ ] Host-level configuration (BIOS, hypervisor, GPU/NIC passthrough)
-- [ ] NVIDIA driver/CUDA module (GPU Operator on OpenShift)
-- [ ] OpenShift tooling (Operators, GitOps/ArgoCD, ACM)
-- [ ] Mixed VM + container workloads
-
 ## Documentation
 
 - [Deployment Repository Guide](docs/DEPLOYMENT_REPO_GUIDE.md) - Structure, conventions, and patterns
-- Host configuration notes (BIOS, Proxmox) - TODO
+- [OpenShift Migration](docs/OPENSHIFT_MIGRATION.md) - Future migration path
+- [Proxmox Guides](docs/proxmox/README.md) - Host-level configuration (GPU passthrough, SR-IOV, etc.)
+- [ConnectX-6 SR-IOV](docs/connectx6-sriov.md) - Mellanox NIC configuration
 
 ## Post-Deployment
 

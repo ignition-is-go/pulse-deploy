@@ -1,45 +1,71 @@
 ---
-# Ansible playbook to sync Plastic SCM repos on Proxmox VM nodes
-# Usage:
-#   ansible-playbook -i inventory.yml plastic-sync.yml
-#   ansible-playbook -i inventory.yml plastic-sync.yml -e "plastic_branch=/feature/xyz"
+# plastic_scm/tasks/linux.yml — Linux (Debian/Ubuntu) Plastic SCM install + workspace sync
 
-- name: Sync Plastic SCM workspaces on nodes
-  hosts: pulse_nodes
-  become: false
-  gather_facts: true
+# --- Installation ---
 
-  vars:
-    # Override these in inventory or via -e
-    plastic_workspace: "{{ lookup('env', 'PLASTIC_WORKSPACE') | default('/opt/pulse/workspace', true) }}"
-    plastic_repo: "{{ lookup('env', 'PLASTIC_REPO') | default('P-0616-HRLV', true) }}"
-    plastic_server: "{{ lookup('env', 'PLASTIC_SERVER') | default('cloud', true) }}"
-    plastic_token: "{{ lookup('env', 'PLASTIC_TOKEN') | default('', true) }}"
-    plastic_branch: "{{ lookup('env', 'PLASTIC_BRANCH') | default('/main', true) }}"
+- name: Check if cm is already installed
+  ansible.builtin.command: which cm
+  register: cm_installed
+  changed_when: false
+  failed_when: false
 
-  tasks:
-    - name: Check if Plastic SCM CLI is installed
-      ansible.builtin.command: which cm
-      register: cm_check
-      changed_when: false
-      failed_when: false
+- name: Install Plastic SCM CLI
+  when: cm_installed.rc != 0
+  become: true
+  block:
+    - name: Install prerequisites
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - gnupg
+        state: present
+        update_cache: true
 
-    - name: Fail if cm not installed
-      ansible.builtin.fail:
-        msg: "Plastic SCM CLI (cm) not found on {{ inventory_hostname }}"
-      when: cm_check.rc != 0
+    - name: Add Plastic SCM GPG key
+      ansible.builtin.apt_key:
+        url: "{{ plastic_repo_key_url }}"
+        state: present
 
+    - name: Add Plastic SCM repository
+      ansible.builtin.apt_repository:
+        repo: "deb {{ plastic_repo_url }} ./"
+        state: present
+        filename: plasticscm
+
+    - name: Install Plastic SCM client
+      ansible.builtin.apt:
+        name: plasticscm-cloud
+        state: present
+        update_cache: true
+
+- name: Verify Plastic CLI
+  ansible.builtin.command: cm version
+  register: cm_version
+  changed_when: false
+
+- name: Display Plastic version
+  ansible.builtin.debug:
+    msg: "{{ inventory_hostname }}: {{ cm_version.stdout }}"
+
+# --- Authentication ---
+
+- name: Configure token auth (if API key provided)
+  when: plastic_api_key | length > 0
+  ansible.builtin.shell: |
+    cm profile list 2>/dev/null | grep -q "{{ plastic_server }}" && cm profile delete "{{ plastic_server }}" || true
+    cm profile create "{{ plastic_server }}" --token="{{ plastic_api_key }}"
+  no_log: true
+
+# --- Workspace sync ---
+
+- name: Sync workspace
+  when: plastic_workspace | length > 0
+  block:
     - name: Check if workspace exists
       ansible.builtin.stat:
         path: "{{ plastic_workspace }}/.plastic"
       register: workspace_stat
-
-    - name: Configure token auth if provided
-      ansible.builtin.shell: |
-        cm profile list 2>/dev/null | grep -q "{{ plastic_server }}" && cm profile delete "{{ plastic_server }}" || true
-        cm profile create "{{ plastic_server }}" --token="{{ plastic_token }}"
-      when: plastic_token | length > 0
-      no_log: true
 
     - name: Clone repository if workspace doesn't exist
       ansible.builtin.command:
@@ -64,7 +90,7 @@
 
     - name: Switch to target branch
       ansible.builtin.command:
-        cmd: cm switch {{ plastic_branch }}
+        cmd: "cm switch {{ plastic_branch }}"
         chdir: "{{ plastic_workspace }}"
       register: switch_result
       changed_when: "'Switched' in switch_result.stdout"

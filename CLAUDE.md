@@ -53,12 +53,15 @@ ansible-playbook playbooks/plastic-status.yml
 # Build pipeline
 ansible-playbook playbooks/build.yml --limit windows-unreal-dev-01
 
+# Use a different inventory/environment
+ansible-playbook playbooks/site.yml -i inventories/staging/hosts.yml
+
 # Connectivity test
 ansible all -m ping
 
 # Vault
-ansible-vault encrypt inventory/group_vars/all/vault.yml
-ansible-vault edit inventory/group_vars/all/vault.yml
+ansible-vault encrypt inventories/hrlv/group_vars/all/vault.yml
+ansible-vault edit inventories/hrlv/group_vars/all/vault.yml
 
 # Install collections
 ansible-galaxy collection install -r collections/requirements.yml
@@ -66,36 +69,36 @@ ansible-galaxy collection install -r collections/requirements.yml
 
 ## Key Files
 
-- `inventory/hosts.yml` — All hosts, groups, and connection vars
-- `inventory/group_vars/all/vault.yml` — Encrypted secrets (vault)
-- `inventory/group_vars/ue_nodes.yml` — UE paths, Plastic, worker config
+- `inventories/hrlv/hosts.yml` — All hosts, groups, and connection vars
+- `inventories/hrlv/group_vars/all/vault.yml` — Encrypted secrets (vault)
+- `inventories/hrlv/group_vars/ue_nodes.yml` — UE paths, Plastic, worker config
 - `playbooks/site.yml` — Master convergence playbook
 - `playbooks/deploy.yml` — Day-to-day Plastic sync + worker deploy
-- `scripts/bootstrap-winrm.ps1` — Run once per Windows VM via Proxmox console
+- `scripts/setup-windows.ps1` — Run once per Windows VM via Proxmox console
 
 ## Adding a New Node
 
 ```bash
 # Windows VM:
 # 1. Create VM in Proxmox
-# 2. Run scripts/bootstrap-winrm.ps1 via Proxmox console
-# 3. Add to inventory/hosts.yml under ue_nodes or arnold_nodes
+# 2. Run scripts/setup-windows.ps1 via Proxmox console
+# 3. Add to inventories/hrlv/hosts.yml under ue_nodes or arnold_nodes
 # 4. ansible-playbook playbooks/site.yml --limit <hostname>
 
 # LXC container:
 # 1. Create LXC in Proxmox, add SSH key
-# 2. Add to inventory/hosts.yml under rship_nodes
+# 2. Add to inventories/hrlv/hosts.yml under rship_nodes
 # 3. ansible-playbook playbooks/site.yml --limit <hostname>
 
 # Linux VM:
 # 1. Create VM in Proxmox, add SSH key
-# 2. Add to inventory/hosts.yml under appropriate group
+# 2. Add to inventories/hrlv/hosts.yml under appropriate group
 # 3. ansible-playbook playbooks/site.yml --limit <hostname>
 ```
 
 ## Secrets
 
-Managed via Ansible Vault in `inventory/group_vars/all/vault.yml`. Vault password stored in `.vault_pass` (gitignored). Variables are prefixed `vault_` and referenced from plain-text vars files.
+Managed via Ansible Vault in `inventories/hrlv/group_vars/all/vault.yml`. Vault password stored in `.vault_pass` (gitignored). Variables are prefixed `vault_` and referenced from plain-text vars files.
 
 ## Conventions
 
