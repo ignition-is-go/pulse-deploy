@@ -1,0 +1,13 @@
+---
+# Encrypt this file: ansible-vault encrypt inventories/example/group_vars/all/vault.yml
+#
+# All secrets use the vault_ prefix. Reference them from main.yml or other
+# group_vars files without the prefix.
+
+vault_ansible_user: "admin"
+vault_ansible_password: "changeme"
+# vault_plastic_api_key: ""
+# vault_plastic_cloud_user: ""
+# vault_plastic_cloud_org: ""
+# vault_render_server_url: ""
+# vault_linux_ssh_user: ""
