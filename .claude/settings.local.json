@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:forum.plasticscm.com)",
+      "WebFetch(domain:support.unity.com)"
+    ]
+  }
+}

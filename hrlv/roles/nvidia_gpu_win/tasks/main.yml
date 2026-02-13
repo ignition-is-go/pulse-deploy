@@ -1,0 +1,44 @@
+---
+# nvidia_gpu_win — Layer 1: NVIDIA GPU driver validation (Windows)
+# Verifies GPU is detected and driver is installed.
+# Driver installation is done manually or via NVIDIA Enterprise tools;
+# this role validates state and reports issues.
+
+- name: Check for NVIDIA GPU
+  ansible.windows.win_shell: |
+    $gpu = Get-WmiObject Win32_VideoController | Where-Object { $_.Name -like '*NVIDIA*' }
+    if ($gpu) {
+      Write-Host "found"
+      Write-Host "Name: $($gpu.Name)"
+      Write-Host "Driver: $($gpu.DriverVersion)"
+    } else {
+      Write-Host "not_found"
+    }
+  register: gpu_check
+  changed_when: false
+
+- name: Display GPU status
+  ansible.builtin.debug:
+    msg: "{{ gpu_check.stdout | trim }}"
+
+- name: Fail if no NVIDIA GPU detected
+  ansible.builtin.fail:
+    msg: "No NVIDIA GPU detected on {{ inventory_hostname }}. Check PCI passthrough configuration."
+  when: "'not_found' in gpu_check.stdout"
+
+- name: Check NVIDIA SMI
+  ansible.windows.win_shell: |
+    $nvsmi = "C:\Windows\System32\nvidia-smi.exe"
+    if (Test-Path $nvsmi) {
+      & $nvsmi --query-gpu=name,driver_version,memory.total --format=csv,noheader
+    } else {
+      Write-Host "nvidia-smi not found"
+    }
+  register: nvsmi_check
+  changed_when: false
+  failed_when: false
+
+- name: Display nvidia-smi output
+  ansible.builtin.debug:
+    msg: "{{ nvsmi_check.stdout | trim }}"
+  when: "'not found' not in nvsmi_check.stdout"

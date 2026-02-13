@@ -1,0 +1,21 @@
+---
+all:
+  children:
+    ndisplay_nodes:
+      hosts:
+        windows-unreal-render-01:
+          sync_ip: "10.10.10.1"
+          media_ip: "10.10.20.1"
+          ndisplay_primary: true
+
+        windows-unreal-render-02:
+          sync_ip: "10.10.10.2"
+          media_ip: "10.10.20.2"
+
+        windows-unreal-render-03:
+          sync_ip: "10.10.10.3"
+          media_ip: "10.10.20.3"
+
+        windows-unreal-render-04:
+          sync_ip: "10.10.10.4"
+          media_ip: "10.10.20.4"

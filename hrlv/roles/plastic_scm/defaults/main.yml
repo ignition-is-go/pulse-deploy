@@ -1,0 +1,9 @@
+---
+# plastic_scm defaults
+
+plastic_exe: "C:/Program Files/PlasticSCM5/client/cm.exe"
+plastic_workspace: ""
+plastic_cloud_org: ""
+plastic_cloud_user: ""
+plastic_api_key: ""
+skip_plastic: false

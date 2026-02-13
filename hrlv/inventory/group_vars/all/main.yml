@@ -1,0 +1,8 @@
+---
+# Global defaults — references vault-encrypted secrets
+
+ansible_user: "{{ vault_ansible_user }}"
+ansible_password: "{{ vault_ansible_password }}"
+
+# Render server
+render_server_url: "{{ vault_render_server_url }}"

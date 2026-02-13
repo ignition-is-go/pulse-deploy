@@ -1,0 +1,30 @@
+---
+# Check status of all render nodes
+#
+# Usage: ansible-playbook playbooks/status.yml
+#        ansible-playbook playbooks/status.yml --limit windows-unreal-03
+
+- name: Check Render Node Status
+  hosts: ue_nodes
+  gather_facts: true
+  ignore_unreachable: true
+
+  tasks:
+    - name: Get node status
+      ansible.windows.win_shell: |
+        $worker = Get-Process -Name worker -ErrorAction SilentlyContinue | Select-Object -First 1
+        $ue = Get-Process -Name UnrealEditor* -ErrorAction SilentlyContinue | Select-Object -First 1
+
+        $workerStatus = if ($worker) { "RUNNING (PID: $($worker.Id))" } else { "STOPPED" }
+        $ueStatus = if ($ue) { "RENDERING (PID: $($ue.Id))" } else { "IDLE" }
+
+        Write-Host "Worker: $workerStatus"
+        Write-Host "Unreal: $ueStatus"
+      register: status
+      changed_when: false
+
+    - name: Display status
+      ansible.builtin.debug:
+        msg: |
+          {{ inventory_hostname }}: {{ ansible_processor_vcpus }} cores, {{ (ansible_memtotal_mb / 1024) | round(1) }}GB RAM
+          {{ status.stdout | trim }}

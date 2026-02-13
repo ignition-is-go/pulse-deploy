@@ -1,0 +1,7 @@
+---
+# linux_storage — Layer 2: Mount ZFS NAS (Linux VMs/LXCs)
+# TODO: Implement when provisioning Linux targets that need storage
+
+- name: Linux storage role placeholder
+  ansible.builtin.debug:
+    msg: "Linux storage role applied to {{ inventory_hostname }} — configure linux_storage_mounts to enable"

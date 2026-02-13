@@ -1,0 +1,35 @@
+---
+# build.yml — UE build pipeline
+#
+# Builds Unreal project, stages to SMB share, distributes to previs nodes.
+# Consolidates: cl-build-unreal.yml, build-and-monitor.yml,
+#               copy-build-to-nfs.yml, distribute-build-to-previs.yml
+#
+# Usage:
+#   ansible-playbook playbooks/build.yml --limit windows-unreal-dev-01
+
+- name: Build and stage UE project
+  hosts: ue_nodes
+  gather_facts: false
+  ignore_unreachable: true
+  roles:
+    - build_pipeline
+
+- name: Distribute build to previs nodes
+  hosts: ue_nodes
+  gather_facts: false
+  ignore_unreachable: true
+
+  tasks:
+    - name: Find latest build on SMB share
+      ansible.windows.win_shell: |
+        $folder = Get-ChildItem {{ smb_drive_letter }}\ -Directory | Where-Object { $_.Name -like "Windows_*" } | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+        if ($folder) { $folder.Name }
+      register: latest_build
+
+    - name: Copy build to local storage
+      ansible.windows.win_copy:
+        src: "{{ smb_drive_letter }}\\{{ latest_build.stdout | trim }}\\"
+        dest: "{{ build_dest_dir | default('F:\\builds\\current') }}\\"
+        remote_src: true
+      when: latest_build.stdout | trim | length > 0

@@ -1,0 +1,12 @@
+---
+# linux_base defaults
+
+linux_base_packages:
+  - curl
+  - wget
+  - htop
+  - vim
+  - git
+  - python3
+
+linux_base_ssh_key_path: "~/.ssh/authorized_keys"

@@ -1,0 +1,7 @@
+---
+# arnold — Layer 3: Arnold/Fusion render setup
+# TODO: Implement when Arnold/Fusion nodes are provisioned
+
+- name: Arnold role placeholder
+  ansible.builtin.debug:
+    msg: "Arnold/Fusion role applied to {{ inventory_hostname }} — tasks pending implementation"

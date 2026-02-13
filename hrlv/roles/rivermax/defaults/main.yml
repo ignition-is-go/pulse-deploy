@@ -1,0 +1,8 @@
+---
+# rivermax defaults
+
+rivermax_winof2_installer: ""
+rivermax_sdk_installer: ""
+rivermax_license_src: ""
+rivermax_install_dir: 'C:\Program Files\Mellanox\Rivermax'
+rivermax_installers_remote: true

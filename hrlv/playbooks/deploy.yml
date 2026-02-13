@@ -1,0 +1,21 @@
+---
+# Full deployment — Plastic sync + worker update
+#
+# Usage: ansible-playbook playbooks/deploy.yml
+#        ansible-playbook playbooks/deploy.yml --limit windows-unreal-03
+#        ansible-playbook playbooks/deploy.yml -e "skip_plastic=true"
+#
+# Note: Build the worker first with:
+#   cargo build --release --target x86_64-pc-windows-gnu -p worker
+
+- name: Deploy UE render nodes
+  hosts: ue_nodes
+  gather_facts: false
+  ignore_unreachable: true
+  serial: "{{ parallel_nodes | default(omit) }}"
+
+  roles:
+    - role: plastic_scm
+      vars:
+        start_workers: false
+    - render_worker

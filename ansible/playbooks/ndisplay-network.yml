@@ -1,0 +1,52 @@
+---
+# Configure network interfaces on nDisplay render node VMs
+# Usage: ansible-playbook -i inventory.yml ndisplay-network.yml
+#
+# Each node gets:
+#   - A static IP on the VirtIO adapter (10.10.10.0/24 cluster sync)
+#   - A static IP on the ConnectX-6 adapter (10.10.20.0/24 SMPTE 2110 media)
+#   - Firewall rules for nDisplay cluster ports
+
+- name: Configure nDisplay node networking
+  hosts: ndisplay_nodes
+  gather_facts: false
+
+  tasks:
+    - name: Set cluster sync IP (VirtIO adapter)
+      ansible.windows.win_shell: |
+        $adapter = Get-NetAdapter | Where-Object { $_.InterfaceDescription -like "*VirtIO*" }
+        if (-not $adapter) { throw "VirtIO adapter not found" }
+        Remove-NetIPAddress -InterfaceIndex $adapter.ifIndex -Confirm:$false -ErrorAction SilentlyContinue
+        Remove-NetRoute -InterfaceIndex $adapter.ifIndex -Confirm:$false -ErrorAction SilentlyContinue
+        New-NetIPAddress -InterfaceIndex $adapter.ifIndex -IPAddress {{ sync_ip }} -PrefixLength 24
+        Set-NetIPInterface -InterfaceIndex $adapter.ifIndex -Dhcp Disabled
+
+    - name: Set media network IP (ConnectX-6 adapter)
+      ansible.windows.win_shell: |
+        $adapter = Get-NetAdapter | Where-Object { $_.InterfaceDescription -like "*Mellanox*" -or $_.InterfaceDescription -like "*ConnectX*" }
+        if (-not $adapter) { throw "ConnectX adapter not found" }
+        Remove-NetIPAddress -InterfaceIndex $adapter.ifIndex -Confirm:$false -ErrorAction SilentlyContinue
+        Remove-NetRoute -InterfaceIndex $adapter.ifIndex -Confirm:$false -ErrorAction SilentlyContinue
+        New-NetIPAddress -InterfaceIndex $adapter.ifIndex -IPAddress {{ media_ip }} -PrefixLength 24
+        Set-NetIPInterface -InterfaceIndex $adapter.ifIndex -Dhcp Disabled
+
+    - name: Open nDisplay cluster sync ports
+      community.windows.win_firewall_rule:
+        name: nDisplay Cluster Sync
+        direction: in
+        protocol: tcp
+        localport: "41001,41003,41004"
+        action: allow
+        enabled: true
+
+    - name: Display configured IPs
+      ansible.windows.win_shell: |
+        Get-NetIPAddress -AddressFamily IPv4 |
+          Where-Object { $_.IPAddress -notlike "169.*" -and $_.IPAddress -ne "127.0.0.1" } |
+          Select-Object InterfaceAlias, IPAddress |
+          Format-Table -AutoSize
+      register: ip_output
+
+    - name: Show IP configuration
+      ansible.builtin.debug:
+        msg: "{{ ip_output.stdout_lines }}"

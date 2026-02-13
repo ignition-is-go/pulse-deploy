@@ -1,0 +1,55 @@
+---
+# build_pipeline — Build UE, stage to SMB, distribute
+# Consolidates cl-build-unreal.yml, build-and-monitor.yml,
+# copy-build-to-nfs.yml, distribute-build-to-previs.yml
+
+- name: Start Unreal Build
+  args:
+    executable: cmd
+  ansible.windows.win_shell: |
+    start "Unreal Build" cmd /c "cd /d {{ ue_install_dir }}\Engine\Build\BatchFiles && RunUAT.bat BuildCookRun -project={{ build_project }} -noP4 -platform=Win64 -clientconfig=Development -serverconfig=Development -cook -maps=AllMaps -compile -stage -pak -archive -archivedirectory={{ build_archive_dir }} > {{ build_log }} 2>&1"
+  register: build_start
+  async: 100
+  poll: 0
+
+- name: Poll build status
+  ansible.builtin.async_status:
+    jid: "{{ build_start.ansible_job_id }}"
+  register: job_result
+  until: job_result.finished
+  retries: 256
+  delay: 4
+
+- name: Wait for build to complete
+  ansible.windows.win_shell: |
+    while (!(Test-Path "{{ build_log }}") -or !((Get-Content "{{ build_log }}" -Tail 5) -match "BUILD SUCCESSFUL|BUILD FAILED|AutomationTool exiting|ExitCode=")) {
+      Start-Sleep -Seconds 2
+    }
+    "Build complete"
+  register: build_wait
+  async: "{{ build_timeout }}"
+  poll: 10
+
+- name: Rename Windows build folder with timestamp
+  ansible.windows.win_shell: |
+    $windowsFolder = "{{ build_dir }}\Windows"
+    if (Test-Path $windowsFolder) {
+      $timestamp = Get-Date -Format "yyyy-MM-dd_HH-mm-ss"
+      Rename-Item -Path $windowsFolder -NewName "Windows_$timestamp"
+      Write-Output "Renamed to: Windows_$timestamp"
+    } else {
+      Write-Output "Windows folder not found, skipping rename"
+    }
+  register: rename_result
+
+- name: Find latest build folder
+  ansible.windows.win_shell: |
+    Get-ChildItem "{{ build_dir }}" -Directory | Where-Object { $_.Name -like "Windows_*" } | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
+  register: latest_build
+
+- name: Copy build to SMB share
+  ansible.windows.win_shell: |
+    $source = "{{ latest_build.stdout | trim }}"
+    Copy-Item -Path $source -Destination {{ smb_drive_letter }}\ -Recurse -Force
+    Write-Output "Copied from $source to {{ smb_drive_letter }}"
+  when: latest_build.stdout | trim | length > 0

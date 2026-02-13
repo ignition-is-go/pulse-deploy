@@ -1,0 +1,19 @@
+---
+# lxc_base — Layer 0: LXC container base configuration
+# Lighter than linux_base — no systemd in some cases, no kernel modules
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install base packages
+  ansible.builtin.apt:
+    name: "{{ lxc_base_packages }}"
+    state: present
+
+- name: Ensure SSH is running
+  ansible.builtin.service:
+    name: sshd
+    state: started
+    enabled: true

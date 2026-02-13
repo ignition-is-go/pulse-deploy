@@ -1,0 +1,6 @@
+---
+# arnold defaults
+
+# TODO: Set Arnold/Fusion paths when provisioning these nodes
+# arnold_install_dir: "C:/Program Files/Autodesk/Arnold"
+# fusion_install_dir: "C:/Program Files/Blackmagic Design/Fusion"

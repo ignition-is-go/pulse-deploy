@@ -1,0 +1,6 @@
+---
+# nvidia_gpu_linux defaults
+
+# TODO: Set CUDA version and driver version when provisioning
+# cuda_version: "12.4"
+# nvidia_driver_version: "550"

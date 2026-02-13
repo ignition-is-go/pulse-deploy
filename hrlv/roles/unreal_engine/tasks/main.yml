@@ -1,0 +1,26 @@
+---
+# unreal_engine — Layer 3: UE install validation and environment
+
+- name: Verify Unreal Engine installation
+  ansible.windows.win_stat:
+    path: "{{ unreal_exe }}"
+  register: ue_check
+
+- name: Fail if Unreal Engine not installed
+  ansible.builtin.fail:
+    msg: "Unreal Engine not found at {{ unreal_exe }} on {{ inventory_hostname }}"
+  when: not ue_check.stat.exists
+
+- name: Verify project file exists
+  ansible.windows.win_stat:
+    path: "{{ unreal_project }}"
+  register: project_check
+  when: unreal_project | length > 0
+
+- name: Warn if project file missing
+  ansible.builtin.debug:
+    msg: "WARNING: Project file not found at {{ unreal_project }}. Run Plastic sync first."
+  when:
+    - unreal_project | length > 0
+    - project_check is defined
+    - not project_check.stat.exists

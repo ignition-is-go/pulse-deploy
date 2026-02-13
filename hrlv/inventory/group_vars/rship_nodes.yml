@@ -1,0 +1,7 @@
+---
+# rship node configuration
+
+# TODO: Set when provisioning rship nodes
+# rship_version: "latest"
+# rship_config_dir: "/etc/rship"
+# rship_data_dir: "/var/lib/rship"

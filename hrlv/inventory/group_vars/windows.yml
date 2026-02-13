@@ -1,0 +1,3 @@
+---
+# Windows group vars — applied to all Windows VMs
+# WinRM connection vars are set in inventory/hosts.yml under windows.vars

@@ -1,0 +1,5 @@
+---
+ansible_connection: winrm
+ansible_winrm_transport: basic
+ansible_user: Administrator
+ansible_password: "{{ lookup('env', 'NDISPLAY_ADMIN_PASSWORD') }}"

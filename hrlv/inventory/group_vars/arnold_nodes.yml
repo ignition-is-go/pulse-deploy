@@ -1,0 +1,11 @@
+---
+# Arnold/Fusion render node configuration
+
+# TODO: Set Arnold/Fusion paths when provisioning these nodes
+# arnold_install_dir: "C:/Program Files/Autodesk/Arnold"
+# fusion_install_dir: "C:/Program Files/Blackmagic Design/Fusion"
+
+# SMB storage
+smb_server: "192.168.1.61"
+smb_share: "render"
+smb_drive_letter: "Z:"

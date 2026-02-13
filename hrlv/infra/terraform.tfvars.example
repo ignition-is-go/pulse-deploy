@@ -1,0 +1,198 @@
+# -----------------------------------------------------------------------------
+# Proxmox connection
+# -----------------------------------------------------------------------------
+
+proxmox_endpoint = "https://proxmox-01.local:8006"
+proxmox_username = "root@pam"
+proxmox_password = "CHANGEME"
+
+# -----------------------------------------------------------------------------
+# Templates — create these in Proxmox first
+# -----------------------------------------------------------------------------
+
+# Windows 11 template: sysprepped with unattend.xml that enables WinRM
+windows_template_id = 9000
+
+# Debian/Ubuntu cloud-init template
+linux_template_id = 9001
+
+# LXC template (download via Proxmox UI or pveam)
+lxc_template = "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
+
+# -----------------------------------------------------------------------------
+# Network
+# -----------------------------------------------------------------------------
+
+network_bridge  = "vmbr0"
+network_gateway = "192.168.1.1"
+dns_servers     = ["192.168.1.1"]
+
+# -----------------------------------------------------------------------------
+# SSH key for Linux targets
+# -----------------------------------------------------------------------------
+
+ssh_public_key = "ssh-ed25519 AAAA... user@control-plane"
+
+# -----------------------------------------------------------------------------
+# Storage
+# -----------------------------------------------------------------------------
+
+vm_storage  = "local-zfs"
+lxc_storage = "local-zfs"
+
+# -----------------------------------------------------------------------------
+# UE render/previs nodes (Windows + GPU)
+# -----------------------------------------------------------------------------
+
+# CX6 VF PCI addresses come from SR-IOV setup on the host.
+# Run `lspci | grep -i mellanox` on the Proxmox host to find VF addresses.
+# VFs are created via switchdev mode — see docs/connectx6-sriov.md.
+# Each VF is a separate PCI device (e.g. 0f:00.2, 0f:00.3, etc.)
+
+ue_nodes = {
+  "windows-unreal-01" = {
+    ip         = "192.168.1.169"
+    node       = "proxmox-01"
+    cores      = 16
+    memory_mb  = 32768
+    disk_gb    = 120
+    gpu_pci    = "0000:41:00.0"
+    rivermax   = true
+    cx6_vf_pci = "0000:0f:00.2"  # CX6 adapter #1, VF 0
+  }
+  "windows-unreal-02" = {
+    ip         = "192.168.1.150"
+    node       = "proxmox-01"
+    cores      = 16
+    memory_mb  = 32768
+    disk_gb    = 120
+    gpu_pci    = "0000:42:00.0"
+    rivermax   = true
+    cx6_vf_pci = "0000:0f:00.3"  # CX6 adapter #1, VF 1
+  }
+  "windows-unreal-03" = {
+    ip         = "192.168.1.159"
+    node       = "proxmox-02"
+    cores      = 16
+    memory_mb  = 32768
+    disk_gb    = 120
+    gpu_pci    = "0000:41:00.0"
+    rivermax   = true
+    cx6_vf_pci = "0000:0f:00.2"  # CX6 on proxmox-02, VF 0
+  }
+  "windows-unreal-04" = {
+    ip         = "192.168.1.161"
+    node       = "proxmox-02"
+    cores      = 16
+    memory_mb  = 32768
+    disk_gb    = 120
+    gpu_pci    = "0000:42:00.0"
+    rivermax   = true
+    cx6_vf_pci = "0000:0f:00.3"  # CX6 on proxmox-02, VF 1
+  }
+  "windows-unreal-05" = {
+    ip         = "192.168.1.166"
+    node       = "proxmox-02"
+    cores      = 16
+    memory_mb  = 32768
+    disk_gb    = 120
+    gpu_pci    = "0000:43:00.0"
+    rivermax   = true
+    cx6_vf_pci = "0000:0f:00.4"  # CX6 on proxmox-02, VF 2
+  }
+  "windows-unreal-dev-01" = {
+    ip         = "192.168.1.112"
+    node       = "proxmox-01"
+    cores      = 16
+    memory_mb  = 32768
+    disk_gb    = 200
+    gpu_pci    = "0000:43:00.0"
+    rivermax   = false
+    # cx6_vf_pci omitted — no Rivermax on dev nodes
+  }
+  "windows-unreal-dev-02" = {
+    ip         = "192.168.1.118"
+    node       = "proxmox-01"
+    cores      = 16
+    memory_mb  = 32768
+    disk_gb    = 200
+    gpu_pci    = "0000:44:00.0"
+    rivermax   = false
+  }
+}
+
+# -----------------------------------------------------------------------------
+# Arnold/Fusion nodes (Windows + GPU)
+# -----------------------------------------------------------------------------
+
+arnold_nodes = {
+  # "windows-arnold-01" = {
+  #   ip        = "192.168.1.xxx"
+  #   node      = "proxmox-02"
+  #   cores     = 16
+  #   memory_mb = 32768
+  #   disk_gb   = 120
+  #   gpu_pci   = "0000:44:00.0"
+  # }
+}
+
+# -----------------------------------------------------------------------------
+# Optik VM (Linux + GPU)
+# -----------------------------------------------------------------------------
+
+optik_vm = {
+  ip        = "192.168.1.xxx"
+  node      = "proxmox-01"
+  cores     = 8
+  memory_mb = 16384
+  disk_gb   = 100
+  gpu_pci   = "0000:45:00.0"
+}
+
+# -----------------------------------------------------------------------------
+# Ansible control plane (Linux, no GPU)
+# -----------------------------------------------------------------------------
+
+control_plane_vm = {
+  ip        = "192.168.1.168"
+  node      = "proxmox-01"
+  cores     = 4
+  memory_mb = 4096
+  disk_gb   = 40
+}
+
+# -----------------------------------------------------------------------------
+# rship LXC containers
+# -----------------------------------------------------------------------------
+
+rship_nodes = {
+  "rship-01" = {
+    ip        = "192.168.1.xxx"
+    node      = "proxmox-01"
+    cores     = 2
+    memory_mb = 2048
+    disk_gb   = 20
+  }
+  "rship-02" = {
+    ip        = "192.168.1.xxx"
+    node      = "proxmox-01"
+    cores     = 2
+    memory_mb = 2048
+    disk_gb   = 20
+  }
+  "rship-03" = {
+    ip        = "192.168.1.xxx"
+    node      = "proxmox-02"
+    cores     = 2
+    memory_mb = 2048
+    disk_gb   = 20
+  }
+}
+
+rship_control = {
+  ip        = "192.168.1.xxx"
+  node      = "proxmox-01"
+  cores     = 2
+  memory_mb = 2048
+  disk_gb   = 20
+}

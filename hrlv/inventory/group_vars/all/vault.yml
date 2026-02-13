@@ -1,0 +1,11 @@
+---
+# Encrypt this file: ansible-vault encrypt inventory/group_vars/all/vault.yml
+# Edit:              ansible-vault edit inventory/group_vars/all/vault.yml
+
+vault_ansible_user: Administrator
+vault_ansible_password: "CHANGEME"
+vault_plastic_api_key: "CHANGEME"
+vault_plastic_cloud_user: "user@email.com"
+vault_plastic_cloud_org: "OrgName"
+vault_render_server_url: "ws://192.168.1.158:3000/api/ws"
+vault_linux_ssh_user: "root"

@@ -1,0 +1,6 @@
+---
+# rship control plane configuration
+
+# TODO: Set when provisioning rship control plane
+# rship_control_port: 8080
+# rship_control_config_dir: "/etc/rship-control"

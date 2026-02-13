@@ -1,0 +1,8 @@
+---
+# render_worker defaults
+
+worker_path: C:\ue-render-farm
+worker_exe: worker.exe
+executor_path: C:\ue-render-farm\executor
+render_server_url: ""
+worker_task_name: RenderFarmWorker

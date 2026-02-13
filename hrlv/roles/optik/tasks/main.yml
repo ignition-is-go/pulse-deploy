@@ -1,0 +1,7 @@
+---
+# optik — Layer 3: Optik computer vision service
+# TODO: Implement when provisioning Optik VM
+
+- name: Optik role placeholder
+  ansible.builtin.debug:
+    msg: "Optik role applied to {{ inventory_hostname }} — tasks pending implementation"

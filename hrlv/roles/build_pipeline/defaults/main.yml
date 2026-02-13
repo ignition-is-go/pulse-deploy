@@ -1,0 +1,10 @@
+---
+# build_pipeline defaults
+
+build_dir: "F:\\builds"
+build_log: "F:\\builds\\build.log"
+ue_install_dir: "F:\\UE-install\\UE_5.6"
+build_project: "F:\\P-0616-HRLV\\ue\\HRLV_Content\\HRLV_Content.uproject"
+build_archive_dir: "F:\\builds"
+build_dest_dir: "F:\\builds\\current"
+build_timeout: 7200

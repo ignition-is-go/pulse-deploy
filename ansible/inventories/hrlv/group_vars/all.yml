@@ -1,0 +1,8 @@
+---
+# HRLV environment-wide vars
+sync_subnet: "10.10.10.0/24"
+media_subnet: "10.10.20.0/24"
+ndisplay_cluster_ports:
+  - 41001
+  - 41003
+  - 41004

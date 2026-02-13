@@ -1,0 +1,20 @@
+---
+# win_base defaults
+
+# Power settings
+win_base_disable_sleep: true
+win_base_disable_hibernation: true
+
+# Firewall
+win_base_firewall_rules:
+  - name: OpenSSH-Server-In-TCP
+    display_name: "OpenSSH Server (sshd)"
+    port: 22
+    protocol: tcp
+  - name: WinRM-HTTP-In-TCP
+    display_name: "WinRM HTTP"
+    port: 5985
+    protocol: tcp
+  - name: Allow-ICMPv4
+    display_name: "Allow ICMPv4"
+    protocol: icmpv4

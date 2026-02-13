@@ -1,0 +1,5 @@
+---
+# unreal_engine defaults
+
+unreal_exe: "C:/Program Files/Epic Games/UE_5.6/Engine/Binaries/Win64/UnrealEditor.exe"
+unreal_project: ""

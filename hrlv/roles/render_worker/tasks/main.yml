@@ -1,0 +1,58 @@
+---
+# render_worker — Layer 3: Rust render worker binary + scheduled task
+
+- name: Ensure worker directory exists
+  ansible.windows.win_file:
+    path: "{{ worker_path }}"
+    state: directory
+
+- name: Ensure executor directory exists
+  ansible.windows.win_file:
+    path: "{{ executor_path }}"
+    state: directory
+
+- name: Check if worker binary exists
+  ansible.windows.win_stat:
+    path: "{{ worker_path }}\\{{ worker_exe }}"
+  register: worker_binary_check
+
+- name: Warn if worker binary missing
+  ansible.builtin.debug:
+    msg: "WARNING: Worker binary not found at {{ worker_path }}\\{{ worker_exe }}. Build and deploy it first."
+  when: not worker_binary_check.stat.exists
+
+- name: Ensure scheduled task exists for worker
+  ansible.windows.win_shell: |
+    $task = Get-ScheduledTask -TaskName "{{ worker_task_name }}" -ErrorAction SilentlyContinue
+    if ($task) {
+      Write-Host "exists"
+    } else {
+      Write-Host "not_found"
+    }
+  register: task_check
+  changed_when: false
+
+- name: Create scheduled task for worker
+  ansible.windows.win_shell: |
+    $action = New-ScheduledTaskAction -Execute "{{ worker_path }}\{{ worker_exe }}" -WorkingDirectory "{{ worker_path }}" -Argument "{{ render_server_url }}"
+    $trigger = New-ScheduledTaskTrigger -AtLogon
+    $principal = New-ScheduledTaskPrincipal -UserId "$env:USERNAME" -LogonType Interactive -RunLevel Highest
+    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+    Register-ScheduledTask -TaskName "{{ worker_task_name }}" -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
+    Write-Host "Scheduled task created"
+  when: "'not_found' in task_check.stdout"
+
+- name: Ensure worker is running
+  ansible.windows.win_shell: |
+    $proc = Get-Process -Name "{{ worker_exe | regex_replace('\\.exe$', '') }}" -ErrorAction SilentlyContinue
+    if ($proc) {
+      Write-Host "running"
+    } else {
+      Start-ScheduledTask -TaskName "{{ worker_task_name }}"
+      Start-Sleep -Seconds 2
+      $proc = Get-Process -Name "{{ worker_exe | regex_replace('\\.exe$', '') }}" -ErrorAction SilentlyContinue
+      if ($proc) { Write-Host "started" } else { Write-Host "failed_to_start" }
+    }
+  register: worker_status
+  changed_when: "'started' in worker_status.stdout"
+  failed_when: "'failed_to_start' in worker_status.stdout"

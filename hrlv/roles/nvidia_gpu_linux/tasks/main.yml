@@ -1,0 +1,23 @@
+---
+# nvidia_gpu_linux — Layer 1: NVIDIA driver + CUDA (Linux)
+# TODO: Implement driver and CUDA installation when provisioning Linux GPU nodes
+
+- name: Check for NVIDIA GPU
+  ansible.builtin.shell: lspci | grep -i nvidia
+  register: gpu_check
+  changed_when: false
+  failed_when: false
+
+- name: Display GPU status
+  ansible.builtin.debug:
+    msg: "{{ gpu_check.stdout | default('No NVIDIA GPU detected') }}"
+
+- name: Check nvidia-smi
+  ansible.builtin.shell: nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader
+  register: nvsmi_check
+  changed_when: false
+  failed_when: false
+
+- name: Display nvidia-smi output
+  ansible.builtin.debug:
+    msg: "{{ nvsmi_check.stdout | default('nvidia-smi not available') }}"

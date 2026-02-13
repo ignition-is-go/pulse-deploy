@@ -1,0 +1,6 @@
+---
+# optik defaults
+
+# TODO: Set when provisioning Optik
+# optik_install_dir: "/opt/optik"
+# optik_model_path: "/data/models"

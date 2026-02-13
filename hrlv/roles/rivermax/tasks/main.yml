@@ -1,0 +1,111 @@
+---
+# rivermax — Layer 1: WinOF-2 + Rivermax SDK + license
+# Only applied when host var `rivermax: true` is set.
+# Extracted from setup-rivermax.yml playbook.
+
+# --- WinOF-2 Driver ---
+
+- name: Check if WinOF-2 is already installed
+  ansible.windows.win_shell: |
+    $mlx = Get-WmiObject Win32_PnPSignedDriver | Where-Object { $_.DeviceName -like '*Mellanox*' -or $_.DeviceName -like '*ConnectX*' }
+    if ($mlx) { Write-Host "installed"; exit 0 } else { Write-Host "not_installed"; exit 0 }
+  register: winof2_check
+  changed_when: false
+
+- name: Copy WinOF-2 installer to node
+  ansible.windows.win_copy:
+    src: "{{ rivermax_winof2_installer }}"
+    dest: "C:\\temp\\winof2_installer.exe"
+    remote_src: "{{ rivermax_installers_remote | default(true) }}"
+  when: "'not_installed' in winof2_check.stdout"
+
+- name: Install WinOF-2 with Rivermax support
+  ansible.windows.win_shell: |
+    Start-Process -FilePath "C:\temp\winof2_installer.exe" `
+      -ArgumentList '/v"MT_RIVERMAX=1" /S /v/qn /v"/log C:\temp\winof2_install.log"' `
+      -Wait -PassThru
+  register: winof2_install
+  when: "'not_installed' in winof2_check.stdout"
+
+- name: Reboot after WinOF-2 install
+  ansible.windows.win_reboot:
+    reboot_timeout: 600
+  when:
+    - "'not_installed' in winof2_check.stdout"
+    - winof2_install is changed
+
+# --- Rivermax SDK ---
+
+- name: Check if Rivermax SDK is already installed
+  ansible.windows.win_stat:
+    path: "{{ rivermax_install_dir }}\\lib\\rivermax.dll"
+  register: rivermax_dll_check
+
+- name: Copy Rivermax SDK installer to node
+  ansible.windows.win_copy:
+    src: "{{ rivermax_sdk_installer }}"
+    dest: "C:\\temp\\rivermax_sdk_installer.exe"
+    remote_src: "{{ rivermax_installers_remote | default(true) }}"
+  when: not rivermax_dll_check.stat.exists
+
+- name: Install Rivermax SDK
+  ansible.windows.win_shell: |
+    Start-Process -FilePath "C:\temp\rivermax_sdk_installer.exe" `
+      -ArgumentList '/S /v/qn /v"/log C:\temp\rivermax_sdk_install.log"' `
+      -Wait -PassThru
+  register: rivermax_sdk_install
+  when: not rivermax_dll_check.stat.exists
+
+# --- License ---
+
+- name: Ensure license directory exists
+  ansible.windows.win_file:
+    path: "{{ rivermax_install_dir }}\\lib"
+    state: directory
+
+- name: Copy Rivermax license
+  ansible.windows.win_copy:
+    src: "{{ rivermax_license_src }}"
+    dest: "{{ rivermax_install_dir }}\\lib\\rivermax.lic"
+    remote_src: "{{ rivermax_installers_remote | default(true) }}"
+
+- name: Set RIVERMAX_LICENSE_PATH system environment variable
+  ansible.windows.win_environment:
+    name: RIVERMAX_LICENSE_PATH
+    value: "{{ rivermax_install_dir }}\\lib\\rivermax.lic"
+    level: machine
+    state: present
+
+# --- Validation ---
+
+- name: Verify Rivermax DLL exists
+  ansible.windows.win_stat:
+    path: "{{ rivermax_install_dir }}\\lib\\rivermax.dll"
+  register: final_dll_check
+
+- name: Verify license file exists
+  ansible.windows.win_stat:
+    path: "{{ rivermax_install_dir }}\\lib\\rivermax.lic"
+  register: final_lic_check
+
+- name: Check Mellanox adapter is visible
+  ansible.windows.win_shell: |
+    Get-NetAdapter | Where-Object { $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*' } | Format-Table Name, InterfaceDescription, Status -AutoSize
+  register: adapter_check
+  changed_when: false
+
+- name: Display Rivermax status
+  ansible.builtin.debug:
+    msg: |
+      Rivermax DLL: {{ 'OK' if final_dll_check.stat.exists else 'MISSING' }}
+      License file: {{ 'OK' if final_lic_check.stat.exists else 'MISSING' }}
+      Adapters:
+      {{ adapter_check.stdout }}
+
+- name: Cleanup temp installers
+  ansible.windows.win_file:
+    path: "C:\\temp\\{{ item }}"
+    state: absent
+  loop:
+    - winof2_installer.exe
+    - rivermax_sdk_installer.exe

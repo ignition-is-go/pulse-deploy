@@ -1,0 +1,6 @@
+---
+# smb_share defaults
+
+smb_server: ""
+smb_share: ""
+smb_drive_letter: "Z:"

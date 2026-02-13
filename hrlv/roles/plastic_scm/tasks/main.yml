@@ -1,0 +1,129 @@
+---
+# plastic_scm — Layer 2: Plastic SCM authentication and workspace sync
+# Extracted from plastic-update.yml playbook.
+
+- name: Skip Plastic SCM (skip_plastic=true)
+  ansible.builtin.debug:
+    msg: "Skipping Plastic SCM operations"
+  when: skip_plastic | bool
+
+- name: Plastic SCM operations
+  when: not (skip_plastic | bool) and (plastic_workspace | length > 0)
+  block:
+    - name: Kill Plastic GUI (interferes with CLI operations)
+      ansible.windows.win_shell: |
+        Stop-Process -Name plastic -Force -ErrorAction SilentlyContinue
+        Stop-Process -Name cm -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 1
+      failed_when: false
+      changed_when: false
+
+    - name: Check Plastic authentication
+      ansible.windows.win_shell: |
+        cd "{{ plastic_workspace }}"
+        $output = & "{{ plastic_exe }}" status --head 2>&1
+        $exitCode = $LASTEXITCODE
+        if ($exitCode -ne 0 -or $output -match "not logged|sign in|authentication|login required|handle is invalid") {
+            Write-Host "NOT_AUTHENTICATED"
+            exit 0
+        }
+        Write-Host "AUTHENTICATED"
+      register: auth_check
+      changed_when: false
+
+    - name: Set authentication fact
+      ansible.builtin.set_fact:
+        plastic_authenticated: "{{ 'NOT_AUTHENTICATED' not in (auth_check.stdout | default('')) }}"
+
+    - name: Configure Plastic authentication (if API key available)
+      when:
+        - not (plastic_authenticated | default(true))
+        - plastic_api_key | length > 0
+        - plastic_cloud_org | length > 0
+        - plastic_cloud_user | length > 0
+      ansible.windows.win_shell: |
+        & "{{ plastic_exe }}" profile create `
+          --server="{{ plastic_cloud_org }}@cloud" `
+          --username="{{ plastic_cloud_user }}" `
+          --token="{{ plastic_api_key }}" `
+          --workingmode=SSOWorkingMode
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        Write-Host "Plastic profile created successfully"
+      register: profile_result
+      no_log: true
+
+    - name: Re-check authentication after profile creation
+      when:
+        - profile_result is defined
+        - profile_result is changed
+      ansible.windows.win_shell: |
+        cd "{{ plastic_workspace }}"
+        $output = & "{{ plastic_exe }}" status --head 2>&1
+        $exitCode = $LASTEXITCODE
+        if ($exitCode -ne 0 -or $output -match "not logged|sign in|authentication|login required|handle is invalid") {
+            Write-Host "NOT_AUTHENTICATED"
+            exit 0
+        }
+        Write-Host "AUTHENTICATED"
+      register: auth_recheck
+      changed_when: false
+
+    - name: Update authentication fact after profile creation
+      ansible.builtin.set_fact:
+        plastic_authenticated: "{{ 'NOT_AUTHENTICATED' not in (auth_recheck.stdout | default('AUTHENTICATED')) }}"
+      when: auth_recheck is defined
+
+    - name: Fail if still not authenticated
+      ansible.builtin.fail:
+        msg: >-
+          Plastic not authenticated on {{ inventory_hostname }}.
+          {% if plastic_api_key | length == 0 %}
+          Set plastic_api_key in vault, or
+          {% endif %}
+          RDP in and sign into Plastic GUI, then re-run deploy.
+      when: not (plastic_authenticated | default(true))
+
+    - name: Update workspace
+      when: plastic_authenticated | default(true)
+      block:
+        - name: Run Plastic update
+          ansible.windows.win_shell: |
+            if (!(Test-Path "{{ plastic_workspace }}")) {
+                Write-Error "Workspace not found: {{ plastic_workspace }}"
+                exit 1
+            }
+            cd "{{ plastic_workspace }}"
+
+            # Undo any local changes (render nodes should stay clean)
+            & "{{ plastic_exe }}" undo . -r 2>&1 | Out-Null
+
+            # Get changeset before update
+            $before = "unknown"
+            $status = & "{{ plastic_exe }}" status --head 2>&1
+            if ($status -match "cs:(\d+)") { $before = $matches[1] }
+
+            # Update
+            $output = & "{{ plastic_exe }}" update --last --noinput 2>&1
+            $exitCode = $LASTEXITCODE
+
+            # Get changeset after update
+            $after = "unknown"
+            $status = & "{{ plastic_exe }}" status --head 2>&1
+            if ($status -match "cs:(\d+)") { $after = $matches[1] }
+
+            Write-Host "Changeset: $before -> $after"
+            if ($exitCode -ne 0) {
+                Write-Host "Plastic output: $output"
+                exit $exitCode
+            }
+          register: update_result
+
+      rescue:
+        - name: Log update failure
+          ansible.builtin.debug:
+            msg: "Plastic update failed: {{ update_result.stderr | default('unknown error') }}"
+
+    - name: Display result
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ update_result.stdout | default('update skipped') | trim }}"
+      when: update_result is defined

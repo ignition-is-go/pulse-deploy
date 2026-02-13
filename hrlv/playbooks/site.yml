@@ -1,0 +1,74 @@
+---
+# site.yml — Full convergence playbook
+#
+# Applies all layers to every node type. Idempotent and safe to re-run.
+#
+# Usage:
+#   ansible-playbook playbooks/site.yml                              # everything
+#   ansible-playbook playbooks/site.yml --limit windows              # all Windows
+#   ansible-playbook playbooks/site.yml --limit ue_nodes             # UE nodes only
+#   ansible-playbook playbooks/site.yml --limit windows-unreal-03    # single node
+#   ansible-playbook playbooks/site.yml --limit lxc                  # all LXC containers
+#   ansible-playbook playbooks/site.yml --limit rship_nodes          # rship nodes only
+#   ansible-playbook playbooks/site.yml --check                      # dry run
+
+# === Windows VMs ===
+
+- name: Base config — all Windows
+  hosts: windows
+  gather_facts: true
+  roles:
+    - win_base
+    - nvidia_gpu_win
+    - smb_share
+
+- name: UE nodes
+  hosts: ue_nodes
+  gather_facts: false
+  roles:
+    - plastic_scm
+    - unreal_engine
+    - render_worker
+    - role: rivermax
+      when: rivermax | default(false)
+
+- name: Arnold/Fusion nodes
+  hosts: arnold_nodes
+  gather_facts: false
+  roles:
+    - arnold
+
+# === Linux VMs ===
+
+- name: Base config — Linux VMs
+  hosts: linux_vms
+  gather_facts: true
+  roles:
+    - linux_base
+
+- name: Optik
+  hosts: optik
+  gather_facts: false
+  roles:
+    - nvidia_gpu_linux
+    - optik
+
+# === LXC Containers ===
+
+- name: Base config — LXC
+  hosts: lxc
+  gather_facts: true
+  roles:
+    - lxc_base
+
+- name: rship nodes
+  hosts: rship_nodes
+  gather_facts: false
+  roles:
+    - rship
+
+- name: rship control plane
+  hosts: rship_control
+  gather_facts: false
+  roles:
+    - rship_control

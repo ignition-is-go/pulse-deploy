@@ -1,0 +1,23 @@
+---
+# Check Plastic SCM workspace status
+#
+# Usage: ansible-playbook playbooks/plastic-status.yml
+#        ansible-playbook playbooks/plastic-status.yml --limit windows-unreal-03
+
+- name: Check Plastic Status
+  hosts: ue_nodes
+  gather_facts: false
+  ignore_unreachable: true
+  serial: "{{ parallel_nodes | default(omit) }}"
+
+  tasks:
+    - name: Get controlled changes
+      ansible.windows.win_shell: |
+        cd "{{ plastic_workspace }}"
+        $status = & "{{ plastic_exe }}" status --controlledchanged
+        Write-Host "$status"
+      register: plastic_result
+
+    - name: Display result
+      ansible.builtin.debug:
+        msg: "{{ plastic_result.stdout }}"

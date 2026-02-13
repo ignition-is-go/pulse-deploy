@@ -1,0 +1,5 @@
+---
+# nvidia_gpu_win defaults
+
+# Minimum driver version to consider acceptable (major version)
+nvidia_min_driver_version: "550"

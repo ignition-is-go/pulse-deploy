@@ -1,0 +1,5 @@
+---
+# Linux group vars — applied to all Linux targets (VMs + LXC)
+
+ansible_user: "{{ vault_linux_ssh_user }}"
+ansible_connection: ssh

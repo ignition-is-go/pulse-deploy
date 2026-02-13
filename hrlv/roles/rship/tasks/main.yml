@@ -1,0 +1,7 @@
+---
+# rship — Layer 3: rship service (worker nodes)
+# TODO: Implement when provisioning rship LXC containers
+
+- name: rship role placeholder
+  ansible.builtin.debug:
+    msg: "rship role applied to {{ inventory_hostname }} — tasks pending implementation"

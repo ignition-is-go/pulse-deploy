@@ -1,0 +1,32 @@
+---
+# smb_share — Layer 2: Mount ZFS NAS via SMB (Windows)
+# Replaces setup-smb.yml playbook.
+
+- name: Check if SMB share is already mounted
+  ansible.windows.win_shell: |
+    $mapping = Get-PSDrive -Name "{{ smb_drive_letter | regex_replace(':', '') }}" -ErrorAction SilentlyContinue
+    if ($mapping) { "mounted" } else { "not_mounted" }
+  register: smb_check
+  changed_when: false
+
+- name: Unmount existing SMB share if present
+  ansible.windows.win_shell: |
+    net use {{ smb_drive_letter }} /delete /yes
+  when: "'mounted' in smb_check.stdout"
+  failed_when: false
+  changed_when: true
+
+- name: Mount SMB share
+  ansible.windows.win_shell: |
+    net use {{ smb_drive_letter }} \\{{ smb_server }}\{{ smb_share }} /persistent:yes
+  register: mount_result
+
+- name: Verify SMB mount
+  ansible.windows.win_stat:
+    path: "{{ smb_drive_letter }}\\"
+  register: smb_verify
+
+- name: Fail if mount unsuccessful
+  ansible.builtin.fail:
+    msg: "SMB mount failed — {{ smb_drive_letter }} not accessible after mounting \\\\{{ smb_server }}\\{{ smb_share }}"
+  when: not smb_verify.stat.exists

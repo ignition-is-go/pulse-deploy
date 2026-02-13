@@ -1,0 +1,8 @@
+---
+# lxc_base defaults
+
+lxc_base_packages:
+  - curl
+  - wget
+  - vim
+  - python3

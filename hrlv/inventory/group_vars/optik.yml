@@ -1,0 +1,7 @@
+---
+# Optik (computer vision) VM configuration
+
+# TODO: Set when provisioning Optik
+# optik_install_dir: "/opt/optik"
+# optik_model_path: "/data/models"
+# cuda_version: "12.x"
