@@ -7,8 +7,8 @@ unreal_project: "F:/P-0616-HRLV/ue/HRLV_Content/HRLV_Content.uproject"
 # Map/level to load
 ndisplay_map: "/Game/HRLV_Content/Maps/Dev/LookDev/ColorCharts"
 
-# Path to nDisplay config asset (relative to project Content dir, or absolute)
-ndisplay_config: "/Game/nDisplay/nDisplayConfig"
+# Absolute path to exported .ndisplay config file
+ndisplay_config: "F:/P-0616-HRLV/ue/HRLV_Content/Content/nDisplay/nDisplayConfig.ndisplay"
 
 # Primary node network settings
 ndisplay_primary_ip: "192.168.1.71"

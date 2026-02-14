@@ -45,28 +45,30 @@
       ansible.builtin.set_fact:
         ndisplay_args: >-
           "{{ unreal_project }}"
-          {{ ndisplay_map }}
+          {{ ndisplay_map | default('None') }}
           -game
           -messaging
           -dc_cluster
           -dc_cfg="{{ ndisplay_config }}"
           -dc_node={{ ndisplay_node }}
-          -dc_primary={{ ndisplay_primary_ip }}:{{ ndisplay_primary_port }}
+          -ini:Engine:[/Script/Engine.Engine]:GameEngine=/Script/DisplayCluster.DisplayClusterGameEngine
+          -ini:Engine:[/Script/Engine.Engine]:GameViewportClientClassName=/Script/DisplayCluster.DisplayClusterViewportClient
           -nosplash
-          -fixedseed
-          -NoVerifyGC
-          -norelativemousemode
-          -nohmd
           -log
-          {{ '-fullscreen' if ndisplay_fullscreen else '-windowed' }}
+
+    - name: Write nDisplay launch script
+      ansible.windows.win_copy:
+        content: |
+          @echo off
+          "{{ unreal_exe }}" {{ ndisplay_args }}
+        dest: C:\ndisplay-launch.bat
 
     - name: Create nDisplay scheduled task
       community.windows.win_scheduled_task:
         name: nDisplayLaunch
         description: Launch UE in nDisplay mode
         actions:
-          - path: "{{ unreal_exe }}"
-            arguments: "{{ ndisplay_args }}"
+          - path: C:\ndisplay-launch.bat
         triggers: []
         username: "{{ ansible_user }}"
         password: "{{ ansible_password }}"
