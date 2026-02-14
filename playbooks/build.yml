@@ -16,7 +16,7 @@
     - build_pipeline
 
 - name: Distribute build to previs nodes
-  hosts: ue_nodes
+  hosts: previs_nodes
   gather_facts: false
   ignore_unreachable: true
 

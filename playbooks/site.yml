@@ -22,15 +22,27 @@
     - nvidia_gpu_win
     - smb_share
 
-- name: UE nodes
+- name: All UE nodes — shared layers
   hosts: ue_nodes
   gather_facts: false
   roles:
     - plastic_scm
-    - unreal_engine
-    - render_worker
     - role: rivermax
       when: rivermax | default(false)
+
+- name: Content nodes — nDisplay cluster
+  hosts: content_nodes
+  gather_facts: false
+  roles:
+    - unreal_engine
+    - render_worker
+
+- name: Previs nodes
+  hosts: previs_nodes
+  gather_facts: false
+  roles:
+    - unreal_engine
+    - render_worker
 
 - name: Arnold/Fusion nodes
   hosts: arnold_nodes
