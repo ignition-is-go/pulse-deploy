@@ -1,6 +1,8 @@
 ---
-# Encrypt this file: ansible-vault encrypt inventory/group_vars/all/vault.yml
-# Edit:              ansible-vault edit inventory/group_vars/all/vault.yml
+# Copy this file to vault.yml and fill in real values:
+#   cp vault.yml.example vault.yml
+#
+# vault.yml is gitignored — secrets never touch the repo.
 
 vault_ansible_user: Administrator
 vault_ansible_password: "CHANGEME"
