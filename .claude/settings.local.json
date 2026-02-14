@@ -6,7 +6,8 @@
       "WebFetch(domain:support.unity.com)",
       "WebFetch(domain:dev.epicgames.com)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "WebFetch(domain:forums.unrealengine.com)"
     ]
   }
 }
