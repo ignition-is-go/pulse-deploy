@@ -2,8 +2,8 @@
 # UE render node configuration
 
 # Unreal Engine paths
-unreal_exe: "C:/Program Files/Epic Games/UE_5.6/Engine/Binaries/Win64/UnrealEditor.exe"
-unreal_project: "F:/P-0616-HRLV/ue/HRLV_Previs/HRLV_Previs.uproject"
+unreal_engine_dir: "F:/Epic Games/UE_5.7"
+unreal_exe: "{{ unreal_engine_dir }}/Engine/Binaries/Win64/UnrealEditor.exe"
 
 # Plastic SCM
 plastic_exe: "C:/Program Files/PlasticSCM5/client/cm.exe"
