@@ -1,0 +1,29 @@
+---
+# Stop nDisplay cluster on content nodes
+# Usage: ansible-playbook playbooks/ndisplay-stop.yml
+
+- name: Stop nDisplay cluster
+  hosts: content_nodes
+  gather_facts: false
+
+  tasks:
+    - name: Stop UnrealEditor processes
+      ansible.windows.win_shell: |
+        $procs = Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue
+        if ($procs) {
+          $procs | Stop-Process -Force
+          Start-Sleep -Seconds 2
+          Write-Host "STOPPED $($procs.Count) process(es)"
+        } else {
+          Write-Host "NONE_RUNNING"
+        }
+      register: stop_result
+
+    - name: Remove nDisplay scheduled task
+      community.windows.win_scheduled_task:
+        name: nDisplayLaunch
+        state: absent
+
+    - name: Show status
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ stop_result.stdout | trim }}"

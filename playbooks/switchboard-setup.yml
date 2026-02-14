@@ -1,0 +1,52 @@
+---
+# Setup SwitchboardListener dependencies on content nodes
+# Creates Python venv and installs pip packages using UE's bundled Python
+#
+# Usage: ansible-playbook playbooks/switchboard-setup.yml
+
+- name: Setup SwitchboardListener
+  hosts: content_nodes
+  gather_facts: false
+
+  vars:
+    ue_python: "{{ unreal_engine_dir }}/Engine/Binaries/ThirdParty/Python3/Win64/python.exe"
+    sb_thirdparty: "{{ unreal_engine_dir }}/Engine/Extras/ThirdPartyNotUE/SwitchboardThirdParty"
+
+  tasks:
+    - name: Create Python venv for SwitchboardListener
+      ansible.windows.win_shell: |
+        if (Test-Path "{{ sb_thirdparty }}/Python/pyvenv.cfg") {
+          Write-Host "ALREADY_EXISTS"
+        } else {
+          & "{{ ue_python }}" -m venv "{{ sb_thirdparty }}/Python"
+          if ($LASTEXITCODE -ne 0) { throw "Failed to create venv" }
+          Write-Host "CREATED"
+        }
+      register: venv_result
+      changed_when: "'CREATED' in venv_result.stdout"
+
+    - name: Install SwitchboardListener Python dependencies
+      ansible.windows.win_shell: |
+        & "{{ sb_thirdparty }}/Python/Scripts/pip.exe" install -r "{{ sb_thirdparty }}/requirements.txt" --quiet
+        if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+        Write-Host "INSTALLED"
+      register: pip_result
+      when: venv_result is changed
+
+    - name: Link cwrsync into SwitchboardThirdParty
+      ansible.windows.win_shell: |
+        $target = "{{ sb_thirdparty }}/cwrsync"
+        $source = "{{ unreal_engine_dir }}/Engine/Extras/ThirdPartyNotUE/cwrsync"
+        if (Test-Path $target) {
+          Write-Host "ALREADY_EXISTS"
+        } else {
+          cmd /c mklink /J "$target" "$source"
+          if ($LASTEXITCODE -ne 0) { throw "Failed to create junction" }
+          Write-Host "LINKED"
+        }
+      register: cwrsync_result
+      changed_when: "'LINKED' in cwrsync_result.stdout"
+
+    - name: Show setup status
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: venv={{ venv_result.stdout | trim }}, cwrsync={{ cwrsync_result.stdout | trim }}{{ ', pip=' + pip_result.stdout | trim if pip_result is not skipped else '' }}"

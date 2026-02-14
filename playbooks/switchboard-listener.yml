@@ -1,0 +1,49 @@
+---
+# Start SwitchboardListener on nDisplay render nodes
+# Usage: ansible-playbook playbooks/switchboard-listener.yml
+
+- name: Start SwitchboardListener
+  hosts: content_nodes
+  gather_facts: false
+
+  tasks:
+    - name: Open SwitchboardListener port
+      community.windows.win_firewall_rule:
+        name: SwitchboardListener
+        direction: in
+        protocol: tcp
+        localport: "2980"
+        action: allow
+        enabled: true
+
+    - name: Create scheduled task for SwitchboardListener
+      community.windows.win_scheduled_task:
+        name: SwitchboardListener
+        description: Start SwitchboardListener for nDisplay
+        actions:
+          - path: "{{ unreal_engine_dir }}\\Engine\\Binaries\\Win64\\SwitchboardListener.exe"
+        triggers:
+          - type: logon
+        username: "{{ ansible_user }}"
+        password: "{{ ansible_password }}"
+        logon_type: interactive_token
+        run_level: highest
+        state: present
+        enabled: true
+
+    - name: Run SwitchboardListener task now
+      ansible.windows.win_shell: |
+        Stop-Process -Name SwitchboardListener -Force -ErrorAction SilentlyContinue
+        Start-Sleep -Seconds 1
+        Start-ScheduledTask -TaskName "SwitchboardListener"
+        Start-Sleep -Seconds 10
+        $proc = Get-Process -Name SwitchboardListener -ErrorAction SilentlyContinue
+        if (-not $proc) { throw "SwitchboardListener failed to start" }
+        $port = netstat -an | Select-String ":2980.*LISTENING"
+        if (-not $port) { throw "SwitchboardListener not listening on port 2980" }
+        Write-Host "RUNNING (PID: $($proc.Id), port 2980 listening)"
+      register: listener_result
+
+    - name: Show status
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ listener_result.stdout | trim }}"

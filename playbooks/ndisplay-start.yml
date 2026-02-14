@@ -1,0 +1,101 @@
+---
+# Launch nDisplay cluster via command line (no Switchboard)
+# Starts UnrealEditor on each content node in nDisplay mode.
+#
+# Prerequisites:
+#   - Populate ndisplay_map and ndisplay_config in
+#     inventories/hrlv/group_vars/content_nodes.yml
+#   - Plastic SCM synced (playbooks/plastic-sync.yml)
+#   - Firewall rules applied (playbooks/ndisplay-network.yml)
+#
+# Usage:
+#   ansible-playbook playbooks/ndisplay-start.yml
+#   ansible-playbook playbooks/ndisplay-start.yml -e "ndisplay_fullscreen=false"
+
+- name: Launch nDisplay cluster
+  hosts: content_nodes
+  gather_facts: false
+  serial: 1
+
+  vars:
+    ndisplay_fullscreen: true
+    ndisplay_log_file: "{{ unreal_engine_dir }}\\Saved\\Logs\\nDisplay.log"
+
+  tasks:
+    - name: Validate nDisplay config is set
+      ansible.builtin.assert:
+        that:
+          - ndisplay_config | length > 0
+          - ndisplay_node is defined
+        fail_msg: "ndisplay_config and ndisplay_node must be set. Populate content_nodes.yml and hosts.yml."
+
+    - name: Stop any running UE instances
+      ansible.windows.win_shell: |
+        $procs = Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue
+        if ($procs) {
+          $procs | Stop-Process -Force
+          Start-Sleep -Seconds 3
+          Write-Host "STOPPED $($procs.Count) process(es)"
+        } else {
+          Write-Host "NONE_RUNNING"
+        }
+      register: stop_result
+
+    - name: Build nDisplay launch arguments
+      ansible.builtin.set_fact:
+        ndisplay_args: >-
+          "{{ unreal_project }}"
+          {{ ndisplay_map }}
+          -game
+          -messaging
+          -dc_cluster
+          -dc_cfg="{{ ndisplay_config }}"
+          -dc_node={{ ndisplay_node }}
+          -dc_primary={{ ndisplay_primary_ip }}:{{ ndisplay_primary_port }}
+          -nosplash
+          -fixedseed
+          -NoVerifyGC
+          -norelativemousemode
+          -nohmd
+          -log
+          {{ '-fullscreen' if ndisplay_fullscreen else '-windowed' }}
+
+    - name: Create nDisplay scheduled task
+      community.windows.win_scheduled_task:
+        name: nDisplayLaunch
+        description: Launch UE in nDisplay mode
+        actions:
+          - path: "{{ unreal_exe }}"
+            arguments: "{{ ndisplay_args }}"
+        triggers: []
+        username: "{{ ansible_user }}"
+        password: "{{ ansible_password }}"
+        logon_type: interactive_token
+        run_level: highest
+        state: present
+        enabled: true
+
+    - name: Run nDisplay launch task
+      ansible.windows.win_shell: |
+        Start-ScheduledTask -TaskName "nDisplayLaunch"
+        Write-Host "LAUNCHED"
+
+    - name: Wait for UE process to appear
+      ansible.windows.win_shell: |
+        $timeout = 30
+        $elapsed = 0
+        while ($elapsed -lt $timeout) {
+          $proc = Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue
+          if ($proc) {
+            Write-Host "RUNNING (PID: $($proc.Id))"
+            exit 0
+          }
+          Start-Sleep -Seconds 2
+          $elapsed += 2
+        }
+        throw "UnrealEditor did not start within ${timeout}s"
+      register: launch_result
+
+    - name: Show launch status
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} ({{ ndisplay_node }}): {{ launch_result.stdout | trim }}"
