@@ -1,0 +1,29 @@
+---
+# Configure static IP on ConnectX-6 VF passthrough adapter
+# Usage: ansible-playbook playbooks/cx6-ip.yml -i inventories/hrlv/hosts.yml
+
+- name: Configure ConnectX-6 VF media IP
+  hosts: ue_nodes
+  gather_facts: false
+
+  tasks:
+    - name: Set media network IP (ConnectX-6 VF adapter)
+      ansible.windows.win_shell: |
+        $adapters = @(Get-NetAdapter | Where-Object { $_.InterfaceDescription -like "*Mellanox*" -or $_.InterfaceDescription -like "*ConnectX*" })
+        if ($adapters.Count -eq 0) { throw "ConnectX adapter not found" }
+        if ($adapters.Count -gt 1) { throw "Multiple ConnectX adapters found ($($adapters.Count)), expected 1" }
+        $adapter = $adapters[0]
+        Remove-NetIPAddress -InterfaceIndex $adapter.ifIndex -Confirm:$false -ErrorAction SilentlyContinue
+        Remove-NetRoute -InterfaceIndex $adapter.ifIndex -Confirm:$false -ErrorAction SilentlyContinue
+        New-NetIPAddress -InterfaceIndex $adapter.ifIndex -IPAddress {{ media_ip }} -PrefixLength 24
+        Set-NetIPInterface -InterfaceIndex $adapter.ifIndex -Dhcp Disabled
+      when: rivermax | default(false)
+
+    - name: Display configured IPs
+      ansible.windows.win_shell: |
+        Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.IPAddress -notlike "169.*" -and $_.IPAddress -ne "127.0.0.1" } | Select-Object InterfaceAlias, IPAddress | Format-Table -AutoSize
+      register: ip_output
+
+    - name: Show IP configuration
+      ansible.builtin.debug:
+        msg: "{{ ip_output.stdout_lines }}"

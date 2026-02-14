@@ -1,0 +1,11 @@
+---
+# Renew DHCP lease on Windows nodes
+# Usage: ansible-playbook playbooks/dhcp-renew.yml -i inventories/hrlv/hosts.yml
+
+- name: Renew DHCP lease
+  hosts: windows
+  gather_facts: false
+
+  tasks:
+    - name: Run ipconfig /renew
+      ansible.windows.win_shell: ipconfig /renew

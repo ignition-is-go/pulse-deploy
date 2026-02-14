@@ -1,0 +1,13 @@
+---
+# Sync Plastic SCM workspace on UE nodes (undo local changes + update to head)
+#
+# Usage: ansible-playbook playbooks/plastic-sync.yml
+#        ansible-playbook playbooks/plastic-sync.yml --limit windows-unreal-render-03
+
+- name: Sync Plastic SCM
+  hosts: ue_nodes
+  gather_facts: true
+  ignore_unreachable: true
+
+  roles:
+    - plastic_scm
