@@ -19,27 +19,6 @@ variable "proxmox_password" {
 }
 
 # -----------------------------------------------------------------------------
-# Proxmox cluster topology
-# -----------------------------------------------------------------------------
-
-variable "proxmox_nodes" {
-  description = "Map of Proxmox node names to their roles/capabilities"
-  type = map(object({
-    has_gpu = bool
-  }))
-  default = {
-    "proxmox-01" = { has_gpu = true }
-    "proxmox-02" = { has_gpu = true }
-  }
-}
-
-variable "default_node" {
-  description = "Default Proxmox node for VMs without explicit placement"
-  type        = string
-  default     = "proxmox-01"
-}
-
-# -----------------------------------------------------------------------------
 # Network
 # -----------------------------------------------------------------------------
 

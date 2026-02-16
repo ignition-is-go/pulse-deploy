@@ -1,3 +1,8 @@
+# Ansible (from github/gitignore/Global/Ansible.gitignore)
+*.retry
+.ansible/
+
+# Project secrets
 .env
 .vault_pass
 **/vault.yml

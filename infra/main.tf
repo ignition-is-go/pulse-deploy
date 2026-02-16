@@ -12,7 +12,7 @@ terraform {
 provider "proxmox" {
   endpoint = var.proxmox_endpoint
 
-  # hostpci.id requires root@pam auth — API tokens won't work for GPU passthrough
+  # PCI passthrough (hostpci) requires root@pam auth — API tokens won't work
   username = var.proxmox_username
   password = var.proxmox_password
 
