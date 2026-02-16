@@ -3,7 +3,7 @@
 # Usage: ansible-playbook playbooks/cx6-ip.yml -i inventories/hrlv/hosts.yml
 
 - name: Configure ConnectX-6 VF media IP
-  hosts: ue_nodes
+  hosts: ue_nodes:touch_nodes
   gather_facts: false
 
   tasks:
