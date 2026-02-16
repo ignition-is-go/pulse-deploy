@@ -2,6 +2,17 @@
 # Launch nDisplay cluster via command line (no Switchboard)
 # Starts UnrealEditor on each content node in nDisplay mode.
 #
+# Reference command (from Epic Forums):
+#   https://forums.unrealengine.com/t/how-to-run-ndisplay-by-script-or-command-line/479685
+#
+#   UnrealEditor.exe "Project.uproject" -game None -messaging -dc_cluster -nosplash
+#     -dc_cfg="path/to/config.ndisplay" -dc_node=Node_0 -dc_dev_mono
+#     -ini:Engine:[/Script/Engine.Engine]:GameEngine=/Script/DisplayCluster.DisplayClusterGameEngine,[/Script/Engine.Engine]:GameViewportClientClassName=/Script/DisplayCluster.DisplayClusterViewportClient
+#     -ini:Game:[/Script/EngineSettings.GeneralProjectSettings]:bUseBorderlessWindow=True
+#     -ini:Input:[/Script/Engine.InputSettings]:DefaultPlayerInputClass=/Script/DisplayCluster.DisplayClusterPlayerInput
+#     -unattended -NoScreenMessages -fixedseed -NoVerifyGC -noxrstereo
+#     -RemoteControlIsHeadless -StageFriendlyName="Node_0" Log=Node_0.log
+#
 # Prerequisites:
 #   - Populate ndisplay_map and ndisplay_config in
 #     inventories/hrlv/group_vars/content_nodes.yml
@@ -10,16 +21,12 @@
 #
 # Usage:
 #   ansible-playbook playbooks/ndisplay-start.yml
-#   ansible-playbook playbooks/ndisplay-start.yml -e "ndisplay_fullscreen=false"
+#   ansible-playbook playbooks/ndisplay-start.yml -e "ndisplay_map=/Game/Path/To/Map"
 
 - name: Launch nDisplay cluster
   hosts: content_nodes
   gather_facts: false
   serial: 1
-
-  vars:
-    ndisplay_fullscreen: true
-    ndisplay_log_file: "{{ unreal_engine_dir }}\\Saved\\Logs\\nDisplay.log"
 
   tasks:
     - name: Validate nDisplay config is set
@@ -45,16 +52,25 @@
       ansible.builtin.set_fact:
         ndisplay_args: >-
           "{{ unreal_project }}"
-          {{ ndisplay_map | default('None') }}
           -game
+          {{ ndisplay_map | default('None') }}
           -messaging
           -dc_cluster
           -dc_cfg="{{ ndisplay_config }}"
           -dc_node={{ ndisplay_node }}
-          -ini:Engine:[/Script/Engine.Engine]:GameEngine=/Script/DisplayCluster.DisplayClusterGameEngine
-          -ini:Engine:[/Script/Engine.Engine]:GameViewportClientClassName=/Script/DisplayCluster.DisplayClusterViewportClient
+          -dc_dev_mono
+          -ini:Engine:[/Script/Engine.Engine]:GameEngine=/Script/DisplayCluster.DisplayClusterGameEngine,[/Script/Engine.Engine]:GameViewportClientClassName=/Script/DisplayCluster.DisplayClusterViewportClient
+          -ini:Game:[/Script/EngineSettings.GeneralProjectSettings]:bUseBorderlessWindow=True
+          -ini:Input:[/Script/Engine.InputSettings]:DefaultPlayerInputClass=/Script/DisplayCluster.DisplayClusterPlayerInput
+          -unattended
+          -NoScreenMessages
           -nosplash
-          -log
+          -fixedseed
+          -NoVerifyGC
+          -noxrstereo
+          -RemoteControlIsHeadless
+          -StageFriendlyName="{{ ndisplay_node }}"
+          Log={{ ndisplay_node }}.log
 
     - name: Write nDisplay launch script
       ansible.windows.win_copy:
