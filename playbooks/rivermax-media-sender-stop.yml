@@ -1,0 +1,31 @@
+---
+# Stop Rivermax media_sender and clean up
+#
+# Usage:
+#   ansible-playbook playbooks/rivermax-media-sender-stop.yml --limit windows-unreal-render-01
+#   ansible-playbook playbooks/rivermax-media-sender-stop.yml --limit content_nodes
+
+- name: Stop Rivermax media_sender
+  hosts: windows
+  gather_facts: false
+
+  tasks:
+    - name: Stop media_sender process
+      ansible.windows.win_shell: |
+        taskkill /F /IM media_sender.exe 2>$null
+        taskkill /F /IM cmd.exe /FI "WINDOWTITLE eq C:\temp\rmax-tx.bat" 2>$null
+
+    - name: Stop and remove TX scheduled task
+      community.windows.win_scheduled_task:
+        name: RivermaxMediaSender
+        state: absent
+
+    - name: Confirm stopped
+      ansible.windows.win_shell: |
+        $proc = Get-Process -Name media_sender -ErrorAction SilentlyContinue
+        if ($proc) { Write-Host "STILL RUNNING (PID $($proc.Id))" } else { Write-Host "STOPPED" }
+      register: tx_status
+
+    - name: Show status
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ tx_status.stdout | trim }}"

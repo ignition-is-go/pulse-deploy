@@ -171,16 +171,16 @@ rivermax_license_src: "{{ deploy_share }}\\rivermax\\Rivermax-12022026-qty3-1a7d
 
 ```bash
 # All rivermax-enabled Windows nodes
-ansible-playbook playbooks/rivermax.yml
+ansible-playbook playbooks/rivermax-setup.yml
 
 # Content nodes only
-ansible-playbook playbooks/rivermax.yml --limit content_nodes
+ansible-playbook playbooks/rivermax-setup.yml --limit content_nodes
 
 # Single node
-ansible-playbook playbooks/rivermax.yml --limit windows-unreal-render-01
+ansible-playbook playbooks/rivermax-setup.yml --limit windows-unreal-render-01
 
 # Dry run
-ansible-playbook playbooks/rivermax.yml --check
+ansible-playbook playbooks/rivermax-setup.yml --check
 ```
 
 The role is also included in `playbooks/site.yml` for full convergence runs.
@@ -192,7 +192,9 @@ The role is also included in `playbooks/site.yml` for full convergence runs.
 ### Hardware
 
 Each render node has a ConnectX-6 Virtual Function (VF) passed through from the
-Proxmox host via SR-IOV. See `docs/connectx6-sriov.md` for the SR-IOV setup.
+Proxmox host via SR-IOV. See `docs/proxmox/CONNECTX6_SRIOV.md` for the SR-IOV setup,
+including the required `VF_VPD_ENABLE=1` firmware setting for Rivermax license
+validation in VMs.
 
 ### Playbook: `playbooks/cx6-ip.yml`
 
@@ -435,7 +437,7 @@ Summary of infrastructure changes made during this setup session.
 - Added `*.zip`, `*.tar.gz`, `*.exe` to prevent committing installer binaries.
 
 ### New playbooks
-- **`playbooks/rivermax.yml`** -- standalone Rivermax deploy playbook.
+- **`playbooks/rivermax-setup.yml`** -- standalone Rivermax deploy playbook.
 - **`playbooks/cx6-ip.yml`** -- CX6 VF static IP configuration.
 - **`playbooks/ndisplay-start.yml`** -- launch nDisplay cluster via command line.
 - **`playbooks/ndisplay-stop.yml`** -- stop nDisplay cluster.
@@ -471,10 +473,10 @@ ansible-playbook playbooks/site.yml --check
 
 ```bash
 # All rivermax-enabled nodes
-ansible-playbook playbooks/rivermax.yml
+ansible-playbook playbooks/rivermax-setup.yml
 
 # Single node
-ansible-playbook playbooks/rivermax.yml --limit windows-unreal-render-01
+ansible-playbook playbooks/rivermax-setup.yml --limit windows-unreal-render-01
 ```
 
 ### CX6 media IP

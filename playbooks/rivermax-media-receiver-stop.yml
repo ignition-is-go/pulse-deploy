@@ -1,0 +1,31 @@
+---
+# Stop Rivermax media_receiver and clean up
+#
+# Usage:
+#   ansible-playbook playbooks/rivermax-media-receiver-stop.yml --limit windows-unreal-render-05
+#   ansible-playbook playbooks/rivermax-media-receiver-stop.yml --limit content_nodes
+
+- name: Stop Rivermax media_receiver
+  hosts: windows
+  gather_facts: false
+
+  tasks:
+    - name: Stop media_receiver process
+      ansible.windows.win_shell: |
+        taskkill /F /IM media_receiver.exe 2>$null
+        taskkill /F /IM cmd.exe /FI "WINDOWTITLE eq C:\temp\rmax-rx.bat" 2>$null
+
+    - name: Stop and remove RX scheduled task
+      community.windows.win_scheduled_task:
+        name: RivermaxMediaReceiver
+        state: absent
+
+    - name: Confirm stopped
+      ansible.windows.win_shell: |
+        $proc = Get-Process -Name media_receiver -ErrorAction SilentlyContinue
+        if ($proc) { Write-Host "STILL RUNNING (PID $($proc.Id))" } else { Write-Host "STOPPED" }
+      register: rx_status
+
+    - name: Show status
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ rx_status.stdout | trim }}"

@@ -222,6 +222,22 @@ Configurations:                                          Next Boot       New
 Applying... Done!
 -I- Please reboot machine to load new configurations.
 
+Enable VF VPD passthrough (required for Rivermax licensing in VMs)
+
+Rivermax validates its license against the physical NIC serial number (VPD). SR-IOV VFs
+do not expose this by default, which causes RMX_LICENSE_ISSUE (Status 32) when creating
+streams inside VMs. Enable VPD passthrough on both cards:
+
+mlxconfig -d /dev/mst/mt4123_pciconf0 set VF_VPD_ENABLE=1
+mlxconfig -d /dev/mst/mt4123_pciconf1 set VF_VPD_ENABLE=1
+
+Verify:
+
+mlxconfig -d /dev/mst/mt4123_pciconf0 query | grep VF_VPD
+mlxconfig -d /dev/mst/mt4123_pciconf1 query | grep VF_VPD
+
+NOTE: This is a firmware-level change and requires a host reboot to take effect.
+
 NOTE: BlueField2 users resume here - BlueField2 requires enabling VFs at runtime so we create a service to make this persistent
 
 cat > /etc/systemd/system/bluefield-vfs.service << 'EOF'

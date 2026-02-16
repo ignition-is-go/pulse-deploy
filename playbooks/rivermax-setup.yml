@@ -1,0 +1,15 @@
+---
+# rivermax-setup.yml — Deploy WinOF-2 + Rivermax SDK + license
+#
+# Usage:
+#   ansible-playbook playbooks/rivermax-setup.yml                           # all rivermax nodes
+#   ansible-playbook playbooks/rivermax-setup.yml --limit content_nodes     # content only
+#   ansible-playbook playbooks/rivermax-setup.yml --limit windows-unreal-render-01  # single node
+#   ansible-playbook playbooks/rivermax-setup.yml --check                   # dry run
+
+- name: Rivermax — WinOF-2 + SDK + license
+  hosts: windows
+  gather_facts: false
+  roles:
+    - role: rivermax
+      when: rivermax | default(false)
