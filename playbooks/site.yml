@@ -20,15 +20,19 @@
   roles:
     - win_base
     - nvidia_gpu_win
-    - smb_share
+
+- name: Rivermax — all Windows nodes with rivermax enabled
+  hosts: windows
+  gather_facts: false
+  roles:
+    - role: rivermax
+      when: rivermax | default(false)
 
 - name: All UE nodes — shared layers
   hosts: ue_nodes
   gather_facts: false
   roles:
     - plastic_scm
-    - role: rivermax
-      when: rivermax | default(false)
 
 - name: Content nodes — nDisplay cluster
   hosts: content_nodes
@@ -43,6 +47,11 @@
   roles:
     - unreal_engine
     - render_worker
+
+- name: Touch nodes
+  hosts: touch_nodes
+  gather_facts: false
+  roles: []
 
 - name: Arnold/Fusion nodes
   hosts: arnold_nodes

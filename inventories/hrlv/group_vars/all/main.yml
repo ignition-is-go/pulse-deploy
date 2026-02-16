@@ -6,3 +6,6 @@ ansible_password: "{{ vault_ansible_password }}"
 
 # Render server
 render_server_url: "{{ vault_render_server_url }}"
+
+# Deploy share (SMB on pulse-admin)
+deploy_share: "\\\\192.168.1.70\\deploy"

@@ -1,8 +1,9 @@
 ---
 # rivermax defaults
+# Ref: https://dev.epicgames.com/documentation/en-us/unreal-engine/setting-up-smpte-2110-in-unreal-engine
 
-rivermax_winof2_installer: ""
-rivermax_sdk_installer: ""
-rivermax_license_src: ""
 rivermax_install_dir: 'C:\Program Files\Mellanox\Rivermax'
 rivermax_installers_remote: true
+rivermax_sdk_version: "1_71_30"
+rivermax_sdk_version_dotted: "1.71.30"
+rivermax_winof2_version: "24.10.50010"

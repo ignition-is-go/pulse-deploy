@@ -1,3 +1,8 @@
 ---
 # Windows group vars — applied to all Windows VMs
 # WinRM connection vars are set in inventory/hosts.yml under windows.vars
+
+# Rivermax (applied when rivermax: true)
+rivermax_winof2_installer: "{{ deploy_share }}\\rivermax\\MLNX_WinOF2-24_10_50010_All_x64.exe"
+rivermax_sdk_installer: "{{ deploy_share }}\\rivermax\\Rivermax_Windows_1.71.30.zip"
+rivermax_license_src: "{{ deploy_share }}\\rivermax\\Rivermax-12022026-qty3-1a7da843cfd1.lic"

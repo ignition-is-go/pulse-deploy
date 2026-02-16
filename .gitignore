@@ -6,3 +6,11 @@
 .env
 .vault_pass
 **/vault.yml
+
+# License files
+*.lic
+
+# Installers / large binaries
+*.zip
+*.tar.gz
+*.exe

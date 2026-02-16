@@ -1,19 +1,7 @@
 ---
 # win_base — Layer 0: Windows VM base configuration
-# Ensures SSH, WinRM, firewall, auto-logon, and power settings are correct.
+# Ensures WinRM, firewall, auto-logon, and power settings are correct.
 # Prerequisite: scripts/bootstrap-ansible.ps1 must have been run via Proxmox console first.
-
-- name: Ensure OpenSSH Server is installed
-  ansible.windows.win_optional_feature:
-    name: OpenSSH.Server~~~~0.0.1.0
-    state: present
-  register: ssh_feature
-
-- name: Ensure sshd service is running
-  ansible.windows.win_service:
-    name: sshd
-    start_mode: auto
-    state: started
 
 - name: Ensure WinRM service is running
   ansible.windows.win_service:
@@ -26,17 +14,6 @@
     Get-NetConnectionProfile | Where-Object { $_.NetworkCategory -ne 'Private' } | Set-NetConnectionProfile -NetworkCategory Private
   changed_when: false
 
-- name: Ensure firewall rules for SSH
-  community.windows.win_firewall_rule:
-    name: OpenSSH-Server-In-TCP
-    localport: 22
-    action: allow
-    direction: in
-    protocol: tcp
-    profiles: any
-    state: present
-    enabled: true
-
 - name: Ensure firewall rules for WinRM
   community.windows.win_firewall_rule:
     name: WinRM-HTTP-In-TCP
@@ -44,7 +21,10 @@
     action: allow
     direction: in
     protocol: tcp
-    profiles: any
+    profiles:
+      - domain
+      - private
+      - public
     state: present
     enabled: true
 
@@ -54,7 +34,10 @@
     action: allow
     direction: in
     protocol: icmpv4
-    profiles: any
+    profiles:
+      - domain
+      - private
+      - public
     state: present
     enabled: true
 

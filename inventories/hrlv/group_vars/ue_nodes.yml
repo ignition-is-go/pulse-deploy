@@ -16,8 +16,3 @@ plastic_api_key: "{{ vault_plastic_api_key }}"
 worker_path: C:\ue-render-farm
 worker_exe: worker.exe
 executor_path: C:\ue-render-farm\executor
-
-# SMB storage
-smb_server: "192.168.1.61"
-smb_share: "render"
-smb_drive_letter: "Z:"
