@@ -1,122 +1,46 @@
 # -----------------------------------------------------------------------------
-# rship worker LXC containers
+# LXC containers — runner, rship, gitlab, pulse-admin
 # -----------------------------------------------------------------------------
 
-resource "proxmox_virtual_environment_container" "rship_node" {
-  for_each = var.rship_nodes
+locals {
+  lxc_containers = merge(
+    var.runner_lxc_nodes,
+    var.rship_nodes,
+    var.gitlab_nodes,
+    var.pulse_admin_nodes,
+  )
 
-  description   = "rship worker node"
-  node_name     = each.value.node
-  tags          = ["linux", "lxc", "rship"]
-  started       = true
-  start_on_boot = true
-  unprivileged  = true
+  lxc_tags = merge(
+    { for k, _ in var.runner_lxc_nodes  : k => ["linux", "lxc", "runner"] },
+    { for k, _ in var.rship_nodes       : k => ["linux", "lxc", "rship"] },
+    { for k, _ in var.gitlab_nodes      : k => ["linux", "lxc", "gitlab"] },
+    { for k, _ in var.pulse_admin_nodes : k => ["linux", "lxc", "pulse-admin"] },
+  )
 
-  operating_system {
-    template_file_id = var.lxc_template
-    type             = "debian"
-  }
-
-  cpu {
-    cores = each.value.cores
-  }
-
-  memory {
-    dedicated = each.value.memory_mb
-  }
-
-  disk {
-    datastore_id = var.lxc_storage
-    size         = each.value.disk_gb
-  }
-
-  # Network interface — NO ip config here, that goes in initialization
-  network_interface {
-    name   = "eth0"
-    bridge = var.network_bridge
-  }
-
-  initialization {
-    hostname = each.key
-
-    ip_config {
-      ipv4 {
-        address = "${each.value.ip}/24"
-        gateway = var.network_gateway
-      }
-    }
-
-    dns {
-      servers = var.dns_servers
-    }
-
-    user_account {
-      keys = [var.ssh_public_key]
-    }
-  }
-
-  lifecycle {
-    ignore_changes = [disk[0].size]
-  }
+  lxc_descriptions = merge(
+    { for k, _ in var.runner_lxc_nodes  : k => "Linux CI/CD runner" },
+    { for k, _ in var.rship_nodes       : k => "rship data worker" },
+    { for k, _ in var.gitlab_nodes      : k => "GitLab instance" },
+    { for k, _ in var.pulse_admin_nodes : k => "Control plane / monitoring" },
+  )
 }
 
-# -----------------------------------------------------------------------------
-# rship control plane LXC container
-# -----------------------------------------------------------------------------
+module "lxc" {
+  source   = "./modules/proxmox-lxc"
+  for_each = local.lxc_containers
 
-resource "proxmox_virtual_environment_container" "rship_control" {
-  count = var.rship_control != null ? 1 : 0
-
-  description   = "rship control plane"
-  node_name     = var.rship_control.node
-  tags          = ["linux", "lxc", "rship", "control"]
-  started       = true
-  start_on_boot = true
-  unprivileged  = true
-
-  operating_system {
-    template_file_id = var.lxc_template
-    type             = "debian"
-  }
-
-  cpu {
-    cores = var.rship_control.cores
-  }
-
-  memory {
-    dedicated = var.rship_control.memory_mb
-  }
-
-  disk {
-    datastore_id = var.lxc_storage
-    size         = var.rship_control.disk_gb
-  }
-
-  network_interface {
-    name   = "eth0"
-    bridge = var.network_bridge
-  }
-
-  initialization {
-    hostname = "rship-cp-01"
-
-    ip_config {
-      ipv4 {
-        address = "${var.rship_control.ip}/24"
-        gateway = var.network_gateway
-      }
-    }
-
-    dns {
-      servers = var.dns_servers
-    }
-
-    user_account {
-      keys = [var.ssh_public_key]
-    }
-  }
-
-  lifecycle {
-    ignore_changes = [disk[0].size]
-  }
+  hostname         = each.key
+  description      = local.lxc_descriptions[each.key]
+  node_name        = each.value.node
+  tags             = local.lxc_tags[each.key]
+  template_file_id = var.lxc_template
+  cores            = each.value.cores
+  memory_mb        = each.value.memory_mb
+  disk_gb          = each.value.disk_gb
+  datastore_id     = var.proxmox_hosts[each.value.node].storage_id
+  network_bridge   = var.network_bridge
+  ip               = each.value.ip
+  gateway          = var.network_gateway
+  dns_servers      = var.dns_servers
+  ssh_keys         = [var.ssh_public_key]
 }

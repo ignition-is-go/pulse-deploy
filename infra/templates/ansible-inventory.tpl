@@ -1,11 +1,15 @@
-# Auto-generated from Terraform outputs
-# Copy relevant sections into inventory/hosts.yml
+# Auto-generated from Terraform outputs — paste into inventories/hrlv/hosts.yml
 
-# --- UE Nodes ---
-%{ for name, node in ue_nodes ~}
+# --- UE Render Nodes ---
+%{ for name, node in ue_render_nodes ~}
 # ${name}:
 #   ansible_host: ${node.ip}
-#   rivermax: ${node.rivermax}
+%{ endfor ~}
+
+# --- Touch Nodes ---
+%{ for name, node in touch_nodes ~}
+# ${name}:
+#   ansible_host: ${node.ip}
 %{ endfor ~}
 
 # --- Arnold Nodes ---
@@ -14,27 +18,62 @@
 #   ansible_host: ${node.ip}
 %{ endfor ~}
 
-# --- Optik ---
-%{ if optik_ip != null ~}
-# optik-01:
-#   ansible_host: ${optik_ip}
-%{ endif ~}
+# --- Workstations ---
+%{ for name, node in workstations ~}
+# ${name}:
+#   ansible_host: ${node.ip}
+%{ endfor ~}
 
-# --- Control Plane ---
-%{ if control_ip != null ~}
-# ue-control-plane-01:
-#   ansible_host: ${control_ip}
-#   ansible_connection: local
-%{ endif ~}
+# --- Build Nodes ---
+%{ for name, node in ue_build_nodes ~}
+# ${name}:
+#   ansible_host: ${node.ip}
+%{ endfor ~}
 
-# --- rship Nodes ---
+# --- Staging Nodes ---
+%{ for name, node in ue_staging_nodes ~}
+# ${name}:
+#   ansible_host: ${node.ip}
+%{ endfor ~}
+
+# --- Pixel Farm Nodes ---
+%{ for name, node in pixelfarm_nodes ~}
+# ${name}:
+#   ansible_host: ${node.ip}
+%{ endfor ~}
+
+# --- Windows Runners ---
+%{ for name, node in runner_win_nodes ~}
+# ${name}:
+#   ansible_host: ${node.ip}
+%{ endfor ~}
+
+# --- Optik Nodes ---
+%{ for name, node in optik_nodes ~}
+# ${name}:
+#   ansible_host: ${node.ip}
+%{ endfor ~}
+
+# --- Linux Runners (LXC) ---
+%{ for name, node in runner_lxc_nodes ~}
+# ${name}:
+#   ansible_host: ${node.ip}
+%{ endfor ~}
+
+# --- rship Nodes (LXC) ---
 %{ for name, node in rship_nodes ~}
 # ${name}:
 #   ansible_host: ${node.ip}
 %{ endfor ~}
 
-# --- rship Control ---
-%{ if rship_cp_ip != null ~}
-# rship-cp-01:
-#   ansible_host: ${rship_cp_ip}
-%{ endif ~}
+# --- GitLab (LXC) ---
+%{ for name, node in gitlab_nodes ~}
+# ${name}:
+#   ansible_host: ${node.ip}
+%{ endfor ~}
+
+# --- Pulse Admin (LXC) ---
+%{ for name, node in pulse_admin_nodes ~}
+# ${name}:
+#   ansible_host: ${node.ip}
+%{ endfor ~}

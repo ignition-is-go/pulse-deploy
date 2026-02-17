@@ -3,7 +3,7 @@
 # -----------------------------------------------------------------------------
 
 variable "proxmox_endpoint" {
-  description = "Proxmox API URL (e.g. https://proxmox-01.local:8006)"
+  description = "Proxmox API URL (e.g. https://nyc-prod-pve-01.local:8006)"
   type        = string
 }
 
@@ -16,6 +16,22 @@ variable "proxmox_password" {
   description = "Proxmox API password"
   type        = string
   sensitive   = true
+}
+
+# -----------------------------------------------------------------------------
+# Proxmox hosts — physical hardware inventory
+# -----------------------------------------------------------------------------
+
+variable "proxmox_hosts" {
+  description = "Physical Proxmox hosts and their hardware resources"
+  type = map(object({
+    cores      = number       # total physical cores
+    memory_gb  = number       # total RAM in GB
+    storage_gb = number       # total usable storage in GB
+    storage_id = string       # Proxmox storage pool name (e.g. zfs-nvme-01)
+    gpus       = list(string) # GPU PCI addresses in slot order
+    cx6_vfs    = list(string) # CX6 SR-IOV VF PCI addresses in slot order
+  }))
 }
 
 # -----------------------------------------------------------------------------
@@ -45,13 +61,13 @@ variable "dns_servers" {
 # -----------------------------------------------------------------------------
 
 variable "windows_template_id" {
-  description = "VM ID of the Windows 11 template (sysprepped with WinRM + unattend.xml)"
+  description = "VM ID of the Windows template (sysprepped with WinRM + unattend.xml)"
   type        = number
   default     = 9000
 }
 
 variable "linux_template_id" {
-  description = "VM ID of the Linux (Debian/Ubuntu) template"
+  description = "VM ID of the Linux (Debian/Ubuntu) cloud-init template"
   type        = number
   default     = 9001
 }
@@ -71,76 +87,158 @@ variable "ssh_public_key" {
   type        = string
 }
 
-# -----------------------------------------------------------------------------
-# Windows UE nodes
-# -----------------------------------------------------------------------------
+# =============================================================================
+# Windows GPU VMs
+# =============================================================================
 
-variable "ue_nodes" {
-  description = "UE render/previs nodes"
+variable "ue_render_nodes" {
+  description = "UE nDisplay render nodes (Windows + GPU)"
   type = map(object({
-    ip         = string
-    node       = string       # Proxmox host
-    cores      = number
-    memory_mb  = number
-    disk_gb    = number
-    gpu_pci    = string       # PCI address for GPU passthrough (e.g. 0000:41:00.0)
-    rivermax   = bool
-    cx6_vf_pci = optional(string, "")  # CX6 SR-IOV VF PCI address (e.g. 0000:0f:00.2) — only when rivermax=true
+    ip        = string
+    node      = string           # key into proxmox_hosts
+    cores     = number
+    memory_mb = number
+    disk_gb   = number
+    gpu_slots = list(number)     # indices into proxmox_hosts[node].gpus
+    cx6_slot  = optional(number) # index into proxmox_hosts[node].cx6_vfs
   }))
+  default = {}
 }
 
-# -----------------------------------------------------------------------------
-# Windows Arnold nodes
-# -----------------------------------------------------------------------------
+variable "touch_nodes" {
+  description = "TouchDesigner nodes — volumetric content render (Windows + GPU)"
+  type = map(object({
+    ip        = string
+    node      = string
+    cores     = number
+    memory_mb = number
+    disk_gb   = number
+    gpu_slots = list(number)
+    cx6_slot  = optional(number)
+  }))
+  default = {}
+}
 
 variable "arnold_nodes" {
-  description = "Arnold/Fusion render nodes"
+  description = "Arnold/Fusion offline render + compositing nodes (Windows + GPU)"
   type = map(object({
     ip        = string
     node      = string
     cores     = number
     memory_mb = number
     disk_gb   = number
-    gpu_pci   = string
+    gpu_slots = list(number)
+    cx6_slot  = optional(number)
   }))
   default = {}
 }
 
-# -----------------------------------------------------------------------------
-# Linux VMs
-# -----------------------------------------------------------------------------
-
-variable "optik_vm" {
-  description = "Optik CV VM config"
-  type = object({
+variable "workstations" {
+  description = "Artist workstations — content creation, RDP (Windows + GPU)"
+  type = map(object({
     ip        = string
     node      = string
     cores     = number
     memory_mb = number
     disk_gb   = number
-    gpu_pci   = string
-  })
-  default = null
+    gpu_slots = list(number)
+    cx6_slot  = optional(number)
+  }))
+  default = {}
 }
 
-variable "control_plane_vm" {
-  description = "Ansible control plane VM config"
-  type = object({
+# =============================================================================
+# Windows VMs (no GPU)
+# =============================================================================
+
+variable "ue_build_nodes" {
+  description = "UE cook/package build nodes (Windows, headless)"
+  type = map(object({
     ip        = string
     node      = string
     cores     = number
     memory_mb = number
     disk_gb   = number
-  })
-  default = null
+    cx6_slot  = optional(number)
+  }))
+  default = {}
 }
 
-# -----------------------------------------------------------------------------
+variable "ue_staging_nodes" {
+  description = "Plastic sync + build distribution nodes (Windows)"
+  type = map(object({
+    ip        = string
+    node      = string
+    cores     = number
+    memory_mb = number
+    disk_gb   = number
+    cx6_slot  = optional(number)
+  }))
+  default = {}
+}
+
+variable "pixelfarm_nodes" {
+  description = "Pixel Farm render job orchestration (Windows)"
+  type = map(object({
+    ip        = string
+    node      = string
+    cores     = number
+    memory_mb = number
+    disk_gb   = number
+    cx6_slot  = optional(number)
+  }))
+  default = {}
+}
+
+variable "runner_win_nodes" {
+  description = "Windows CI/CD runners"
+  type = map(object({
+    ip        = string
+    node      = string
+    cores     = number
+    memory_mb = number
+    disk_gb   = number
+    cx6_slot  = optional(number)
+  }))
+  default = {}
+}
+
+# =============================================================================
+# Linux GPU VMs
+# =============================================================================
+
+variable "optik_nodes" {
+  description = "Optik computer vision nodes (Linux + GPU, can consume all GPUs on a host)"
+  type = map(object({
+    ip        = string
+    node      = string
+    cores     = number
+    memory_mb = number
+    disk_gb   = number
+    gpu_slots = list(number)
+    cx6_slot  = optional(number)
+  }))
+  default = {}
+}
+
+# =============================================================================
 # LXC containers
-# -----------------------------------------------------------------------------
+# =============================================================================
+
+variable "runner_lxc_nodes" {
+  description = "Linux CI/CD runners (LXC)"
+  type = map(object({
+    ip        = string
+    node      = string
+    cores     = number
+    memory_mb = number
+    disk_gb   = number
+  }))
+  default = {}
+}
 
 variable "rship_nodes" {
-  description = "rship worker LXC containers"
+  description = "rship real-time data workers (LXC)"
   type = map(object({
     ip        = string
     node      = string
@@ -151,30 +249,26 @@ variable "rship_nodes" {
   default = {}
 }
 
-variable "rship_control" {
-  description = "rship control plane LXC container"
-  type = object({
+variable "gitlab_nodes" {
+  description = "Self-hosted GitLab instances (LXC)"
+  type = map(object({
     ip        = string
     node      = string
     cores     = number
     memory_mb = number
     disk_gb   = number
-  })
-  default = null
+  }))
+  default = {}
 }
 
-# -----------------------------------------------------------------------------
-# Storage
-# -----------------------------------------------------------------------------
-
-variable "vm_storage" {
-  description = "Proxmox storage pool for VM disks"
-  type        = string
-  default     = "local-zfs"
-}
-
-variable "lxc_storage" {
-  description = "Proxmox storage pool for LXC rootfs"
-  type        = string
-  default     = "local-zfs"
+variable "pulse_admin_nodes" {
+  description = "Control plane — Ansible, monitoring (LXC)"
+  type = map(object({
+    ip        = string
+    node      = string
+    cores     = number
+    memory_mb = number
+    disk_gb   = number
+  }))
+  default = {}
 }
