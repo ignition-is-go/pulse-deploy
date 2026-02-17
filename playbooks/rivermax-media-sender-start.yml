@@ -7,6 +7,9 @@
 #   ansible-playbook playbooks/rivermax-media-sender-start.yml --limit content_nodes -e "rmax_dst_ip=10.0.0.5"
 #   ansible-playbook playbooks/rivermax-media-sender-start.yml --limit content_nodes -e "rmax_dst_ip=225.0.0.1"
 
+- name: Prime OVS FDB for Rivermax hardware offload
+  ansible.builtin.import_playbook: rivermax-arp-prime.yml
+
 - name: Start Rivermax media_sender
   hosts: windows
   gather_facts: false
@@ -15,7 +18,7 @@
     rmax_sender: 'C:\Program Files\Mellanox\Rivermax\apps\media_sender\media_sender.exe'
     rmax_dst_ip: "10.0.0.5"
     rmax_dst_port: 50000
-    rmax_fps: "29.97"
+    rmax_fps: "60"
 
   tasks:
     - name: Ensure temp directory exists
@@ -33,23 +36,23 @@
           t=0 0
           m=video {{ rmax_dst_port }} RTP/AVP 96
           a=rtpmap:96 raw/90000
-          a=fmtp:96 sampling=YCbCr-4:2:2; width=1920; height=1080; depth=10; exactframerate=29.97; colorimetry=BT709; PM=2110GPM; SSN=ST2110-20:2017; TP=2110TPN
+          a=fmtp:96 sampling=YCbCr-4:2:2; width=4096; height=1080; depth=10; exactframerate=60; colorimetry=BT709; PM=2110GPM; SSN=ST2110-20:2017; TP=2110TPN
           a=source-filter: incl IN IP4 {{ rmax_dst_ip }} {{ media_ip }}
         dest: C:\temp\rmax-tx.sdp
 
-    - name: Write TX batch file
+    - name: Write TX launch script
       ansible.windows.win_copy:
         content: |
-          @echo off
-          "{{ rmax_sender }}" -s C:\temp\rmax-tx.sdp --src-ip={{ media_ip }} --dst-ip={{ rmax_dst_ip }} --dst-port={{ rmax_dst_port }} --fps={{ rmax_fps }} -v system
-        dest: C:\temp\rmax-tx.bat
+          & "{{ rmax_sender }}" -s C:\temp\rmax-tx.sdp --src-ip={{ media_ip }} --dst-ip={{ rmax_dst_ip }} --dst-port={{ rmax_dst_port }} --fps={{ rmax_fps }} -v system 2>&1 | Tee-Object -FilePath C:\temp\rmax-tx.log
+        dest: C:\temp\rmax-tx.ps1
 
     - name: Create TX scheduled task
       community.windows.win_scheduled_task:
         name: RivermaxMediaSender
         description: Rivermax media_sender
         actions:
-          - path: C:\temp\rmax-tx.bat
+          - path: powershell.exe
+            arguments: -ExecutionPolicy Bypass -File C:\temp\rmax-tx.ps1
         triggers: []
         username: "{{ ansible_user }}"
         password: "{{ ansible_password }}"

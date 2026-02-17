@@ -32,23 +32,23 @@
           t=0 0
           m=video {{ rmax_dst_port }} RTP/AVP 96
           a=rtpmap:96 raw/90000
-          a=fmtp:96 sampling=YCbCr-4:2:2; width=1920; height=1080; depth=10; exactframerate=29.97; colorimetry=BT709; PM=2110GPM; SSN=ST2110-20:2017; TP=2110TPN
+          a=fmtp:96 sampling=YCbCr-4:2:2; width=4096; height=1080; depth=10; exactframerate=60; colorimetry=BT709; PM=2110GPM; SSN=ST2110-20:2017; TP=2110TPN
           a=source-filter: incl IN IP4 {{ rmax_dst_ip }} {{ rmax_src_ip }}
         dest: C:\temp\rmax-rx.sdp
 
-    - name: Write RX batch file
+    - name: Write RX launch script
       ansible.windows.win_copy:
         content: |
-          @echo off
-          "{{ rmax_receiver }}" --sdp-file C:\temp\rmax-rx.sdp -i {{ media_ip }}
-        dest: C:\temp\rmax-rx.bat
+          & "{{ rmax_receiver }}" --sdp-file C:\temp\rmax-rx.sdp -i {{ media_ip }} 2>&1 | Tee-Object -FilePath C:\temp\rmax-rx.log
+        dest: C:\temp\rmax-rx.ps1
 
     - name: Create RX scheduled task
       community.windows.win_scheduled_task:
         name: RivermaxMediaReceiver
         description: Rivermax media_receiver
         actions:
-          - path: C:\temp\rmax-rx.bat
+          - path: powershell.exe
+            arguments: -ExecutionPolicy Bypass -File C:\temp\rmax-rx.ps1
         triggers: []
         username: "{{ ansible_user }}"
         password: "{{ ansible_password }}"
