@@ -777,4 +777,49 @@ cadf7b4b-d43e-440f-94bd-b80ffb7ae9d2
             Interface ens13f0r2
     ovs_version: "3.5.0"
 
+OVS Hardware Offload — ARP Priming Requirement
+
+With `hw-offload=true` and `tc-policy=skip_sw`, OVS offloads L2 forwarding to the CX6
+eSwitch hardware. However, OVS must first **learn the VF MAC addresses** via ARP before it
+can install offloaded flow rules. If a high-rate stream (e.g. Rivermax media) starts before
+any ARP exchange between VFs, OVS has no MAC→port mapping and **floods the stream to every
+port on the bridge in software**, causing:
+
+- ~8x bandwidth amplification (one stream copied to every VF + PF uplink)
+- 100% software OVS path — all traffic through CPU
+- Sender freezes / network saturation
+
+**Fix: Prime the OVS FDB before starting streams.** Each VM must send at least one packet
+(ping) to every other VM on the media network before Rivermax outputs start. This triggers
+ARP, OVS learns the MACs, and installs hardware-offloaded forwarding rules.
+
+The `rivermax-arp-prime.yml` Ansible playbook automates this.
+
+**Diagnosing flooding:**
+
+```bash
+# Real-time per-interface bandwidth (install: apt install bwm-ng)
+bwm-ng
+
+# Check offloaded flows (should show specific port→port actions, not just drops)
+ovs-appctl dpctl/dump-flows type=offloaded | grep -v "actions:drop"
+
+# If flooding is active, purge stale flows to force re-evaluation
+ovs-appctl revalidator/purge
+
+# Verify MAC learning
+ovs-appctl fdb/show vmbr1
+```
+
+**If hw-offload settings are missing** (e.g. after OVS reconfiguration), re-apply:
+
+```bash
+ovs-vsctl set Open_vSwitch . other_config:hw-offload=true
+ovs-vsctl set Open_vSwitch . other_config:lacp-fallback-ab=true
+ovs-vsctl set Open_vSwitch . other_config:tc-policy=skip_sw
+systemctl restart openvswitch-switch
+```
+
+Then re-prime ARPs and purge stale flows.
+
 Create a windows VM in proxmox, add the virtual function as a PCIe device, install windows drivers and and verify the ConnectX-6 appears in device manager
