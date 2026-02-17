@@ -23,10 +23,62 @@
 #   ansible-playbook playbooks/ndisplay-start.yml
 #   ansible-playbook playbooks/ndisplay-start.yml -e "ndisplay_map=/Game/Path/To/Map"
 
-- name: Launch nDisplay cluster
+- name: Prime OVS FDB for Rivermax hardware offload
+  ansible.builtin.import_playbook: rivermax-arp-prime.yml
+
+- name: Rivermax preflight check
   hosts: content_nodes
   gather_facts: false
-  serial: 1
+
+  tasks:
+    - name: Skip preflight if not using Rivermax config
+      ansible.builtin.meta: end_host
+      when: not (ndisplay | default('') is match('rivermax.*'))
+
+    - name: Check Rivermax DLL exists
+      ansible.windows.win_stat:
+        path: 'C:\Program Files\Mellanox\Rivermax\lib\rivermax.dll'
+      register: preflight_dll
+
+    - name: Check Rivermax license exists
+      ansible.windows.win_stat:
+        path: 'C:\Program Files\Mellanox\Rivermax\lib\rivermax.lic'
+      register: preflight_lic
+
+    - name: Check RIVERMAX_LICENSE_PATH is set
+      ansible.windows.win_shell: |
+        [System.Environment]::GetEnvironmentVariable('RIVERMAX_LICENSE_PATH', 'Machine')
+      register: preflight_env
+      changed_when: false
+
+    - name: Check Mellanox adapter visible
+      ansible.windows.win_shell: |
+        $adapter = Get-NetAdapter | Where-Object {
+          $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
+        }
+        if ($adapter) { Write-Host "OK: $($adapter.Name) ($($adapter.InterfaceDescription)) - $($adapter.Status)" }
+        else { Write-Host "MISSING" }
+      register: preflight_adapter
+      changed_when: false
+
+    - name: Fail if Rivermax is not ready
+      ansible.builtin.fail:
+        msg: |-
+          Rivermax preflight FAILED on {{ inventory_hostname }}:
+          {% if not preflight_dll.stat.exists %}  - Rivermax DLL missing (C:\Program Files\Mellanox\Rivermax\lib\rivermax.dll)
+          {% endif %}{% if not preflight_lic.stat.exists %}  - License file missing (C:\Program Files\Mellanox\Rivermax\lib\rivermax.lic)
+          {% endif %}{% if preflight_env.stdout | trim == '' %}  - RIVERMAX_LICENSE_PATH env var not set
+          {% endif %}{% if 'MISSING' in preflight_adapter.stdout %}  - No Mellanox/ConnectX adapter found
+          {% endif %}Fix: ansible-playbook playbooks/rivermax-setup.yml --limit {{ inventory_hostname }}
+      when: >-
+        not preflight_dll.stat.exists or
+        not preflight_lic.stat.exists or
+        preflight_env.stdout | trim == '' or
+        'MISSING' in preflight_adapter.stdout
+
+- name: Prepare nDisplay launch
+  hosts: content_nodes
+  gather_facts: false
 
   tasks:
     - name: Validate nDisplay config is set
@@ -48,6 +100,26 @@
         }
       register: stop_result
 
+    - name: Read node window settings from nDisplay config
+      ansible.windows.win_shell: |
+        $cfg = Get-Content "{{ ndisplay_config }}" -Raw | ConvertFrom-Json
+        $node = $cfg.nDisplay.cluster.nodes."{{ ndisplay_node }}"
+        $obj = @{
+          winx = [int]$node.window.x
+          winy = [int]$node.window.y
+          resx = [int]$node.window.w
+          resy = [int]$node.window.h
+          fullscreen = [bool]$node.fullScreen
+          headless = [bool]$node.renderHeadless
+        }
+        $obj | ConvertTo-Json -Compress
+      register: ndisplay_node_cfg
+      changed_when: false
+
+    - name: Parse node window settings
+      ansible.builtin.set_fact:
+        ndisplay_window: "{{ ndisplay_node_cfg.stdout | from_json }}"
+
     - name: Build nDisplay launch arguments
       ansible.builtin.set_fact:
         ndisplay_args: >-
@@ -59,7 +131,7 @@
           -dc_cfg="{{ ndisplay_config }}"
           -dc_node={{ ndisplay_node }}
           -dc_dev_mono
-          -ini:Engine:[/Script/Engine.Engine]:GameEngine=/Script/DisplayCluster.DisplayClusterGameEngine,[/Script/Engine.Engine]:GameViewportClientClassName=/Script/DisplayCluster.DisplayClusterViewportClient
+          -ini:Engine:[/Script/Engine.Engine]:GameEngine=/Script/DisplayCluster.DisplayClusterGameEngine,[/Script/Engine.Engine]:GameViewportClientClassName=/Script/DisplayCluster.DisplayClusterViewportClient,[/Script/Engine.UserInterfaceSettings]:bAllowHighDPIInGameMode=True,[/Script/Engine.UserInterfaceSettings]:bAllowHighDpiWhenUnattended=True
           -ini:Game:[/Script/EngineSettings.GeneralProjectSettings]:bUseBorderlessWindow=True
           -ini:Input:[/Script/Engine.InputSettings]:DefaultPlayerInputClass=/Script/DisplayCluster.DisplayClusterPlayerInput
           -unattended
@@ -68,6 +140,8 @@
           -fixedseed
           -NoVerifyGC
           -noxrstereo
+          {% if ndisplay_window.fullscreen | bool %}-fullscreen{% else %}-windowed -forceres WinX={{ ndisplay_window.winx }} WinY={{ ndisplay_window.winy }} ResX={{ ndisplay_window.resx }} ResY={{ ndisplay_window.resy }}{% endif %}
+          {% if ndisplay_window.headless | bool %}-RenderOffscreen{% endif %}
           -RemoteControlIsHeadless
           -StageFriendlyName="{{ ndisplay_node }}"
           Log={{ ndisplay_node }}.log
@@ -93,7 +167,12 @@
         state: present
         enabled: true
 
-    - name: Run nDisplay launch task
+- name: Launch nDisplay cluster
+  hosts: content_nodes
+  gather_facts: false
+
+  tasks:
+    - name: Start nDisplay on all nodes
       ansible.windows.win_shell: |
         Start-ScheduledTask -TaskName "nDisplayLaunch"
         Write-Host "LAUNCHED"

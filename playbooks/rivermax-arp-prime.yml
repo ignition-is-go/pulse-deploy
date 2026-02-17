@@ -1,0 +1,37 @@
+---
+# Prime OVS hardware-offloaded flow rules by exchanging ARP between all Rivermax VFs.
+#
+# Why: OVS with hw-offload + tc-policy=skip_sw offloads L2 forwarding to the CX6
+# eSwitch hardware. But OVS must learn VF MAC addresses via ARP before it can install
+# offloaded flows. Without this, high-rate streams (Rivermax) flood to every port on
+# the bridge in software, causing ~8x bandwidth amplification and CPU saturation.
+#
+# When: Run this BEFORE starting any Rivermax media streams (nDisplay, media_sender, etc.)
+#
+# Usage:
+#   ansible-playbook playbooks/rivermax-arp-prime.yml
+
+- name: Prime OVS FDB — ARP exchange between all Rivermax VFs
+  hosts: ue_nodes:touch_nodes
+  ignore_unreachable: true
+  gather_facts: false
+
+  tasks:
+    - name: Skip hosts without media_ip
+      ansible.builtin.meta: end_host
+      when: media_ip is not defined
+
+    - name: Gather all media IPs
+      ansible.builtin.set_fact:
+        all_media_ips: "{{ hostvars | dict2items | selectattr('value.media_ip', 'defined') | map(attribute='value.media_ip') | list }}"
+
+    - name: Ping all other media IPs (triggers ARP, primes OVS FDB)
+      ansible.windows.win_shell: |
+        $ips = @("{{ all_media_ips | join('", "') }}")
+        $myIp = "{{ media_ip }}"
+        foreach ($ip in $ips) {
+          if ($ip -ne $myIp) {
+            ping -n 1 -w 500 $ip | Out-Null
+          }
+        }
+        Write-Host "Primed {{ all_media_ips | length - 1 }} peers from {{ media_ip }}"

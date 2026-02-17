@@ -7,3 +7,6 @@ rivermax_installers_remote: true
 rivermax_sdk_version: "1_71_30"
 rivermax_sdk_version_dotted: "1.71.30"
 rivermax_winof2_version: "24.10.50010"
+
+# GPUDirect RDMA — requires PF passthrough or bare metal (not supported on SR-IOV VFs)
+rivermax_gpudirect: false

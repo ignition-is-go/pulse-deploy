@@ -110,7 +110,7 @@
 - name: Set RIVERMAX_ENABLE_CUDA system environment variable
   ansible.windows.win_environment:
     name: RIVERMAX_ENABLE_CUDA
-    value: "1"
+    value: "{{ '1' if rivermax_gpudirect else '0' }}"
     level: machine
     state: present
 
