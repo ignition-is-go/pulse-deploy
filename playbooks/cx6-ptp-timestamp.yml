@@ -1,0 +1,54 @@
+---
+# ptp-enable.yml — Enable PTP hardware timestamping on ConnectX-6 media NICs
+#
+# Usage:
+#   ansible-playbook playbooks/ptp-enable.yml                           # all rivermax nodes
+#   ansible-playbook playbooks/ptp-enable.yml --limit content_nodes     # content only
+#   ansible-playbook playbooks/ptp-enable.yml --limit windows-unreal-render-01  # single node
+#   ansible-playbook playbooks/ptp-enable.yml --check                   # dry run
+
+- name: Enable PTP hardware timestamping on ConnectX-6
+  hosts: ue_nodes:touch_nodes
+  gather_facts: false
+
+  tasks:
+    - name: Check PTP Hardware Timestamp setting
+      ansible.windows.win_shell: |
+        $adapters = @(Get-NetAdapter | Where-Object {
+          $_.InterfaceDescription -like "*Mellanox*" -or $_.InterfaceDescription -like "*ConnectX*"
+        })
+        if ($adapters.Count -eq 0) { throw "ConnectX adapter not found" }
+        if ($adapters.Count -gt 1) { throw "Multiple ConnectX adapters found ($($adapters.Count)), expected 1" }
+        $prop = Get-NetAdapterAdvancedProperty -Name $adapters[0].Name -RegistryKeyword "*PtpHardwareTimestamp" -ErrorAction SilentlyContinue
+        if (-not $prop) { throw "PtpHardwareTimestamp property not found on $($adapters[0].Name)" }
+        $prop.DisplayValue
+      register: ptp_check
+      changed_when: false
+      when: rivermax | default(false)
+
+    - name: Enable PTP Hardware Timestamp
+      ansible.windows.win_shell: |
+        $adapter = Get-NetAdapter | Where-Object {
+          $_.InterfaceDescription -like "*Mellanox*" -or $_.InterfaceDescription -like "*ConnectX*"
+        }
+        Set-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*PtpHardwareTimestamp" -RegistryValue 1
+      when:
+        - rivermax | default(false)
+        - ptp_check.stdout | default('') | trim != "Enabled"
+      register: ptp_set
+
+    - name: Verify PTP Hardware Timestamp is enabled
+      ansible.windows.win_shell: |
+        $adapter = Get-NetAdapter | Where-Object {
+          $_.InterfaceDescription -like "*Mellanox*" -or $_.InterfaceDescription -like "*ConnectX*"
+        }
+        $prop = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*PtpHardwareTimestamp"
+        $prop.DisplayValue
+      register: ptp_verify
+      changed_when: false
+      when: rivermax | default(false)
+
+    - name: Display PTP status
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: PTP Hardware Timestamp = {{ ptp_verify.stdout | trim }}"
+      when: rivermax | default(false)
