@@ -11,7 +11,7 @@ ndisplay_map: "/Game/HRLV_Content/Maps/Dev/LookDev/ColorCharts_v2"
 ndisplay_configs:
   rivermax_4node: "F:/P-0616-HRLV/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_Rivermax_4Node.ndisplay"
   rivermax_1node: "F:/P-0616-HRLV/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_Rivermax_1Node.ndisplay"
-  ndi: "F:/P-0616-HRLV/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_NDI_4Node.ndisplay"
+  ndi_4node: "F:/P-0616-HRLV/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_NDI_4Node.ndisplay"
 
 # Default config (override with -e "ndisplay=...")
 ndisplay: rivermax_4node

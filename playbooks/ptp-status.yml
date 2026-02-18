@@ -1,0 +1,62 @@
+---
+# ptp-status.yml — Verify W32Time PTP synchronization status
+#
+# Usage:
+#   ansible-playbook playbooks/ptp-status.yml                                    # all rivermax nodes
+#   ansible-playbook playbooks/ptp-status.yml --limit content_nodes              # content only
+#   ansible-playbook playbooks/ptp-status.yml --limit windows-unreal-render-01   # single node
+
+- name: Verify W32Time PTP status
+  hosts: ue_nodes:touch_nodes
+  gather_facts: false
+
+  tasks:
+    - name: Query W32Time sync status
+      ansible.windows.win_shell: w32tm /query /status /verbose
+      register: w32time_status
+      changed_when: false
+      when: rivermax | default(false)
+
+    - name: Display sync status
+      ansible.builtin.debug:
+        msg: "{{ w32time_status.stdout_lines }}"
+      when: rivermax | default(false)
+
+    - name: Monitor PTP traffic (10 seconds)
+      ansible.windows.win_shell: w32tm /ptp_monitor /duration:10
+      register: ptp_monitor
+      changed_when: false
+      failed_when: false
+      when: rivermax | default(false)
+
+    - name: Display PTP monitor
+      ansible.builtin.debug:
+        msg: "{{ ptp_monitor.stdout_lines }}"
+      when:
+        - rivermax | default(false)
+        - ptp_monitor.stdout_lines | default([]) | length > 0
+
+    - name: Measure offset from PTP grandmaster
+      ansible.windows.win_shell: w32tm /stripchart /computer:10.0.0.100 /rdtsc /samples:5
+      register: stripchart
+      changed_when: false
+      failed_when: false
+      when: rivermax | default(false)
+
+    - name: Display offset measurements
+      ansible.builtin.debug:
+        msg: "{{ stripchart.stdout_lines }}"
+      when:
+        - rivermax | default(false)
+        - stripchart.stdout_lines | default([]) | length > 0
+
+    - name: Check PTP provider configuration
+      ansible.windows.win_shell: w32tm /query /configuration
+      register: w32time_config
+      changed_when: false
+      when: rivermax | default(false)
+
+    - name: Display PTP provider config
+      ansible.builtin.debug:
+        msg: "{{ w32time_config.stdout_lines }}"
+      when: rivermax | default(false)
