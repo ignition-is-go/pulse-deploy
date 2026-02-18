@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# Windows VMs (no GPU) — build, staging, pixelfarm, runner-win
+# Windows VMs (no GPU) — build, staging, pixelfarm
 # -----------------------------------------------------------------------------
 
 locals {
@@ -7,14 +7,18 @@ locals {
     var.ue_build_nodes,
     var.ue_staging_nodes,
     var.pixelfarm_nodes,
-    var.runner_win_nodes,
   )
 
   windows_vm_tags = merge(
-    { for k, _ in var.ue_build_nodes      : k => ["windows", "build"] },
-    { for k, _ in var.ue_staging_nodes    : k => ["windows", "staging"] },
-    { for k, _ in var.pixelfarm_nodes  : k => ["windows", "pixelfarm"] },
-    { for k, _ in var.runner_win_nodes : k => ["windows", "runner"] },
+    { for k, _ in var.ue_build_nodes : k => ["windows", "build"] },
+    { for k, _ in var.ue_staging_nodes : k => ["windows", "staging"] },
+    { for k, _ in var.pixelfarm_nodes : k => ["windows", "pixelfarm"] },
+  )
+
+  windows_vm_descriptions = merge(
+    { for k, _ in var.ue_build_nodes : k => "UE cook/package build node" },
+    { for k, _ in var.ue_staging_nodes : k => "Plastic sync + build distribution" },
+    { for k, _ in var.pixelfarm_nodes : k => "Pixel Farm render orchestration" },
   )
 }
 
@@ -22,7 +26,9 @@ module "windows_vm" {
   source   = "./modules/proxmox-vm"
   for_each = local.windows_vms
 
+  id             = each.value.id
   name           = each.key
+  description    = local.windows_vm_descriptions[each.key]
   node_name      = each.value.node
   tags           = local.windows_vm_tags[each.key]
   template_id    = var.windows_template_id
@@ -41,4 +47,11 @@ module "windows_vm" {
     pcie   = true
     rombar = true
   }] : []
+
+  # Cloudbase-init sets IP/DNS on first boot
+  cloud_init = {
+    ip      = each.value.ip
+    gateway = var.network_gateway
+    dns     = var.dns_servers
+  }
 }

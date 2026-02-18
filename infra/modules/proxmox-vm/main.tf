@@ -4,17 +4,19 @@
 
 locals {
   has_pci   = length(var.pci_devices) > 0
-  bios      = coalesce(var.override_bios, local.has_pci ? "ovmf" : "seabios")
-  cpu_type  = coalesce(var.override_cpu_type, local.has_pci ? "host" : "x86-64-v2-AES")
+  bios      = coalesce(var.override_bios, "seabios")
+  cpu_type  = coalesce(var.override_cpu_type, "host")
   needs_efi = local.bios == "ovmf"
   has_init  = var.cloud_init != null
   has_ssh   = local.has_init && length(var.cloud_init.ssh_keys) > 0
 }
 
 resource "proxmox_virtual_environment_vm" "this" {
-  name      = var.name
-  node_name = var.node_name
-  tags      = var.tags
+  vm_id       = var.id
+  name        = var.name
+  description = var.description
+  node_name   = var.node_name
+  tags        = var.tags
 
   clone {
     vm_id = var.template_id
@@ -30,7 +32,7 @@ resource "proxmox_virtual_environment_vm" "this" {
     dedicated = var.memory_mb
   }
 
-  # EFI disk — only when OVMF bios is active (PCIe passthrough)
+  # EFI disk — only when override_bios = "ovmf"
   dynamic "efi_disk" {
     for_each = local.needs_efi ? [1] : []
     content {
@@ -44,6 +46,9 @@ resource "proxmox_virtual_environment_vm" "this" {
     datastore_id = var.datastore_id
     interface    = "scsi0"
     size         = var.disk_gb
+    ssd          = true
+    discard      = "on"
+    iothread     = true
   }
 
   network_device {
@@ -71,6 +76,7 @@ resource "proxmox_virtual_environment_vm" "this" {
   dynamic "initialization" {
     for_each = local.has_init ? [1] : []
     content {
+      datastore_id = var.datastore_id
       ip_config {
         ipv4 {
           address = "${var.cloud_init.ip}/24"
@@ -95,8 +101,10 @@ resource "proxmox_virtual_environment_vm" "this" {
     type = var.os_type
   }
 
-  started = var.started
-  on_boot = var.on_boot
+  started         = var.started
+  on_boot         = var.on_boot
+  stop_on_destroy = true
+  protection      = var.protection
 
   lifecycle {
     ignore_changes = [disk[0].size]

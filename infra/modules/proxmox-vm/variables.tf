@@ -4,9 +4,20 @@
 
 # --- Identity ----------------------------------------------------------------
 
+variable "id" {
+  description = "Proxmox ID"
+  type        = number
+}
+
 variable "name" {
   description = "VM name (Proxmox display name)"
   type        = string
+}
+
+variable "description" {
+  description = "VM description shown in Proxmox UI"
+  type        = string
+  default     = ""
 }
 
 variable "node_name" {
@@ -49,7 +60,6 @@ variable "disk_gb" {
 variable "datastore_id" {
   description = "Proxmox storage pool for VM disks and EFI disk"
   type        = string
-  default     = "local-zfs"
 }
 
 # --- Network -----------------------------------------------------------------
@@ -74,7 +84,7 @@ variable "pci_devices" {
   description = <<-EOT
     List of PCI devices to pass through. Each entry creates a hostpci block.
     Use EITHER 'id' (raw PCI address) OR 'mapping' (Proxmox resource mapping name).
-    When non-empty, the module automatically sets q35/OVMF/host CPU.
+    When non-empty, the module automatically sets q35 machine type.
   EOT
   type = list(object({
     device  = string
@@ -120,7 +130,13 @@ variable "started" {
 }
 
 variable "on_boot" {
-  description = "Start VM when Proxmox host boots"
+  description = "Start VM when Proxmox host boots — false prevents boot loops if storage is offline"
+  type        = bool
+  default     = false
+}
+
+variable "protection" {
+  description = "Prevent accidental deletion in Proxmox UI and API"
   type        = bool
   default     = true
 }
@@ -128,7 +144,7 @@ variable "on_boot" {
 # --- Overrides ----------------------------------------------------------------
 
 variable "override_bios" {
-  description = "Force bios type. null = auto-detect from pci_devices"
+  description = "Force bios type. null = seabios (default)"
   type        = string
   default     = null
 
@@ -139,7 +155,7 @@ variable "override_bios" {
 }
 
 variable "override_cpu_type" {
-  description = "Force CPU type. null = auto-detect ('host' if PCI, 'x86-64-v2-AES' if none)"
+  description = "Force CPU type. null = 'host' (default)"
   type        = string
   default     = null
 }

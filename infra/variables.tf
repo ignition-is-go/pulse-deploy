@@ -61,21 +61,18 @@ variable "dns_servers" {
 # -----------------------------------------------------------------------------
 
 variable "windows_template_id" {
-  description = "VM ID of the Windows template (sysprepped with WinRM + unattend.xml)"
+  description = "VM ID of the Windows template (cloudbase-init)"
   type        = number
-  default     = 9000
 }
 
 variable "linux_template_id" {
   description = "VM ID of the Linux (Debian/Ubuntu) cloud-init template"
   type        = number
-  default     = 9001
 }
 
 variable "lxc_template" {
   description = "LXC container template (e.g. local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst)"
   type        = string
-  default     = "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
 }
 
 # -----------------------------------------------------------------------------
@@ -94,8 +91,9 @@ variable "ssh_public_key" {
 variable "ue_render_nodes" {
   description = "UE nDisplay render nodes (Windows + GPU)"
   type = map(object({
+    id        = number
     ip        = string
-    node      = string           # key into proxmox_hosts
+    node      = string # key into proxmox_hosts
     cores     = number
     memory_mb = number
     disk_gb   = number
@@ -108,6 +106,7 @@ variable "ue_render_nodes" {
 variable "touch_nodes" {
   description = "TouchDesigner nodes — volumetric content render (Windows + GPU)"
   type = map(object({
+    id        = number
     ip        = string
     node      = string
     cores     = number
@@ -122,6 +121,7 @@ variable "touch_nodes" {
 variable "arnold_nodes" {
   description = "Arnold/Fusion offline render + compositing nodes (Windows + GPU)"
   type = map(object({
+    id        = number
     ip        = string
     node      = string
     cores     = number
@@ -136,6 +136,7 @@ variable "arnold_nodes" {
 variable "workstations" {
   description = "Artist workstations — content creation, RDP (Windows + GPU)"
   type = map(object({
+    id        = number
     ip        = string
     node      = string
     cores     = number
@@ -154,6 +155,7 @@ variable "workstations" {
 variable "ue_build_nodes" {
   description = "UE cook/package build nodes (Windows, headless)"
   type = map(object({
+    id        = number
     ip        = string
     node      = string
     cores     = number
@@ -167,6 +169,7 @@ variable "ue_build_nodes" {
 variable "ue_staging_nodes" {
   description = "Plastic sync + build distribution nodes (Windows)"
   type = map(object({
+    id        = number
     ip        = string
     node      = string
     cores     = number
@@ -180,19 +183,7 @@ variable "ue_staging_nodes" {
 variable "pixelfarm_nodes" {
   description = "Pixel Farm render job orchestration (Windows)"
   type = map(object({
-    ip        = string
-    node      = string
-    cores     = number
-    memory_mb = number
-    disk_gb   = number
-    cx6_slot  = optional(number)
-  }))
-  default = {}
-}
-
-variable "runner_win_nodes" {
-  description = "Windows CI/CD runners"
-  type = map(object({
+    id        = number
     ip        = string
     node      = string
     cores     = number
@@ -210,6 +201,7 @@ variable "runner_win_nodes" {
 variable "optik_nodes" {
   description = "Optik computer vision nodes (Linux + GPU, can consume all GPUs on a host)"
   type = map(object({
+    id        = number
     ip        = string
     node      = string
     cores     = number
@@ -225,33 +217,10 @@ variable "optik_nodes" {
 # LXC containers
 # =============================================================================
 
-variable "runner_lxc_nodes" {
-  description = "Linux CI/CD runners (LXC)"
-  type = map(object({
-    ip        = string
-    node      = string
-    cores     = number
-    memory_mb = number
-    disk_gb   = number
-  }))
-  default = {}
-}
-
 variable "rship_nodes" {
   description = "rship real-time data workers (LXC)"
   type = map(object({
-    ip        = string
-    node      = string
-    cores     = number
-    memory_mb = number
-    disk_gb   = number
-  }))
-  default = {}
-}
-
-variable "gitlab_nodes" {
-  description = "Self-hosted GitLab instances (LXC)"
-  type = map(object({
+    id        = number
     ip        = string
     node      = string
     cores     = number
@@ -264,6 +233,7 @@ variable "gitlab_nodes" {
 variable "pulse_admin_nodes" {
   description = "Control plane — Ansible, monitoring (LXC)"
   type = map(object({
+    id        = number
     ip        = string
     node      = string
     cores     = number

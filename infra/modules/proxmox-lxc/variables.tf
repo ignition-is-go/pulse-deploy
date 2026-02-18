@@ -2,6 +2,11 @@
 # proxmox-lxc module — input variables
 # =============================================================================
 
+variable "id" {
+  description = "Proxmox ID"
+  type        = number
+}
+
 variable "hostname" {
   description = "Container hostname"
   type        = string
@@ -59,7 +64,6 @@ variable "disk_gb" {
 variable "datastore_id" {
   description = "Proxmox storage pool for LXC rootfs"
   type        = string
-  default     = "local-zfs"
 }
 
 # --- Network ------------------------------------------------------------------
@@ -100,8 +104,15 @@ variable "started" {
 }
 
 variable "start_on_boot" {
-  type    = bool
-  default = true
+  description = "Start container when Proxmox host boots — false prevents boot loops if storage is offline"
+  type        = bool
+  default     = false
+}
+
+variable "protection" {
+  description = "Prevent accidental deletion in Proxmox UI and API"
+  type        = bool
+  default     = true
 }
 
 variable "unprivileged" {

@@ -3,12 +3,14 @@
 # =============================================================================
 
 resource "proxmox_virtual_environment_container" "this" {
+  vm_id         = var.id
   description   = var.description
   node_name     = var.node_name
   tags          = var.tags
-  started       = var.started
-  start_on_boot = var.start_on_boot
-  unprivileged  = var.unprivileged
+  started         = var.started
+  start_on_boot   = var.start_on_boot
+  unprivileged    = var.unprivileged
+  protection      = var.protection
 
   operating_system {
     template_file_id = var.template_file_id

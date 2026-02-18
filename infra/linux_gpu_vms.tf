@@ -10,13 +10,19 @@ locals {
   linux_gpu_vm_tags = merge(
     { for k, _ in var.optik_nodes : k => ["linux", "optik", "gpu"] },
   )
+
+  linux_gpu_vm_descriptions = merge(
+    { for k, _ in var.optik_nodes : k => "Optik computer vision" },
+  )
 }
 
 module "linux_gpu_vm" {
   source   = "./modules/proxmox-vm"
   for_each = local.linux_gpu_vms
 
+  id             = each.value.id
   name           = each.key
+  description    = local.linux_gpu_vm_descriptions[each.key]
   node_name      = each.value.node
   tags           = local.linux_gpu_vm_tags[each.key]
   template_id    = var.linux_template_id
@@ -32,7 +38,7 @@ module "linux_gpu_vm" {
     [for i, slot in each.value.gpu_slots : {
       device = "hostpci${i}"
       id     = var.proxmox_hosts[each.value.node].gpus[slot]
-      xvga   = i == 0
+      xvga   = false
       pcie   = true
       rombar = true
     }],
