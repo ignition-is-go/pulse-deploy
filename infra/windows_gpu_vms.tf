@@ -34,7 +34,7 @@ module "windows_gpu_vm" {
   description    = local.windows_gpu_vm_descriptions[each.key]
   node_name      = each.value.node
   tags           = local.windows_gpu_vm_tags[each.key]
-  template_id    = var.windows_template_id
+  template_id    = var.windows_template_ids[each.value.node]
   cores          = each.value.cores
   memory_mb      = each.value.memory_mb
   disk_gb        = each.value.disk_gb
@@ -63,8 +63,9 @@ module "windows_gpu_vm" {
 
   # Cloudbase-init sets IP/DNS on first boot
   cloud_init = {
-    ip      = each.value.ip
-    gateway = var.network_gateway
-    dns     = var.dns_servers
+    ip       = each.value.ip
+    gateway  = var.network_gateway
+    dns      = var.dns_servers
+    password = var.windows_admin_password
   }
 }

@@ -1,181 +1,146 @@
-:floppy_disk: Proxmox: Windows Golden Image
-Windows Golden Image
+# Windows Cloudbase-Init Template
 
-Windows VM Setup
+## Important: One Template Per CPU Family
 
-CLI:
+Templates built on one CPU will fail sysprep when cloned to a host with a different CPU. Build a separate template on each CPU family.
 
-Create base VM:
+| Template ID | Name                      | CPU         | Nodes              |
+|-------------|---------------------------|-------------|---------------------|
+| 6003        | win25-cloudinit-9575f     | EPYC 9575F  | nyc-prod-pve-01..05 |
+| 6004        | win25-cloudinit-9474f     | EPYC 9474F  | nyc-dev-pve-03      |
 
-# Create and configure Windows Server 2025 VM with GPU passthrough
-qm create 9000 \
- --name "win-serv25-base" \
- --memory 16384 \
- --cores 8 \
- --sockets 1 \
- --cpu host \
- --machine q35 \
- --bios seabios \
- --ostype win11 \
- --agent 1 \
- --balloon 0 \
- --scsi0 ZFS-Data:100 \
- --scsihw virtio-scsi-pci \
- --net0 virtio,bridge=vmbr0 \
- --efidisk0 local-lvm:1 \
- --ide2 local:iso/26100.1742.240906-0331.ge_release_svc_refresh_SERVER_EVAL_x64FRE_en-us.iso,media=cdrom \
- --ide3 local:iso/virtio-win-0.1.271.iso,media=cdrom \
- --boot "order=ide2;scsi0" \
- # Assign a GPU for now, but remove it before creating a template
- --hostpci0 5a:00,pcie=1,rombar=0 
+Template IDs are mapped per-node in `infra/terraform.tfvars` → `windows_template_ids`.
 
-Windows Installation
+## 1. Create the VM
 
-* Install now
-* Windows Server 2025 Standard Evaluation (Desktop Experience)
-* Accept license
-* Select location to install Windows Server
-    * Load Driver
-        * virtio-win CD (should be D: or E:)
-            * vioscsi → w11 → amd64
-    * Select Disk 0 Unallocated Space
-    * Next
-* Administrator password setup
+Adjust `VMID`, `NODE`, `STORAGE`, and ISO paths for your target host.
 
-Post-Installation (GPU Workstation/Node)
+```bash
+VMID=6004
+NODE="nyc-dev-pve-03"
+STORAGE="zfs-nvme-05"
 
-* Install VirtIO drivers
-    * https://pve.proxmox.com/wiki/Windows_VirtIO_Drivers
-    * Windows Explorer → E:\virtio-win → virtio-win-gt-x64
-    * Also run virtio-win-guest-tools.exe for QEMU Guest Agent and SPICE
-* Install NVIDIA drivers
-    * RTX 6000 Ada
-* Reboot
-
-Verify Device Manager Has Drivers
-
-
-EDIDs
-
-* NVIDIA Control Panel
-
-https://lucidslack.slack.com/files/U055QMSP7FC/F09AEK0RS5S/4k_72hz.txt
-
-
-Ubuntu VM
-
-Download the Base Image
-
-# SSH into Proxmox host
-ssh root@nyc-prod-pve-01
-
-# Go to ISO storage directory
-cd /var/lib/vz/template/iso/
-
-# Download Ubuntu 24.04 LTS Server ISO
-wget "https://releases.ubuntu.com/24.04.3/ubuntu-24.04.3-live-server-amd64.iso" -O ubuntu-24.04.3-live-server-amd64.iso
-
-# Verify download
-ls -lah ubuntu-24.04.3-live-server-amd64.iso
-
-Create the VM
-
-qm create 300 \
-  --name "ubuntu-24-server" \
-  --memory 128000 \
-  --cores 2 \
+qm create $VMID \
+  --name "win25-cloudinit-9474f" \
+  --memory 16384 \
+  --cores 8 \
   --sockets 1 \
   --cpu host \
+  --machine q35 \
+  --bios seabios \
+  --ostype win11 \
+  --agent 1 \
+  --balloon 0 \
+  --scsi0 ${STORAGE}:100 \
+  --scsihw virtio-scsi-single \
   --net0 virtio,bridge=vmbr0 \
-  --scsihw virtio-scsi-pci \
-  --ostype l26
-  
-# Add a 512GB disk on ZFS storage
-qm set 300 --scsi0 ZFS-Data:512
+  --ide2 local:iso/26100.1742.240906-0331.ge_release_svc_refresh_SERVER_EVAL_x64FRE_en-us.iso,media=cdrom \
+  --ide3 local:iso/virtio-win-0.1.271.iso,media=cdrom \
+  --boot "order=ide2;scsi0"
+```
 
-# Add the Ubuntu ISO as CD-ROM 
-qm set 300 --ide2 local:iso/ubuntu-24.04.3-live-server-amd64.iso,media=cdrom
+Notes:
+- `virtio-scsi-single` is required for iothread support (Terraform sets `iothread=1` on cloned disks)
+- Do NOT attach a GPU — the template should be hardware-neutral. GPUs are added by Terraform at clone time via PCI passthrough.
+- Do NOT add an EFI disk — we use seabios, not OVMF
 
-# Set boot order
-qm set 300 --boot "order=ide2;scsi0"
+## 2. Install Windows
 
-# Enable QEMU Guest Agent
-qm set 300 --agent enabled=1
+1. Start the VM, open Proxmox console
+2. Boot from the Windows ISO
+3. Select **Windows Server 2025 Standard Evaluation (Desktop Experience)**
+4. Accept license
+5. When prompted for disk, click **Load Driver** → browse virtio-win CD → `vioscsi\2k25\amd64`
+6. Select Disk 0 Unallocated Space → Next
+7. Set Administrator password
 
-Install Ubuntu
+## 3. Post-Installation
 
-* lucid user
+### VirtIO drivers + QEMU Guest Agent
 
-Disable systemd-networkd-wait-online
+1. Open the virtio-win CD in Explorer
+2. Run `virtio-win-gt-x64.exe` (installs all VirtIO drivers)
+3. Run `virtio-win-guest-tools.exe` (installs QEMU Guest Agent + SPICE)
+4. Verify guest agent: `Get-Service QEMU-GA` should show Running
 
-# Disable the wait-online service that hangs boot
-sudo systemctl disable systemd-networkd-wait-online.service
-sudo systemctl mask systemd-networkd-wait-online.service
+### Windows Updates
 
-Add a GPU
+Install all available updates, reboot as needed. Repeat until clean.
 
-# In the proxmox host
-qm stop 300
+## 4. Install Cloudbase-Init
 
-# Add GPU passthrough
-qm set 300 --hostpci0 d8:00,pcie=1,rombar=0
+1. Download from https://cloudbase.it/cloudbase-init/
+2. Run the installer
+3. At the final screen, **uncheck** "Run Sysprep" — do NOT let the installer sysprep
+4. Finish the installer
+5. Replace the config files in `C:\Program Files\Cloudbase Solutions\Cloudbase-Init\conf\` with the versions from this repo:
+   - `infra/files/cloudbase-init/cloudbase-init.conf`
+   - `infra/files/cloudbase-init/cloudbase-init-unattend.conf`
 
-# Set machine type to q35 (required for PCIe passthrough)
-qm set 300 --machine q35
+Cloudbase-init handles on first boot of each clone:
+- Set hostname (from Proxmox VM name)
+- Set Administrator password (from `cipassword`)
+- Configure static IP, gateway, DNS (from cloud-init config)
+- Extend disk volumes
 
-qm start 300
+## 5. Clean Up ISOs
 
-NVIDIA Drivers
+Remove the CD-ROM drives before sysprep:
 
-# In the VM
-sudo ubuntu-drivers install
+```bash
+qm set $VMID --delete ide2
+qm set $VMID --delete ide3
+```
 
-Create Directory Structure on Proxmox Host
+## 6. Sysprep and Shut Down
 
-# SSH into your Proxmox host
-ssh root@nyc-prod-pve-01
-# Create directories for our GPU setup files
-mkdir -p /var/lib/vz/snippets/{gpu-configs,scripts,drivers}
+From inside the VM:
 
-Download NVIDIA Drivers
+```powershell
+& "C:\Windows\System32\Sysprep\sysprep.exe" `
+  /generalize /oobe /shutdown `
+  /unattend:"C:\Program Files\Cloudbase Solutions\Cloudbase-Init\conf\Unattend.xml"
+```
 
-cd tmp
+Wait for the VM to shut down on its own. Do not interrupt.
 
-# Download NVIDIA driver (you need to get the URL from NVIDIA's website)
-# Go to: https://www.nvidia.com/Download/index.aspx
-# Search: RTX 6000 Ada Generation, Windows Server 2022
-# Follow the links
-# Copy the 'Download' link address
+## 7. Convert to Template
 
- # Replace URL with the one you copied 
-wget -O nvidia-rtx6000ada.exe "https://us.download.nvidia.com/Windows/Quadro_Certified/580.97/580.97-quadro-rtx-desktop-notebook-win10-win11-64bit-international-dch-whql.exe"
+```bash
+qm template $VMID
+```
 
-# Move to drivers directory
-mv nvidia-rtx6000ada.exe /var/lib/vz/snippets/drivers/
+## 8. Update Terraform
 
-Setup SMB Share
+Add the template ID to `infra/terraform.tfvars`:
 
-NOTE: If you run into signing errors with apt, comment out the lines in /etc/apt/sources.list.d/pve-enterprise.sources and /etc/apt/sources.list.d/ceph.sources
+```hcl
+windows_template_ids = {
+  "nyc-prod-pve-01" = 6003  # win25-cloudinit-9575f
+  ...
+  "nyc-dev-pve-03"  = 6004  # win25-cloudinit-9474f
+}
+```
 
-apt update
-apt install samba samba-common-bin -y
+## Troubleshooting
 
-# Verify installation
-smbd --version
+### "Windows installation cannot proceed" after cloning
 
-Create Share Directory Structure
+The template was built on a different CPU family. You need a template built natively on the target host. See the CPU family table above.
 
-# Create main directory for VM setup files
-mkdir -p /srv/samba/vm-setup
+### Hostname not set after first boot
 
-# Create subdirectories
-mkdir -p /srv/samba/vm-setup/drivers
-mkdir -p /srv/samba/vm-setup/gpu-configs
-mkdir -p /srv/samba/vm-setup/scripts
+Cloudbase-init didn't complete its first-boot sequence. Rename manually:
 
-# Set permissions (everyone can read)
-chmod -R 755 /srv/samba/vm-setup
+```powershell
+Rename-Computer -NewName "the-hostname" -Restart
+```
 
-# Check it was created
-ls -la /srv/samba/
+### Password not working after first boot
 
+Set it via Proxmox and reboot:
+
+```bash
+qm set <VMID> --cipassword 'YourPassword'
+qm reboot <VMID>
+```

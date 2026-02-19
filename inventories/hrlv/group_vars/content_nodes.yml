@@ -5,7 +5,7 @@
 unreal_project: "F:/P-0616-HRLV/ue/HRLV_Content/HRLV_Content.uproject"
 
 # Map/level to load
-ndisplay_map: "/Game/HRLV_Content/Maps/Dev/LookDev/ColorCharts_v2"
+ndisplay_map: "/Game/HRLV_Content/Maps/Sublevels/C3/C3_content_v1"
 
 # Available nDisplay configs — select with: -e "ndisplay=rivermax_4node"
 ndisplay_configs:

@@ -14,8 +14,13 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "=== Bootstrap Ansible ===" -ForegroundColor Cyan
 
+# --- Password expiry ---
+Write-Host "`n[1/3] Clearing password expiry..." -ForegroundColor Yellow
+wmic useraccount where "name='Administrator'" set PasswordExpires=false 2>$null
+net user Administrator /logonpasswordchg:no 2>$null
+
 # --- WinRM ---
-Write-Host "`n[1/2] Enabling WinRM..." -ForegroundColor Yellow
+Write-Host "`n[2/3] Enabling WinRM..." -ForegroundColor Yellow
 Set-Service -Name WinRM -StartupType Automatic
 Start-Service WinRM
 winrm quickconfig -quiet 2>$null
@@ -26,7 +31,7 @@ Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies
 Get-NetConnectionProfile | Set-NetConnectionProfile -NetworkCategory Private
 
 # --- Verify ---
-Write-Host "[2/2] Verifying..." -ForegroundColor Yellow
+Write-Host "[3/3] Verifying..." -ForegroundColor Yellow
 
 $winrm = Get-Service WinRM
 $listening = netstat -an | Select-String ":5985.*LISTENING"

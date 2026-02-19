@@ -60,9 +60,9 @@ variable "dns_servers" {
 # Templates
 # -----------------------------------------------------------------------------
 
-variable "windows_template_id" {
-  description = "VM ID of the Windows template (cloudbase-init)"
-  type        = number
+variable "windows_template_ids" {
+  description = "Windows cloudbase-init template VM ID per Proxmox node (keyed by node name)"
+  type        = map(number)
 }
 
 variable "linux_template_id" {
@@ -82,6 +82,12 @@ variable "lxc_template" {
 variable "ssh_public_key" {
   description = "SSH public key for Linux VMs and LXC containers"
   type        = string
+}
+
+variable "windows_admin_password" {
+  description = "Administrator password for Windows VMs (set via cloudbase-init)"
+  type        = string
+  sensitive   = true
 }
 
 # =============================================================================

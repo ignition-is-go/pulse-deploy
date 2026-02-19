@@ -116,6 +116,7 @@ variable "cloud_init" {
     ip       = string
     gateway  = string
     dns      = list(string)
+    password = optional(string, null)
     ssh_keys = optional(list(string), [])
   })
   default = null
