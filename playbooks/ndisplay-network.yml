@@ -1,9 +1,9 @@
 ---
 # Configure nDisplay firewall rules on render node VMs
-# Usage: ansible-playbook playbooks/ndisplay-network.yml -i inventories/hrlv/hosts.yml
+# Usage: ansible-playbook playbooks/ndisplay-network.yml -i inventories/hrlv-dev/hosts.yml
 
 - name: Configure nDisplay firewall rules
-  hosts: content_nodes
+  hosts: ue_content
   gather_facts: false
 
   tasks:

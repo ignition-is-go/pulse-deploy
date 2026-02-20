@@ -3,7 +3,7 @@
 # Usage: ansible-playbook playbooks/ndisplay-stop.yml
 
 - name: Stop nDisplay cluster
-  hosts: content_nodes
+  hosts: ue_content
   gather_facts: false
 
   tasks:

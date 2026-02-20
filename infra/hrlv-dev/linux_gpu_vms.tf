@@ -4,20 +4,20 @@
 
 locals {
   linux_gpu_vms = merge(
-    var.optik_nodes,
+    var.optik,
   )
 
   linux_gpu_vm_tags = merge(
-    { for k, _ in var.optik_nodes : k => ["linux", "optik", "gpu"] },
+    { for k, _ in var.optik : k => ["linux", "optik", "gpu"] },
   )
 
   linux_gpu_vm_descriptions = merge(
-    { for k, _ in var.optik_nodes : k => "Optik computer vision" },
+    { for k, _ in var.optik : k => "Optik computer vision" },
   )
 }
 
 module "linux_gpu_vm" {
-  source   = "./modules/proxmox-vm"
+  source   = "../modules/proxmox-vm"
   for_each = local.linux_gpu_vms
 
   id             = each.value.id

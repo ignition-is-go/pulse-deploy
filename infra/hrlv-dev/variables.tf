@@ -94,8 +94,8 @@ variable "windows_admin_password" {
 # Windows GPU VMs
 # =============================================================================
 
-variable "ue_render_nodes" {
-  description = "UE nDisplay render nodes (Windows + GPU)"
+variable "ue_content" {
+  description = "UE nDisplay content render nodes (Windows + GPU)"
   type = map(object({
     id        = number
     ip        = string
@@ -109,7 +109,22 @@ variable "ue_render_nodes" {
   default = {}
 }
 
-variable "touch_nodes" {
+variable "ue_previs" {
+  description = "UE nDisplay previs render nodes (Windows + GPU)"
+  type = map(object({
+    id        = number
+    ip        = string
+    node      = string
+    cores     = number
+    memory_mb = number
+    disk_gb   = number
+    gpu_slots = list(number)
+    cx6_slot  = optional(number)
+  }))
+  default = {}
+}
+
+variable "touch" {
   description = "TouchDesigner nodes — volumetric content render (Windows + GPU)"
   type = map(object({
     id        = number
@@ -124,7 +139,7 @@ variable "touch_nodes" {
   default = {}
 }
 
-variable "arnold_nodes" {
+variable "arnold_fusion" {
   description = "Arnold/Fusion offline render + compositing nodes (Windows + GPU)"
   type = map(object({
     id        = number
@@ -139,7 +154,7 @@ variable "arnold_nodes" {
   default = {}
 }
 
-variable "workstations" {
+variable "workstation" {
   description = "Artist workstations — content creation, RDP (Windows + GPU)"
   type = map(object({
     id        = number
@@ -158,7 +173,7 @@ variable "workstations" {
 # Windows VMs (no GPU)
 # =============================================================================
 
-variable "ue_build_nodes" {
+variable "ue_build" {
   description = "UE cook/package build nodes (Windows, headless)"
   type = map(object({
     id        = number
@@ -172,22 +187,8 @@ variable "ue_build_nodes" {
   default = {}
 }
 
-variable "ue_staging_nodes" {
+variable "ue_staging" {
   description = "Plastic sync + build distribution nodes (Windows)"
-  type = map(object({
-    id        = number
-    ip        = string
-    node      = string
-    cores     = number
-    memory_mb = number
-    disk_gb   = number
-    cx6_slot  = optional(number)
-  }))
-  default = {}
-}
-
-variable "pixelfarm_nodes" {
-  description = "Pixel Farm render job orchestration (Windows)"
   type = map(object({
     id        = number
     ip        = string
@@ -204,7 +205,7 @@ variable "pixelfarm_nodes" {
 # Linux GPU VMs
 # =============================================================================
 
-variable "optik_nodes" {
+variable "optik" {
   description = "Optik computer vision nodes (Linux + GPU, can consume all GPUs on a host)"
   type = map(object({
     id        = number
@@ -223,7 +224,7 @@ variable "optik_nodes" {
 # LXC containers
 # =============================================================================
 
-variable "rship_nodes" {
+variable "rship" {
   description = "rship real-time data workers (LXC)"
   type = map(object({
     id        = number
@@ -236,8 +237,34 @@ variable "rship_nodes" {
   default = {}
 }
 
-variable "pulse_admin_nodes" {
+variable "pulse_admin" {
   description = "Control plane — Ansible, monitoring (LXC)"
+  type = map(object({
+    id        = number
+    ip        = string
+    node      = string
+    cores     = number
+    memory_mb = number
+    disk_gb   = number
+  }))
+  default = {}
+}
+
+variable "pixelfarm" {
+  description = "Pixel Farm render job orchestration (LXC)"
+  type = map(object({
+    id        = number
+    ip        = string
+    node      = string
+    cores     = number
+    memory_mb = number
+    disk_gb   = number
+  }))
+  default = {}
+}
+
+variable "rustdesk" {
+  description = "RustDesk remote desktop server (LXC)"
   type = map(object({
     id        = number
     ip        = string

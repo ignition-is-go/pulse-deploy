@@ -9,14 +9,14 @@
 #   ansible-playbook playbooks/build.yml --limit windows-unreal-dev-01
 
 - name: Build and stage UE project
-  hosts: ue_nodes
+  hosts: ue
   gather_facts: false
   ignore_unreachable: true
   roles:
     - build_pipeline
 
 - name: Distribute build to previs nodes
-  hosts: previs_nodes
+  hosts: ue_previs
   gather_facts: false
   ignore_unreachable: true
 

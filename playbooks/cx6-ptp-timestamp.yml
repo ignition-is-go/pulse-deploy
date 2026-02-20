@@ -3,12 +3,12 @@
 #
 # Usage:
 #   ansible-playbook playbooks/ptp-enable.yml                           # all rivermax nodes
-#   ansible-playbook playbooks/ptp-enable.yml --limit content_nodes     # content only
+#   ansible-playbook playbooks/ptp-enable.yml --limit ue_content     # content only
 #   ansible-playbook playbooks/ptp-enable.yml --limit windows-unreal-render-01  # single node
 #   ansible-playbook playbooks/ptp-enable.yml --check                   # dry run
 
 - name: Enable PTP hardware timestamping on ConnectX-6
-  hosts: ue_nodes:touch_nodes
+  hosts: ue:touch
   gather_facts: false
 
   tasks:

@@ -4,33 +4,41 @@
 
 # --- Windows GPU VMs ---------------------------------------------------------
 
-output "ue_render_nodes" {
-  description = "UE nDisplay render nodes"
-  value = { for k, v in var.ue_render_nodes : k => {
+output "ue_content" {
+  description = "UE nDisplay content render nodes"
+  value = { for k, v in var.ue_content : k => {
     id = v.id
     ip = v.ip
   } }
 }
 
-output "touch_nodes" {
+output "ue_previs" {
+  description = "UE nDisplay previs render nodes"
+  value = { for k, v in var.ue_previs : k => {
+    id = v.id
+    ip = v.ip
+  } }
+}
+
+output "touch" {
   description = "TouchDesigner nodes"
-  value = { for k, v in var.touch_nodes : k => {
+  value = { for k, v in var.touch : k => {
     id = v.id
     ip = v.ip
   } }
 }
 
-output "arnold_nodes" {
+output "arnold_fusion" {
   description = "Arnold/Fusion render nodes"
-  value = { for k, v in var.arnold_nodes : k => {
+  value = { for k, v in var.arnold_fusion : k => {
     id = v.id
     ip = v.ip
   } }
 }
 
-output "workstations" {
+output "workstation" {
   description = "Artist workstations"
-  value = { for k, v in var.workstations : k => {
+  value = { for k, v in var.workstation : k => {
     id = v.id
     ip = v.ip
   } }
@@ -38,25 +46,17 @@ output "workstations" {
 
 # --- Windows VMs (no GPU) ---------------------------------------------------
 
-output "ue_build_nodes" {
+output "ue_build" {
   description = "UE build nodes"
-  value = { for k, v in var.ue_build_nodes : k => {
+  value = { for k, v in var.ue_build : k => {
     id = v.id
     ip = v.ip
   } }
 }
 
-output "ue_staging_nodes" {
+output "ue_staging" {
   description = "UE staging / distribution nodes"
-  value = { for k, v in var.ue_staging_nodes : k => {
-    id = v.id
-    ip = v.ip
-  } }
-}
-
-output "pixelfarm_nodes" {
-  description = "Pixel Farm nodes"
-  value = { for k, v in var.pixelfarm_nodes : k => {
+  value = { for k, v in var.ue_staging : k => {
     id = v.id
     ip = v.ip
   } }
@@ -64,9 +64,9 @@ output "pixelfarm_nodes" {
 
 # --- Linux GPU VMs -----------------------------------------------------------
 
-output "optik_nodes" {
+output "optik" {
   description = "Optik computer vision nodes"
-  value = { for k, v in var.optik_nodes : k => {
+  value = { for k, v in var.optik : k => {
     id = v.id
     ip = v.ip
   } }
@@ -74,17 +74,33 @@ output "optik_nodes" {
 
 # --- LXC containers ----------------------------------------------------------
 
-output "rship_nodes" {
+output "rship" {
   description = "rship data workers"
-  value = { for k, v in var.rship_nodes : k => {
+  value = { for k, v in var.rship : k => {
     id = v.id
     ip = v.ip
   } }
 }
 
-output "pulse_admin_nodes" {
+output "pulse_admin" {
   description = "Control plane nodes"
-  value = { for k, v in var.pulse_admin_nodes : k => {
+  value = { for k, v in var.pulse_admin : k => {
+    id = v.id
+    ip = v.ip
+  } }
+}
+
+output "pixelfarm" {
+  description = "Pixel Farm nodes"
+  value = { for k, v in var.pixelfarm : k => {
+    id = v.id
+    ip = v.ip
+  } }
+}
+
+output "rustdesk" {
+  description = "RustDesk server"
+  value = { for k, v in var.rustdesk : k => {
     id = v.id
     ip = v.ip
   } }

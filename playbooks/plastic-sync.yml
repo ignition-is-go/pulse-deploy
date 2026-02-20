@@ -5,7 +5,7 @@
 #        ansible-playbook playbooks/plastic-sync.yml --limit windows-unreal-render-03
 
 - name: Sync Plastic SCM
-  hosts: ue_nodes
+  hosts: ue
   gather_facts: true
   ignore_unreachable: true
 

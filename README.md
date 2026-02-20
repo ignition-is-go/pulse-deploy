@@ -79,7 +79,7 @@ ansible-playbook playbooks/site.yml
 ansible-playbook playbooks/deploy.yml
 
 # Target specific nodes
-ansible-playbook playbooks/site.yml --limit ue_nodes
+ansible-playbook playbooks/site.yml --limit ue
 
 # Use a different environment
 ansible-playbook playbooks/site.yml -i inventories/staging/hosts.yml

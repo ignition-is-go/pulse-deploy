@@ -5,7 +5,7 @@
 #        ansible-playbook playbooks/plastic-status.yml --limit windows-unreal-03
 
 - name: Check Plastic Status
-  hosts: ue_nodes
+  hosts: ue
   gather_facts: false
   ignore_unreachable: true
   serial: "{{ parallel_nodes | default(omit) }}"

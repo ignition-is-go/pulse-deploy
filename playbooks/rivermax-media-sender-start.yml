@@ -4,8 +4,8 @@
 #
 # Usage:
 #   ansible-playbook playbooks/rivermax-media-sender-start.yml --limit windows-unreal-render-01
-#   ansible-playbook playbooks/rivermax-media-sender-start.yml --limit content_nodes -e "rmax_dst_ip=10.0.0.5"
-#   ansible-playbook playbooks/rivermax-media-sender-start.yml --limit content_nodes -e "rmax_dst_ip=225.0.0.1"
+#   ansible-playbook playbooks/rivermax-media-sender-start.yml --limit ue_content -e "rmax_dst_ip=10.0.0.5"
+#   ansible-playbook playbooks/rivermax-media-sender-start.yml --limit ue_content -e "rmax_dst_ip=225.0.0.1"
 
 - name: Prime OVS FDB for Rivermax hardware offload
   ansible.builtin.import_playbook: rivermax-arp-prime.yml

@@ -5,7 +5,7 @@
 #        ansible-playbook playbooks/status.yml --limit windows-unreal-03
 
 - name: Check Render Node Status
-  hosts: ue_nodes
+  hosts: ue
   gather_facts: true
   ignore_unreachable: true
 

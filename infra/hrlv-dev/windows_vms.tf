@@ -1,29 +1,26 @@
 # -----------------------------------------------------------------------------
-# Windows VMs (no GPU) — build, staging, pixelfarm
+# Windows VMs (no GPU) — ue_build, ue_staging
 # -----------------------------------------------------------------------------
 
 locals {
   windows_vms = merge(
-    var.ue_build_nodes,
-    var.ue_staging_nodes,
-    var.pixelfarm_nodes,
+    var.ue_build,
+    var.ue_staging,
   )
 
   windows_vm_tags = merge(
-    { for k, _ in var.ue_build_nodes : k => ["windows", "build"] },
-    { for k, _ in var.ue_staging_nodes : k => ["windows", "staging"] },
-    { for k, _ in var.pixelfarm_nodes : k => ["windows", "pixelfarm"] },
+    { for k, _ in var.ue_build : k => ["windows", "ue", "ue-build"] },
+    { for k, _ in var.ue_staging : k => ["windows", "ue", "ue-staging"] },
   )
 
   windows_vm_descriptions = merge(
-    { for k, _ in var.ue_build_nodes : k => "UE cook/package build node" },
-    { for k, _ in var.ue_staging_nodes : k => "Plastic sync + build distribution" },
-    { for k, _ in var.pixelfarm_nodes : k => "Pixel Farm render orchestration" },
+    { for k, _ in var.ue_build : k => "UE cook/package build node" },
+    { for k, _ in var.ue_staging : k => "Plastic sync + build distribution" },
   )
 }
 
 module "windows_vm" {
-  source   = "./modules/proxmox-vm"
+  source   = "../modules/proxmox-vm"
   for_each = local.windows_vms
 
   id             = each.value.id

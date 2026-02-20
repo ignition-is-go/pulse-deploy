@@ -16,12 +16,12 @@ file server.
 
 | Hostname                    | Management IP   | Media IP   | Role                       | Group           |
 |-----------------------------|-----------------|------------|----------------------------|-----------------|
-| windows-unreal-render-01    | 192.168.1.71    | 10.0.0.1   | nDisplay Node_1 (primary)  | content_nodes   |
-| windows-unreal-render-02    | 192.168.1.72    | 10.0.0.2   | nDisplay Node_2            | content_nodes   |
-| windows-unreal-render-03    | 192.168.1.73    | 10.0.0.3   | nDisplay Node_3            | content_nodes   |
-| windows-unreal-render-04    | 192.168.1.74    | 10.0.0.4   | nDisplay Node_4            | content_nodes   |
-| windows-unreal-render-05    | 192.168.1.75    | 10.0.0.5   | Previs render node         | previs_nodes    |
-| windows-touch-01            | 192.168.1.76    | 10.0.0.6   | Touch Designer node        | touch_nodes     |
+| windows-unreal-render-01    | 192.168.1.71    | 10.0.0.1   | nDisplay Node_1 (primary)  | ue_content   |
+| windows-unreal-render-02    | 192.168.1.72    | 10.0.0.2   | nDisplay Node_2            | ue_content   |
+| windows-unreal-render-03    | 192.168.1.73    | 10.0.0.3   | nDisplay Node_3            | ue_content   |
+| windows-unreal-render-04    | 192.168.1.74    | 10.0.0.4   | nDisplay Node_4            | ue_content   |
+| windows-unreal-render-05    | 192.168.1.75    | 10.0.0.5   | Previs render node         | ue_previs    |
+| windows-touch-01            | 192.168.1.76    | 10.0.0.6   | Touch Designer node        | touch     |
 | ue-control-plane-01         | 192.168.1.168   | --         | Ansible control plane      | manager         |
 | pulse-admin (LXC)           | 192.168.1.70    | --         | Deploy share / Samba       | (Proxmox LXC)  |
 
@@ -86,7 +86,7 @@ Share definition (appended to smb.conf):
 ```
 
 Referenced in Ansible as the `deploy_share` variable, defined in
-`inventories/hrlv/group_vars/all/main.yml`:
+`inventories/hrlv-dev/group_vars/all/main.yml`:
 
 ```yaml
 deploy_share: "\\\\192.168.1.70\\deploy"
@@ -159,7 +159,7 @@ rivermax_sdk_version_dotted: "1.71.30"
 rivermax_winof2_version: "24.10.50010"
 ```
 
-### Installer paths (`inventories/hrlv/group_vars/windows.yml`)
+### Installer paths (`inventories/hrlv-dev/group_vars/windows.yml`)
 
 ```yaml
 rivermax_winof2_installer: "{{ deploy_share }}\\rivermax\\MLNX_WinOF2-24_10_50010_All_x64.exe"
@@ -174,7 +174,7 @@ rivermax_license_src: "{{ deploy_share }}\\rivermax\\Rivermax-12022026-qty3-1a7d
 ansible-playbook playbooks/rivermax-setup.yml
 
 # Content nodes only
-ansible-playbook playbooks/rivermax-setup.yml --limit content_nodes
+ansible-playbook playbooks/rivermax-setup.yml --limit ue_content
 
 # Single node
 ansible-playbook playbooks/rivermax-setup.yml --limit windows-unreal-render-01
@@ -198,8 +198,8 @@ validation in VMs.
 
 ### Playbook: `playbooks/cx6-ip.yml`
 
-Configures a static IP on the ConnectX-6 VF adapter. Targets `ue_nodes` and
-`touch_nodes`, filtered by `rivermax: true`.
+Configures a static IP on the ConnectX-6 VF adapter. Targets `ue` and
+`touch`, filtered by `rivermax: true`.
 
 The playbook:
 1. Finds the Mellanox/ConnectX adapter (fails if zero or more than one found).
@@ -336,21 +336,21 @@ Stops all UnrealEditor processes on content nodes and removes the scheduled task
 
 ### Group vars
 
-**`inventories/hrlv/group_vars/content_nodes.yml`**:
+**`inventories/hrlv-dev/group_vars/ue_content.yml`**:
 ```yaml
 unreal_project: "F:/P-0616-HRLV/ue/HRLV_Content/HRLV_Content.uproject"
 ndisplay_map: "/Game/HRLV_Content/Maps/Dev/LookDev/ColorCharts_v2"
 ndisplay_config: "F:/P-0616-HRLV/ue/HRLV_Content/Content/nDisplay/nDisplayConfig.ndisplay"
 ```
 
-**`inventories/hrlv/group_vars/ue_nodes.yml`**:
+**`inventories/hrlv-dev/group_vars/ue.yml`**:
 ```yaml
 unreal_engine_dir: "F:/Epic Games/UE_5.7"
 unreal_exe: "{{ unreal_engine_dir }}/Engine/Binaries/Win64/UnrealEditor.exe"
 ```
 
 Node-specific vars (`ndisplay_node`, `ndisplay_primary`) are set per-host in
-`inventories/hrlv/hosts.yml`.
+`inventories/hrlv-dev/hosts.yml`.
 
 ---
 
@@ -415,21 +415,21 @@ Summary of infrastructure changes made during this setup session.
 ### site.yml
 - **Removed `smb_share` role** from the base Windows play. SMB share mounting is
   handled differently now (deploy share is accessed directly via UNC path in role tasks).
-- **Added `touch_nodes` play** to the Windows section.
-- **Rivermax play targets `windows`** (not just `ue_nodes`), with `when: rivermax | default(false)`
+- **Added `touch` play** to the Windows section.
+- **Rivermax play targets `windows`** (not just `ue`), with `when: rivermax | default(false)`
   condition. This allows any Windows node (including touch nodes) to opt in via host var.
 
-### Inventory (`inventories/hrlv/hosts.yml`)
-- **Added `touch_nodes` group** under `windows` with `windows-touch-01`.
+### Inventory (`inventories/hrlv-dev/hosts.yml`)
+- **Added `touch` group** under `windows` with `windows-touch-01`.
 - **Added `media_ip` host vars** to all rivermax-enabled nodes.
 - **Added `ndisplay_node` and `ndisplay_primary` host vars** to content nodes.
 
 ### Group vars
-- **`inventories/hrlv/group_vars/all/main.yml`**: added `deploy_share` variable
+- **`inventories/hrlv-dev/group_vars/all/main.yml`**: added `deploy_share` variable
   pointing to `\\192.168.1.70\deploy`.
-- **`inventories/hrlv/group_vars/windows.yml`**: added Rivermax installer paths
+- **`inventories/hrlv-dev/group_vars/windows.yml`**: added Rivermax installer paths
   referencing the deploy share.
-- **`inventories/hrlv/group_vars/ue_nodes.yml`**: removed old render SMB share
+- **`inventories/hrlv-dev/group_vars/ue.yml`**: removed old render SMB share
   variables (`smb_share_name`, `smb_server`, etc.) that are no longer used.
 
 ### .gitignore
@@ -460,7 +460,7 @@ ansible-playbook playbooks/site.yml
 ansible-playbook playbooks/site.yml --limit windows
 
 # Content nodes only
-ansible-playbook playbooks/site.yml --limit content_nodes
+ansible-playbook playbooks/site.yml --limit ue_content
 
 # Single node
 ansible-playbook playbooks/site.yml --limit windows-unreal-render-01
@@ -509,22 +509,22 @@ ansible-playbook playbooks/ndisplay-stop.yml
 ansible windows -m ansible.windows.win_ping
 
 # Check WinOF-2 version on all rivermax nodes
-ansible ue_nodes -m ansible.windows.win_shell -a "Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { \$_.DisplayName -like '*WinOF*' } | Select-Object DisplayVersion"
+ansible ue -m ansible.windows.win_shell -a "Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { \$_.DisplayName -like '*WinOF*' } | Select-Object DisplayVersion"
 
 # Check Rivermax SDK version
-ansible ue_nodes -m ansible.windows.win_shell -a "Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { \$_.DisplayName -like '*Rivermax*' } | Select-Object DisplayVersion"
+ansible ue -m ansible.windows.win_shell -a "Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' | Where-Object { \$_.DisplayName -like '*Rivermax*' } | Select-Object DisplayVersion"
 
 # Check Rivermax environment variables
-ansible ue_nodes -m ansible.windows.win_shell -a "[Environment]::GetEnvironmentVariable('RIVERMAX_LICENSE_PATH','Machine')"
+ansible ue -m ansible.windows.win_shell -a "[Environment]::GetEnvironmentVariable('RIVERMAX_LICENSE_PATH','Machine')"
 
 # Check CX6 adapter and media IP
-ansible ue_nodes -m ansible.windows.win_shell -a "Get-NetAdapter | Where-Object { \$_.InterfaceDescription -like '*Mellanox*' } | Get-NetIPAddress -AddressFamily IPv4 | Select-Object IPAddress"
+ansible ue -m ansible.windows.win_shell -a "Get-NetAdapter | Where-Object { \$_.InterfaceDescription -like '*Mellanox*' } | Get-NetIPAddress -AddressFamily IPv4 | Select-Object IPAddress"
 
 # Check if UE is running
-ansible content_nodes -m ansible.windows.win_shell -a "Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue | Select-Object Id, StartTime"
+ansible ue_content -m ansible.windows.win_shell -a "Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue | Select-Object Id, StartTime"
 
 # DHCP renew on management adapter
-ansible ue_nodes -m ansible.windows.win_shell -a "ipconfig /renew"
+ansible ue -m ansible.windows.win_shell -a "ipconfig /renew"
 
 # Check connectivity between nodes on media network
 ansible windows-unreal-render-01 -m ansible.windows.win_shell -a "Test-Connection 10.0.0.2 -Count 2"
@@ -534,8 +534,8 @@ ansible windows-unreal-render-01 -m ansible.windows.win_shell -a "Test-Connectio
 
 ```bash
 # Edit secrets
-ansible-vault edit inventories/hrlv/group_vars/all/vault.yml
+ansible-vault edit inventories/hrlv-dev/group_vars/all/vault.yml
 
 # Encrypt secrets file
-ansible-vault encrypt inventories/hrlv/group_vars/all/vault.yml
+ansible-vault encrypt inventories/hrlv-dev/group_vars/all/vault.yml
 ```

@@ -7,12 +7,12 @@
 #
 # Usage:
 #   ansible-playbook playbooks/ptp-w32time.yml                                    # all rivermax nodes
-#   ansible-playbook playbooks/ptp-w32time.yml --limit content_nodes              # content only
+#   ansible-playbook playbooks/ptp-w32time.yml --limit ue_content              # content only
 #   ansible-playbook playbooks/ptp-w32time.yml --limit windows-unreal-render-01   # single node
 #   ansible-playbook playbooks/ptp-w32time.yml --check                            # dry run
 
 - name: Configure W32Time PTP client
-  hosts: ue_nodes:touch_nodes
+  hosts: ue:touch
   gather_facts: false
 
   vars:

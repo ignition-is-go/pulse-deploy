@@ -3,7 +3,7 @@
 #
 # Usage:
 #   ansible-playbook playbooks/rivermax-setup.yml                           # all rivermax nodes
-#   ansible-playbook playbooks/rivermax-setup.yml --limit content_nodes     # content only
+#   ansible-playbook playbooks/rivermax-setup.yml --limit ue_content     # content only
 #   ansible-playbook playbooks/rivermax-setup.yml --limit windows-unreal-render-01  # single node
 #   ansible-playbook playbooks/rivermax-setup.yml --check                   # dry run
 

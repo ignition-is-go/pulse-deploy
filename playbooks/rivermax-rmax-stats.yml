@@ -3,7 +3,7 @@
 # Must run in interactive session (Session 1) for shared memory access.
 #
 # Usage:
-#   ansible-playbook playbooks/rmax-stats.yml --limit content_nodes
+#   ansible-playbook playbooks/rmax-stats.yml --limit ue_content
 #   ansible-playbook playbooks/rmax-stats.yml --limit windows-unreal-render-01
 
 - name: Rivermax stats check

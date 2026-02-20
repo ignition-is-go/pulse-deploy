@@ -9,7 +9,7 @@
 #   cargo build --release --target x86_64-pc-windows-gnu -p worker
 
 - name: Deploy UE render nodes
-  hosts: ue_nodes
+  hosts: ue
   gather_facts: false
   ignore_unreachable: true
   serial: "{{ parallel_nodes | default(omit) }}"

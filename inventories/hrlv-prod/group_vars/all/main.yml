@@ -1,5 +1,0 @@
----
-# Global defaults — references vault-encrypted secrets
-
-ansible_user: "{{ vault_ansible_user }}"
-ansible_password: "{{ vault_ansible_password }}"

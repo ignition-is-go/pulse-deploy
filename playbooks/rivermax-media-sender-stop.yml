@@ -3,7 +3,7 @@
 #
 # Usage:
 #   ansible-playbook playbooks/rivermax-media-sender-stop.yml --limit windows-unreal-render-01
-#   ansible-playbook playbooks/rivermax-media-sender-stop.yml --limit content_nodes
+#   ansible-playbook playbooks/rivermax-media-sender-stop.yml --limit ue_content
 
 - name: Stop Rivermax media_sender
   hosts: windows

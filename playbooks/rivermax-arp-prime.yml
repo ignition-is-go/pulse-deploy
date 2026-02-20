@@ -12,7 +12,7 @@
 #   ansible-playbook playbooks/rivermax-arp-prime.yml
 
 - name: Prime OVS FDB — ARP exchange between all Rivermax VFs
-  hosts: ue_nodes:touch_nodes
+  hosts: ue:touch
   ignore_unreachable: true
   gather_facts: false
 

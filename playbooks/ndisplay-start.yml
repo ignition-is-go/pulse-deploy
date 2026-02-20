@@ -15,7 +15,7 @@
 #
 # Prerequisites:
 #   - Populate ndisplay_map and ndisplay_config in
-#     inventories/hrlv/group_vars/content_nodes.yml
+#     inventories/hrlv-dev/group_vars/ue_content.yml
 #   - Plastic SCM synced (playbooks/plastic-sync.yml)
 #   - Firewall rules applied (playbooks/ndisplay-network.yml)
 #
@@ -27,7 +27,7 @@
   ansible.builtin.import_playbook: rivermax-arp-prime.yml
 
 - name: Rivermax preflight check
-  hosts: content_nodes
+  hosts: ue_content
   gather_facts: false
 
   tasks:
@@ -77,7 +77,7 @@
         'MISSING' in preflight_adapter.stdout
 
 - name: Prepare nDisplay launch
-  hosts: content_nodes
+  hosts: ue_content
   gather_facts: false
 
   tasks:
@@ -86,7 +86,7 @@
         that:
           - ndisplay_config | length > 0
           - ndisplay_node is defined
-        fail_msg: "ndisplay_config and ndisplay_node must be set. Populate content_nodes.yml and hosts.yml."
+        fail_msg: "ndisplay_config and ndisplay_node must be set. Populate ue_content.yml and hosts.yml."
 
     - name: Validate map exists on disk
       ansible.windows.win_stat:
@@ -141,7 +141,6 @@
           "{{ unreal_project }}"
           -game
           {{ ndisplay_map | default('None') }}
-          -messaging
           -dc_cluster
           -dc_cfg="{{ ndisplay_config }}"
           -dc_node={{ ndisplay_node }}
@@ -155,6 +154,7 @@
           -fixedseed
           -NoVerifyGC
           -noxrstereo
+          -dpcvars=Rivermax.Output.EnableMultiSRD=1
           {% if ndisplay_window.fullscreen | bool %}-fullscreen{% else %}-windowed -forceres WinX={{ ndisplay_window.winx }} WinY={{ ndisplay_window.winy }} ResX={{ ndisplay_window.resx }} ResY={{ ndisplay_window.resy }}{% endif %}
           {% if ndisplay_window.headless | bool %}-RenderOffscreen{% endif %}
           -RemoteControlIsHeadless
@@ -183,7 +183,7 @@
         enabled: true
 
 - name: Launch nDisplay cluster
-  hosts: content_nodes
+  hosts: ue_content
   gather_facts: false
 
   tasks:

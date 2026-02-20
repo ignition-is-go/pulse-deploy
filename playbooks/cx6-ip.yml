@@ -1,9 +1,9 @@
 ---
 # Configure static IP on ConnectX-6 VF passthrough adapter
-# Usage: ansible-playbook playbooks/cx6-ip.yml -i inventories/hrlv/hosts.yml
+# Usage: ansible-playbook playbooks/cx6-ip.yml -i inventories/hrlv-dev/hosts.yml
 
 - name: Configure ConnectX-6 VF media IP
-  hosts: ue_nodes:touch_nodes
+  hosts: ue:touch
   gather_facts: false
 
   tasks:

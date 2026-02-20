@@ -3,11 +3,11 @@
 #
 # Usage:
 #   ansible-playbook playbooks/ptp-status.yml                                    # all rivermax nodes
-#   ansible-playbook playbooks/ptp-status.yml --limit content_nodes              # content only
+#   ansible-playbook playbooks/ptp-status.yml --limit ue_content              # content only
 #   ansible-playbook playbooks/ptp-status.yml --limit windows-unreal-render-01   # single node
 
 - name: Verify W32Time PTP status
-  hosts: ue_nodes:touch_nodes
+  hosts: ue:touch
   gather_facts: false
 
   tasks:

@@ -1,32 +1,35 @@
 # -----------------------------------------------------------------------------
-# Windows GPU VMs — ue-render, touch, arnold, workstation
+# Windows GPU VMs — ue_content, ue_previs, touch, arnold_fusion, workstation
 # -----------------------------------------------------------------------------
 
 locals {
   windows_gpu_vms = merge(
-    var.ue_render_nodes,
-    var.touch_nodes,
-    var.arnold_nodes,
-    var.workstations,
+    var.ue_content,
+    var.ue_previs,
+    var.touch,
+    var.arnold_fusion,
+    var.workstation,
   )
 
   windows_gpu_vm_tags = merge(
-    { for k, _ in var.ue_render_nodes : k => ["windows", "ue-render", "gpu"] },
-    { for k, _ in var.touch_nodes : k => ["windows", "touch", "gpu"] },
-    { for k, _ in var.arnold_nodes : k => ["windows", "arnold", "gpu"] },
-    { for k, _ in var.workstations : k => ["windows", "workstation", "gpu"] },
+    { for k, _ in var.ue_content : k => ["windows", "ue", "ue-content", "gpu"] },
+    { for k, _ in var.ue_previs : k => ["windows", "ue", "ue-previs", "gpu"] },
+    { for k, _ in var.touch : k => ["windows", "touch", "gpu"] },
+    { for k, _ in var.arnold_fusion : k => ["windows", "arnold-fusion", "gpu"] },
+    { for k, _ in var.workstation : k => ["windows", "workstation", "gpu"] },
   )
 
   windows_gpu_vm_descriptions = merge(
-    { for k, _ in var.ue_render_nodes : k => "UE nDisplay render node" },
-    { for k, _ in var.touch_nodes : k => "TouchDesigner volumetric content" },
-    { for k, _ in var.arnold_nodes : k => "Arnold/Fusion offline render" },
-    { for k, _ in var.workstations : k => "Artist workstation" },
+    { for k, _ in var.ue_content : k => "UE nDisplay content render node" },
+    { for k, _ in var.ue_previs : k => "UE nDisplay previs render node" },
+    { for k, _ in var.touch : k => "TouchDesigner volumetric content" },
+    { for k, _ in var.arnold_fusion : k => "Arnold/Fusion offline render" },
+    { for k, _ in var.workstation : k => "Artist workstation" },
   )
 }
 
 module "windows_gpu_vm" {
-  source   = "./modules/proxmox-vm"
+  source   = "../modules/proxmox-vm"
   for_each = local.windows_gpu_vms
 
   id             = each.value.id

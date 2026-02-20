@@ -822,4 +822,40 @@ systemctl restart openvswitch-switch
 
 Then re-prime ARPs and purge stale flows.
 
+VF Representor Ring Buffer Tuning
+
+Default representor ring buffers (RX: 1024, TX: 128) are too small for high-throughput
+ST 2110 workloads. With 4 streams at ~384 MB/s each hitting a single VF, the 1024-slot
+ring turns over ~8000 times/sec, causing drops on any interrupt latency spike.
+
+Max out ring buffers on all representors after boot:
+
+```bash
+# ConnectX-6 Adapter #1 (vmbr1) representors
+for i in 0 1 2 3 4 5 6 7; do ethtool -G ens13f0r${i} rx 8192 tx 8192 2>/dev/null; done
+
+# ConnectX-6 Adapter #2 (vmbr2) representors
+for i in 0 1 2 3 4 5 6 7; do ethtool -G enp146s0f0r${i} rx 8192 tx 8192 2>/dev/null; done
+
+# Verify
+ethtool -g ens13f0r0 | grep -A4 "Current hardware"
+```
+
+To persist across reboots, add to `/etc/network/interfaces.d/vmbr1-vfs.conf`:
+
+```
+auto ens13f0r0
+iface ens13f0r0 inet manual
+    ovs_type OVSPort
+    ovs_bridge vmbr1
+    ovs_mtu 9000
+    post-up ethtool -G ens13f0r0 rx 8192 tx 8192
+```
+
+The VM-side VF ring buffers are tuned separately via Ansible:
+
+```bash
+ansible-playbook playbooks/cx6-tune.yml
+```
+
 Create a windows VM in proxmox, add the virtual function as a PCIe device, install windows drivers and and verify the ConnectX-6 appears in device manager

@@ -6,10 +6,9 @@
 # Usage:
 #   ansible-playbook playbooks/site.yml                              # everything
 #   ansible-playbook playbooks/site.yml --limit windows              # all Windows
-#   ansible-playbook playbooks/site.yml --limit ue_nodes             # UE nodes only
+#   ansible-playbook playbooks/site.yml --limit ue                   # UE nodes only
 #   ansible-playbook playbooks/site.yml --limit windows-unreal-03    # single node
-#   ansible-playbook playbooks/site.yml --limit lxc                  # all LXC containers
-#   ansible-playbook playbooks/site.yml --limit rship_nodes          # rship nodes only
+#   ansible-playbook playbooks/site.yml --limit rship                # rship nodes only
 #   ansible-playbook playbooks/site.yml --check                      # dry run
 
 # === Windows VMs ===
@@ -29,40 +28,40 @@
       when: rivermax | default(false)
 
 - name: All UE nodes — shared layers
-  hosts: ue_nodes
+  hosts: ue
   gather_facts: false
   roles:
     - plastic_scm
 
 - name: Content nodes — nDisplay cluster
-  hosts: content_nodes
+  hosts: ue_content
   gather_facts: false
   roles:
     - unreal_engine
     - render_worker
 
 - name: Previs nodes
-  hosts: previs_nodes
+  hosts: ue_previs
   gather_facts: false
   roles:
     - unreal_engine
     - render_worker
 
 - name: Touch nodes
-  hosts: touch_nodes
+  hosts: touch
   gather_facts: false
   roles: []
 
 - name: Arnold/Fusion nodes
-  hosts: arnold_nodes
+  hosts: arnold_fusion
   gather_facts: false
   roles:
     - arnold
 
-# === Linux VMs ===
+# === Linux ===
 
-- name: Base config — Linux VMs
-  hosts: linux_vms
+- name: Base config — all Linux
+  hosts: linux
   gather_facts: true
   roles:
     - linux_base
@@ -74,22 +73,8 @@
     - nvidia_gpu_linux
     - optik
 
-# === LXC Containers ===
-
-- name: Base config — LXC
-  hosts: lxc
-  gather_facts: true
-  roles:
-    - lxc_base
-
-- name: rship nodes
-  hosts: rship_nodes
+- name: rship workers
+  hosts: rship
   gather_facts: false
   roles:
     - rship
-
-- name: rship control plane
-  hosts: rship_control
-  gather_facts: false
-  roles:
-    - rship_control

@@ -3,7 +3,7 @@
 #
 # Usage:
 #   ansible-playbook playbooks/rivermax-media-receiver-stop.yml --limit windows-unreal-render-05
-#   ansible-playbook playbooks/rivermax-media-receiver-stop.yml --limit content_nodes
+#   ansible-playbook playbooks/rivermax-media-receiver-stop.yml --limit ue_content
 
 - name: Stop Rivermax media_receiver
   hosts: windows
