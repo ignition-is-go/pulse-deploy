@@ -18,6 +18,11 @@
   gather_facts: true
   roles:
     - win_base
+
+- name: GPU validation — Windows nodes with GPUs
+  hosts: ue_content:ue_previs:touch:arnold_fusion:workstation
+  gather_facts: false
+  roles:
     - nvidia_gpu_win
 
 - name: Rivermax — all Windows nodes with rivermax enabled
@@ -46,6 +51,12 @@
   roles:
     - unreal_engine
     - render_worker
+
+- name: Staging nodes
+  hosts: ue_staging
+  gather_facts: false
+  roles:
+    - unreal_engine
 
 - name: Touch nodes
   hosts: touch
