@@ -9,7 +9,10 @@
       "Bash(git commit:*)",
       "WebFetch(domain:forums.unrealengine.com)",
       "WebFetch(domain:registry.terraform.io)",
-      "WebFetch(domain:netboxlabs.com)"
+      "WebFetch(domain:netboxlabs.com)",
+      "WebFetch(domain:alex.dzyoba.com)",
+      "WebFetch(domain:megapixelvr.com)",
+      "WebFetch(domain:help.disguise.one)"
     ]
   }
 }
