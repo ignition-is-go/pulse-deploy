@@ -9,6 +9,11 @@
     start_mode: auto
     state: started
 
+- name: Set DNS servers
+  ansible.windows.win_dns_client:
+    adapter_names: '*'
+    dns_servers: "{{ win_base_dns_servers }}"
+
 - name: Set network profile to Private
   ansible.windows.win_shell: |
     Get-NetConnectionProfile | Where-Object { $_.NetworkCategory -ne 'Private' } | Set-NetConnectionProfile -NetworkCategory Private

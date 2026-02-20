@@ -1,6 +1,11 @@
 ---
 # win_base defaults
 
+# DNS
+win_base_dns_servers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+
 # Power settings
 win_base_disable_sleep: true
 win_base_disable_hibernation: true
