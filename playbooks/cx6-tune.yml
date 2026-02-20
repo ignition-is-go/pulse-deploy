@@ -1,0 +1,105 @@
+---
+# cx6-tune.yml — Tune ConnectX-6 VF for high-throughput ST 2110
+#
+# ST 2110 video generates ~1M+ small UDP packets/sec per stream. This playbook:
+#   1. Maxes out VF ring buffers (default 512 too small, causes drops)
+#   2. Sets aggressive interrupt moderation (coalesces packets, fewer interrupts)
+#
+# RSS is already 16 queues by default on these VFs — no change needed.
+# Interrupt moderation defaults to Adaptive/Moderate which doesn't coalesce
+# aggressively enough for sustained 1M+ pps loads.
+#
+# Proxmox host-side (run manually on each hypervisor):
+#   for i in 0 1 2 3 4 5 6 7; do ethtool -G ens13f0r${i} rx 8192 tx 8192 2>/dev/null; done
+#
+# Usage:
+#   ansible-playbook playbooks/cx6-tune.yml                                    # all rivermax nodes
+#   ansible-playbook playbooks/cx6-tune.yml --limit ue_content              # content only
+#   ansible-playbook playbooks/cx6-tune.yml --limit windows-unreal-render-05   # single node
+
+- name: Tune ConnectX-6 VF for ST 2110
+  hosts: ue:touch
+  gather_facts: false
+
+  tasks:
+    - name: Get current settings
+      ansible.windows.win_shell: |
+        $adapter = Get-NetAdapter | Where-Object {
+          $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
+        }
+        if (-not $adapter) { throw "No ConnectX adapter found" }
+        $rx = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*ReceiveBuffers"
+        $tx = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*TransmitBuffers"
+        $rxMod = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "RxIntModerationProfile"
+        Write-Output "adapter=$($adapter.Name)"
+        Write-Output "rx=$($rx.RegistryValue)/$($rx.NumericParameterMaxValue)"
+        Write-Output "tx=$($tx.RegistryValue)/$($tx.NumericParameterMaxValue)"
+        Write-Output "rx_int_profile=$($rxMod.RegistryValue)"
+      register: current
+      changed_when: false
+      when: rivermax | default(false)
+
+    - name: Display current settings
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ current.stdout | trim }}"
+      when: rivermax | default(false)
+
+    # --- Ring buffers ---
+
+    - name: Max out receive ring buffers
+      ansible.windows.win_shell: |
+        $adapter = Get-NetAdapter | Where-Object {
+          $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
+        }
+        $prop = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*ReceiveBuffers"
+        Set-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*ReceiveBuffers" -RegistryValue $prop.NumericParameterMaxValue
+      when:
+        - rivermax | default(false)
+        - "'rx_current=' ~ 'rx_max=' not in current.stdout"
+
+    - name: Max out transmit ring buffers
+      ansible.windows.win_shell: |
+        $adapter = Get-NetAdapter | Where-Object {
+          $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
+        }
+        $prop = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*TransmitBuffers"
+        Set-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*TransmitBuffers" -RegistryValue $prop.NumericParameterMaxValue
+      when:
+        - rivermax | default(false)
+        - "'tx_current=' ~ 'tx_max=' not in current.stdout"
+
+    # --- Interrupt moderation: aggressive coalescing for sustained high-pps ---
+
+    - name: Set RX interrupt moderation to aggressive
+      ansible.windows.win_shell: |
+        $adapter = Get-NetAdapter | Where-Object {
+          $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
+        }
+        Set-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "RxIntModeration" -RegistryValue 1
+        Set-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "RxIntModerationProfile" -RegistryValue 2
+      when:
+        - rivermax | default(false)
+        - "'rx_int_profile={2}' not in current.stdout"
+
+    # --- Verify ---
+
+    - name: Verify final settings
+      ansible.windows.win_shell: |
+        $adapter = Get-NetAdapter | Where-Object {
+          $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
+        }
+        $rx = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*ReceiveBuffers"
+        $tx = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*TransmitBuffers"
+        $rssQ = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*NumRSSQueues"
+        $rxMod = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "RxIntModerationProfile"
+        Write-Output "Ring: RX=$($rx.DisplayValue)/$($rx.NumericParameterMaxValue) TX=$($tx.DisplayValue)/$($tx.NumericParameterMaxValue)"
+        Write-Output "RSS Queues: $($rssQ.DisplayValue)"
+        Write-Output "RxIntModProfile: $($rxMod.DisplayValue)"
+      register: tune_verify
+      changed_when: false
+      when: rivermax | default(false)
+
+    - name: Display final settings
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}:\n{{ tune_verify.stdout | trim }}"
+      when: rivermax | default(false)
