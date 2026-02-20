@@ -1,0 +1,72 @@
+---
+# Start Previs project on previs nodes
+# Usage: ansible-playbook playbooks/ue-previs-start.yml
+
+- name: Start Previs
+  hosts: ue_previs
+  gather_facts: false
+  tasks:
+    - name: Check if UE is already running
+      ansible.windows.win_shell: |
+        if (Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue) {
+          Write-Host "RUNNING"
+        } else {
+          Write-Host "OK"
+        }
+      register: ue_check
+      changed_when: false
+
+    - name: Skip if already running
+      when: "'RUNNING' in ue_check.stdout"
+      block:
+        - name: Already running
+          ansible.builtin.debug:
+            msg: "{{ inventory_hostname }}: UE is already running — skipping"
+        - name: End host
+          ansible.builtin.meta: end_host
+
+    - name: Write previs launch script
+      ansible.windows.win_copy:
+        content: |
+          @echo off
+          "{{ unreal_exe }}" "{{ unreal_project }}"
+        dest: C:\previs-launch.bat
+
+    - name: Create previs scheduled task
+      community.windows.win_scheduled_task:
+        name: PrevisLaunch
+        description: Launch UE Previs project
+        actions:
+          - path: C:\previs-launch.bat
+        triggers: []
+        username: "{{ ansible_user }}"
+        password: "{{ ansible_password }}"
+        logon_type: interactive_token
+        run_level: highest
+        state: present
+        enabled: true
+
+    - name: Start previs
+      ansible.windows.win_shell: |
+        Start-ScheduledTask -TaskName "PrevisLaunch"
+        Write-Host "LAUNCHED"
+
+    - name: Wait for UE process
+      ansible.windows.win_shell: |
+        $timeout = 30
+        $elapsed = 0
+        while ($elapsed -lt $timeout) {
+          $proc = Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue
+          if ($proc) {
+            Write-Host "RUNNING (PID: $($proc.Id))"
+            exit 0
+          }
+          Start-Sleep -Seconds 2
+          $elapsed += 2
+        }
+        throw "UnrealEditor did not start within ${timeout}s"
+      register: launch_result
+
+    - name: Show status
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ launch_result.stdout | trim }}"

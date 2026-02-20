@@ -1,0 +1,23 @@
+---
+# Stop Previs project on previs nodes
+# Usage: ansible-playbook playbooks/ue-previs-stop.yml
+
+- name: Stop Previs
+  hosts: ue_previs
+  gather_facts: false
+  tasks:
+    - name: Stop UE
+      ansible.windows.win_shell: |
+        $procs = Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue
+        if ($procs) {
+          $procs | Stop-Process -Force
+          Start-Sleep -Seconds 3
+          Write-Host "STOPPED $($procs.Count) process(es)"
+        } else {
+          Write-Host "NOT_RUNNING"
+        }
+      register: stop_result
+
+    - name: Show status
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ stop_result.stdout | trim }}"
