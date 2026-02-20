@@ -22,51 +22,23 @@
   gather_facts: false
 
   tasks:
-    - name: Get current settings
+    - name: Max out receive and transmit ring buffers
       ansible.windows.win_shell: |
         $adapter = Get-NetAdapter | Where-Object {
           $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
         }
-        if (-not $adapter) { throw "No ConnectX adapter found" }
-        $rx = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*ReceiveBuffers"
-        $tx = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*TransmitBuffers"
-        $rxMod = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "RxIntModerationProfile"
-        Write-Output "adapter=$($adapter.Name)"
-        Write-Output "rx=$($rx.RegistryValue)/$($rx.NumericParameterMaxValue)"
-        Write-Output "tx=$($tx.RegistryValue)/$($tx.NumericParameterMaxValue)"
-        Write-Output "rx_int_profile=$($rxMod.RegistryValue)"
-      register: current
-      changed_when: false
+        foreach ($kw in @("*ReceiveBuffers", "*TransmitBuffers")) {
+          $prop = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword $kw
+          if ([int]$prop.RegistryValue[0] -lt $prop.NumericParameterMaxValue) {
+            Set-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword $kw -RegistryValue $prop.NumericParameterMaxValue
+            Write-Output "$kw: $($prop.RegistryValue) -> $($prop.NumericParameterMaxValue)"
+          } else {
+            Write-Output "$kw: already at max ($($prop.RegistryValue))"
+          }
+        }
+      register: ring_result
+      changed_when: "'->' in ring_result.stdout"
       when: rivermax | default(false)
-
-    - name: Display current settings
-      ansible.builtin.debug:
-        msg: "{{ inventory_hostname }}: {{ current.stdout | trim }}"
-      when: rivermax | default(false)
-
-    # --- Ring buffers ---
-
-    - name: Max out receive ring buffers
-      ansible.windows.win_shell: |
-        $adapter = Get-NetAdapter | Where-Object {
-          $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
-        }
-        $prop = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*ReceiveBuffers"
-        Set-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*ReceiveBuffers" -RegistryValue $prop.NumericParameterMaxValue
-      when:
-        - rivermax | default(false)
-        - "'rx_current=' ~ 'rx_max=' not in current.stdout"
-
-    - name: Max out transmit ring buffers
-      ansible.windows.win_shell: |
-        $adapter = Get-NetAdapter | Where-Object {
-          $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
-        }
-        $prop = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*TransmitBuffers"
-        Set-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*TransmitBuffers" -RegistryValue $prop.NumericParameterMaxValue
-      when:
-        - rivermax | default(false)
-        - "'tx_current=' ~ 'tx_max=' not in current.stdout"
 
     # --- Interrupt moderation: aggressive coalescing for sustained high-pps ---
 
@@ -75,11 +47,23 @@
         $adapter = Get-NetAdapter | Where-Object {
           $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
         }
-        Set-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "RxIntModeration" -RegistryValue 1
-        Set-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "RxIntModerationProfile" -RegistryValue 2
-      when:
-        - rivermax | default(false)
-        - "'rx_int_profile={2}' not in current.stdout"
+        $mod = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "RxIntModeration"
+        $prof = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "RxIntModerationProfile"
+        $changed = $false
+        if ([int]$mod.RegistryValue[0] -ne 1) {
+          Set-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "RxIntModeration" -RegistryValue 1
+          Write-Output "RxIntModeration: $($mod.RegistryValue) -> 1 (static)"
+          $changed = $true
+        }
+        if ([int]$prof.RegistryValue[0] -ne 2) {
+          Set-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "RxIntModerationProfile" -RegistryValue 2
+          Write-Output "RxIntModerationProfile: $($prof.RegistryValue) -> 2 (aggressive)"
+          $changed = $true
+        }
+        if (-not $changed) { Write-Output "already at static/aggressive" }
+      register: intmod_result
+      changed_when: "'->' in intmod_result.stdout"
+      when: rivermax | default(false)
 
     # --- Verify ---
 
