@@ -1,0 +1,4 @@
+---
+# Staging nodes — Plastic sync source, distributes to render nodes
+plastic_workspace: "C:/P-0616-HRLV"
+unreal_project: "C:/P-0616-HRLV/ue/HRLV_Content/HRLV_Content.uproject"

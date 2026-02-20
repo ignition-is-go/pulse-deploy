@@ -1,7 +1,7 @@
 ---
 # nDisplay cluster configuration
 
-# Project override (content nodes use HRLV_Content, not HRLV_Previs)
+plastic_workspace: "F:/P-0616-HRLV"
 unreal_project: "F:/P-0616-HRLV/ue/HRLV_Content/HRLV_Content.uproject"
 
 # Map/level to load
@@ -16,3 +16,9 @@ ndisplay_configs:
 # Default config (override with -e "ndisplay=...")
 ndisplay: rivermax_4node
 ndisplay_config: "{{ ndisplay_configs[ndisplay] }}"
+
+# Concert (Multi-User Editing) — render nodes connect to this server
+concert_server_ip: "192.168.1.153"
+concert_server_port: 6666
+concert_session: "HRLV_Content"
+concert_server_name: "HRLV-MU-Server"

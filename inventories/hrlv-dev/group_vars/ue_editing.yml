@@ -1,0 +1,10 @@
+---
+# Multi-User Editing (Concert) configuration
+plastic_workspace: "F:/P-0616-HRLV"
+unreal_project: "F:/P-0616-HRLV/ue/HRLV_Content/HRLV_Content.uproject"
+
+# Concert server settings
+concert_session: "HRLV_Content"
+concert_server_name: "HRLV-MU-Server"
+concert_server_port: 6666
+concert_server_ip: "192.168.1.153"

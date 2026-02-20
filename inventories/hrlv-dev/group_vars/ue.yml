@@ -7,7 +7,8 @@ unreal_exe: "{{ unreal_engine_dir }}/Engine/Binaries/Win64/UnrealEditor.exe"
 
 # Plastic SCM
 plastic_exe: "C:/Program Files/PlasticSCM5/client/cm.exe"
-plastic_workspace: "F:/P-0616-HRLV"
+plastic_workspace: ""
+plastic_repo: "P-0616-HRLV"
 plastic_cloud_org: "{{ vault_plastic_cloud_org }}"
 plastic_cloud_user: "{{ vault_plastic_cloud_user }}"
 plastic_api_key: "{{ vault_plastic_api_key }}"
