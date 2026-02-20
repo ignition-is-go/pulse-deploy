@@ -1,6 +1,6 @@
 ---
 # Stop nDisplay cluster on content nodes
-# Usage: ansible-playbook playbooks/ndisplay-stop.yml
+# Usage: ansible-playbook playbooks/ue-ndisplay-stop.yml
 
 - name: Stop nDisplay cluster
   hosts: ue_content

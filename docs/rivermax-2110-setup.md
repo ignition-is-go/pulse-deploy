@@ -319,17 +319,17 @@ is required for anything that needs GPU or display access.
 
 **Start the cluster**:
 ```bash
-ansible-playbook playbooks/ndisplay-start.yml
+ansible-playbook playbooks/ue-ndisplay-start.yml
 
 # With a different map
-ansible-playbook playbooks/ndisplay-start.yml -e "ndisplay_map=/Game/Path/To/Map"
+ansible-playbook playbooks/ue-ndisplay-start.yml -e "ndisplay_map=/Game/Path/To/Map"
 ```
 
 The start playbook runs `serial: 1` to launch nodes sequentially (primary first).
 
 **Stop the cluster**:
 ```bash
-ansible-playbook playbooks/ndisplay-stop.yml
+ansible-playbook playbooks/ue-ndisplay-stop.yml
 ```
 
 Stops all UnrealEditor processes on content nodes and removes the scheduled task.
@@ -439,8 +439,8 @@ Summary of infrastructure changes made during this setup session.
 ### New playbooks
 - **`playbooks/rivermax-setup.yml`** -- standalone Rivermax deploy playbook.
 - **`playbooks/cx6-ip.yml`** -- CX6 VF static IP configuration.
-- **`playbooks/ndisplay-start.yml`** -- launch nDisplay cluster via command line.
-- **`playbooks/ndisplay-stop.yml`** -- stop nDisplay cluster.
+- **`playbooks/ue-ndisplay-start.yml`** -- launch nDisplay cluster via command line.
+- **`playbooks/ue-ndisplay-stop.yml`** -- stop nDisplay cluster.
 
 ### New role
 - **`roles/rivermax`** -- Layer 1 role for WinOF-2 + Rivermax SDK + license,
@@ -493,13 +493,13 @@ ansible-playbook playbooks/cx6-ip.yml --limit windows-unreal-render-03
 
 ```bash
 # Start cluster
-ansible-playbook playbooks/ndisplay-start.yml
+ansible-playbook playbooks/ue-ndisplay-start.yml
 
 # Start with different map
-ansible-playbook playbooks/ndisplay-start.yml -e "ndisplay_map=/Game/Some/Other/Map"
+ansible-playbook playbooks/ue-ndisplay-start.yml -e "ndisplay_map=/Game/Some/Other/Map"
 
 # Stop cluster
-ansible-playbook playbooks/ndisplay-stop.yml
+ansible-playbook playbooks/ue-ndisplay-stop.yml
 ```
 
 ### Ad-hoc checks

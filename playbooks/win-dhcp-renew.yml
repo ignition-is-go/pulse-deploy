@@ -1,6 +1,6 @@
 ---
 # Renew DHCP lease on Windows nodes
-# Usage: ansible-playbook playbooks/dhcp-renew.yml -i inventories/hrlv-dev/hosts.yml
+# Usage: ansible-playbook playbooks/win-dhcp-renew.yml -i inventories/hrlv-dev/hosts.yml
 
 - name: Renew DHCP lease
   hosts: windows

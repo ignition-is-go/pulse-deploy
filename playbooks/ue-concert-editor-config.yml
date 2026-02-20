@@ -1,0 +1,42 @@
+---
+# Write persistent Concert client settings to the editing node
+#
+# Configures the project's Saved/Config so the editor auto-connects to
+# the Concert session regardless of how UE is launched (Ansible, shortcut,
+# or manually by an artist).
+#
+# Settings are written to Saved/Config/Windows/Engine.ini (per-machine,
+# not in source control) so they persist across editor restarts.
+#
+# Usage:
+#   ansible-playbook playbooks/ue-concert-editor-config.yml
+
+- name: Configure Concert editor client
+  hosts: ue_editing
+  gather_facts: false
+
+  tasks:
+    - name: Ensure project Saved config directory exists
+      ansible.windows.win_file:
+        path: "{{ unreal_project | dirname }}/Saved/Config/Windows"
+        state: directory
+
+    - name: Write persistent Concert client settings
+      ansible.windows.win_copy:
+        content: |
+          [/Script/ConcertSyncClient.ConcertClientConfig]
+          bAutoConnect=True
+          DefaultServerURL={{ concert_server_name }}
+          DefaultSessionName={{ concert_session }}
+          ClientDisplayName={{ inventory_hostname }}
+
+          [/Script/UdpMessaging.UdpMessagingSettings]
+          EnableTransport=True
+          UnicastEndpoint={{ ansible_host }}:0
+          StaticEndpoints={{ concert_server_ip }}:{{ concert_server_port }}
+          MulticastEndpoint=
+          MulticastTimeToLive=0
+
+          [/Script/QuicMessaging.QuicMessagingSettings]
+          EnableTransport=False
+        dest: "{{ unreal_project | dirname }}/Saved/Config/Windows/Engine.ini"

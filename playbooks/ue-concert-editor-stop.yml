@@ -1,0 +1,31 @@
+---
+# Stop UE editor on the editing node
+#
+# Usage:
+#   ansible-playbook playbooks/ue-concert-editor-stop.yml
+
+- name: Stop Concert editor
+  hosts: ue_editing
+  gather_facts: false
+
+  tasks:
+    - name: Stop UnrealEditor process
+      ansible.windows.win_shell: |
+        $proc = Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue
+        if ($proc) {
+          $proc | Stop-Process -Force
+          Start-Sleep -Seconds 2
+          Write-Host "STOPPED"
+        } else {
+          Write-Host "NONE_RUNNING"
+        }
+      register: stop_result
+
+    - name: Remove Concert editor scheduled task
+      community.windows.win_scheduled_task:
+        name: ConcertEditor
+        state: absent
+
+    - name: Show status
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ stop_result.stdout | trim }}"

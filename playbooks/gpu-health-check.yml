@@ -1,0 +1,43 @@
+---
+# GPU health check for Windows UE nodes
+#
+# Verifies the NVIDIA GPU is visible and responsive via nvidia-smi.
+# Import this into any playbook that requires a functional GPU.
+#
+# Usage:
+#   ansible-playbook playbooks/gpu-check.yml
+#   ansible-playbook playbooks/gpu-check.yml --limit ue_content
+#
+# Import from another playbook:
+#   - ansible.builtin.import_playbook: gpu-check.yml
+
+- name: GPU health check
+  hosts: ue_content:ue_previs:ue_editing
+  gather_facts: false
+
+  tasks:
+    - name: Query GPU via nvidia-smi
+      ansible.windows.win_shell: |
+        $nvsmi = "C:\Windows\System32\nvidia-smi.exe"
+        if (-not (Test-Path $nvsmi)) {
+          Write-Host "FAIL: nvidia-smi not found"
+          exit 1
+        }
+        $output = & $nvsmi --query-gpu=name,driver_version,memory.total,gpu_bus_id,pstate,temperature.gpu --format=csv,noheader 2>&1
+        if ($LASTEXITCODE -ne 0) {
+          Write-Host "FAIL: nvidia-smi returned exit code $LASTEXITCODE"
+          Write-Host $output
+          exit 1
+        }
+        Write-Host "OK: $output"
+      register: gpu_check
+      changed_when: false
+
+    - name: Fail if GPU is not healthy
+      ansible.builtin.fail:
+        msg: "GPU check failed on {{ inventory_hostname }}: {{ gpu_check.stdout | trim }}. VM likely needs a restart."
+      when: gpu_check.rc != 0
+
+    - name: Show GPU status
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ gpu_check.stdout | trim }}"

@@ -17,11 +17,14 @@
 #   - Populate ndisplay_map and ndisplay_config in
 #     inventories/hrlv-dev/group_vars/ue_content.yml
 #   - Plastic SCM synced (playbooks/plastic-sync.yml)
-#   - Firewall rules applied (playbooks/ndisplay-network.yml)
+#   - Firewall rules applied (playbooks/ue-firewall-rules.yml)
 #
 # Usage:
-#   ansible-playbook playbooks/ndisplay-start.yml
-#   ansible-playbook playbooks/ndisplay-start.yml -e "ndisplay_map=/Game/Path/To/Map"
+#   ansible-playbook playbooks/ue-ndisplay-start.yml
+#   ansible-playbook playbooks/ue-ndisplay-start.yml -e "ndisplay_map=/Game/Path/To/Map"
+
+- name: GPU health check
+  ansible.builtin.import_playbook: gpu-health-check.yml
 
 - name: Prime OVS FDB for Rivermax hardware offload
   ansible.builtin.import_playbook: rivermax-arp-prime.yml
@@ -154,9 +157,10 @@
           -fixedseed
           -NoVerifyGC
           -noxrstereo
-          -dpcvars=Rivermax.Output.EnableMultiSRD=1
+          -ini:Engine:[ConsoleVariables]:Rivermax.Output.EnableMultiSRD=1
           {% if ndisplay_window.fullscreen | bool %}-fullscreen{% else %}-windowed -forceres WinX={{ ndisplay_window.winx }} WinY={{ ndisplay_window.winy }} ResX={{ ndisplay_window.resx }} ResY={{ ndisplay_window.resy }}{% endif %}
           {% if ndisplay_window.headless | bool %}-RenderOffscreen{% endif %}
+          {% if concert_server_ip is defined %}-messaging -CONCERTAUTOCONNECT -CONCERTSERVER="{{ concert_server_name }}" -CONCERTSESSION="{{ concert_session }}" -CONCERTDISPLAYNAME="{{ inventory_hostname }}" -UDPMESSAGING_TRANSPORT_UNICAST={{ ansible_host }}:0 -UDPMESSAGING_TRANSPORT_STATIC={{ concert_server_ip }}:{{ concert_server_port }} -ini:Engine:[/Script/UdpMessaging.UdpMessagingSettings]:MulticastEndpoint=0.0.0.0:0,[/Script/UdpMessaging.UdpMessagingSettings]:MulticastTimeToLive=0,[/Script/QuicMessaging.QuicMessagingSettings]:EnableTransport=False{% endif %}
           -RemoteControlIsHeadless
           -StageFriendlyName="{{ ndisplay_node }}"
           Log={{ ndisplay_node }}.log

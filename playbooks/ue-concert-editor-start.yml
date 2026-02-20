@@ -1,0 +1,90 @@
+---
+# Launch UE editor on the editing node and auto-join the Concert session
+#
+# Opens the full editor UI in interactive desktop session so artists can
+# make changes that propagate to the nDisplay render nodes via Concert.
+#
+# Prerequisites:
+#   - Concert server running (playbooks/ue-concert-server-start.yml)
+#   - Firewall rules applied (playbooks/ue-firewall-rules.yml)
+#
+# Usage:
+#   ansible-playbook playbooks/ue-concert-editor-start.yml
+
+- name: GPU health check
+  ansible.builtin.import_playbook: gpu-health-check.yml
+
+- name: Launch Concert editor
+  hosts: ue_editing
+  gather_facts: false
+
+  tasks:
+    - name: Check UnrealEditor exists
+      ansible.windows.win_stat:
+        path: "{{ unreal_exe }}"
+      register: editor_exe
+
+    - name: Fail if editor binary not found
+      ansible.builtin.fail:
+        msg: "UnrealEditor.exe not found at {{ unreal_exe }}"
+      when: not editor_exe.stat.exists
+
+    - name: Stop existing UE editor
+      ansible.windows.win_shell: |
+        $proc = Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue
+        if ($proc) { $proc | Stop-Process -Force; Start-Sleep -Seconds 3; Write-Host "STOPPED" } else { Write-Host "NONE_RUNNING" }
+
+    - name: Write Concert editor launch script
+      ansible.windows.win_copy:
+        content: |
+          @echo off
+          "{{ unreal_exe }}" ^
+            "{{ unreal_project }}" ^
+            -messaging ^
+            -CONCERTAUTOCONNECT ^
+            -CONCERTSERVER="{{ concert_server_name }}" ^
+            -CONCERTSESSION="{{ concert_session }}" ^
+            -CONCERTDISPLAYNAME="{{ inventory_hostname }}" ^
+            -UDPMESSAGING_TRANSPORT_UNICAST={{ ansible_host }}:0 ^
+            -UDPMESSAGING_TRANSPORT_STATIC={{ concert_server_ip }}:{{ concert_server_port }} ^
+            -ini:Engine:[/Script/UdpMessaging.UdpMessagingSettings]:MulticastEndpoint=0.0.0.0:0,[/Script/UdpMessaging.UdpMessagingSettings]:MulticastTimeToLive=0,[/Script/QuicMessaging.QuicMessagingSettings]:EnableTransport=False
+        dest: C:\concert-editor.bat
+
+    - name: Create Concert editor scheduled task
+      community.windows.win_scheduled_task:
+        name: ConcertEditor
+        description: Launch UE editor with Concert auto-connect
+        actions:
+          - path: C:\concert-editor.bat
+        triggers: []
+        username: "{{ ansible_user }}"
+        password: "{{ ansible_password }}"
+        logon_type: interactive_token
+        run_level: highest
+        state: present
+        enabled: true
+
+    - name: Start Concert editor
+      ansible.windows.win_shell: |
+        Start-ScheduledTask -TaskName "ConcertEditor"
+        Write-Host "LAUNCHED"
+
+    - name: Wait for editor process
+      ansible.windows.win_shell: |
+        $timeout = 30
+        $elapsed = 0
+        while ($elapsed -lt $timeout) {
+          $proc = Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue
+          if ($proc) {
+            Write-Host "RUNNING (PID: $($proc.Id))"
+            exit 0
+          }
+          Start-Sleep -Seconds 2
+          $elapsed += 2
+        }
+        throw "UnrealEditor did not start within ${timeout}s"
+      register: editor_result
+
+    - name: Show editor status
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ editor_result.stdout | trim }}"

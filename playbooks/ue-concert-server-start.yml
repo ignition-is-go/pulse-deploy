@@ -1,0 +1,98 @@
+---
+# concert-server.yml — Start/manage the Concert (Multi-User Editing) server
+#
+# Runs UnrealMultiUserServer.exe on the editing node as a scheduled task.
+# Uses unicast UdpMessaging to avoid multicast flooding on the media network.
+#
+# Usage:
+#   ansible-playbook playbooks/concert-server.yml
+
+- name: Configure Concert server
+  hosts: ue_editing
+  gather_facts: false
+
+  tasks:
+    - name: Check UnrealMultiUserServer exists
+      ansible.windows.win_stat:
+        path: "{{ unreal_engine_dir }}/Engine/Binaries/Win64/UnrealMultiUserServer.exe"
+      register: server_exe
+
+    - name: Fail if server binary not found
+      ansible.builtin.fail:
+        msg: "UnrealMultiUserServer.exe not found at {{ unreal_engine_dir }}/Engine/Binaries/Win64/"
+      when: not server_exe.stat.exists
+
+    - name: Stop existing Concert server
+      ansible.windows.win_shell: |
+        $proc = Get-Process -Name UnrealMultiUserServer -ErrorAction SilentlyContinue
+        if ($proc) { $proc | Stop-Process -Force; Write-Host "STOPPED" } else { Write-Host "NONE_RUNNING" }
+
+    - name: Ensure Concert server config directory exists
+      ansible.windows.win_file:
+        path: "{{ unreal_engine_dir }}/Engine/Programs/UnrealMultiUserServer/Saved/Config/Windows"
+        state: directory
+
+    - name: Write UdpMessaging config (unicast only, no multicast)
+      ansible.windows.win_copy:
+        content: |
+          [/Script/UdpMessaging.UdpMessagingSettings]
+          EnableTransport=True
+          UnicastEndpoint={{ ansible_host }}:{{ concert_server_port }}
+          MulticastEndpoint=
+          MulticastTimeToLive=0
+
+          [/Script/QuicMessaging.QuicMessagingSettings]
+          EnableTransport=False
+        dest: "{{ unreal_engine_dir }}/Engine/Programs/UnrealMultiUserServer/Saved/Config/Windows/Engine.ini"
+
+    - name: Write Concert server launch script
+      ansible.windows.win_copy:
+        content: |
+          @echo off
+          "{{ unreal_engine_dir }}/Engine/Binaries/Win64/UnrealMultiUserServer.exe" ^
+            -CONCERTSERVER="{{ concert_server_name }}" ^
+            -CONCERTSESSION="{{ concert_session }}" ^
+            -CONCERTPROJECT="{{ unreal_project | basename | regex_replace('\.uproject$', '') }}" ^
+            -CONCERTCLEAN ^
+            -UDPMESSAGING_TRANSPORT_UNICAST={{ ansible_host }}:{{ concert_server_port }} ^
+            -ini:Engine:[/Script/UdpMessaging.UdpMessagingSettings]:MulticastEndpoint=0.0.0.0:0,[/Script/UdpMessaging.UdpMessagingSettings]:MulticastTimeToLive=0,[/Script/QuicMessaging.QuicMessagingSettings]:EnableTransport=False
+        dest: C:\concert-server.bat
+
+    - name: Create Concert server scheduled task
+      community.windows.win_scheduled_task:
+        name: ConcertServer
+        description: UE Multi-User Editing server
+        actions:
+          - path: C:\concert-server.bat
+        triggers: []
+        username: "{{ ansible_user }}"
+        password: "{{ ansible_password }}"
+        logon_type: interactive_token
+        run_level: highest
+        state: present
+        enabled: true
+
+    - name: Start Concert server
+      ansible.windows.win_shell: |
+        Start-ScheduledTask -TaskName "ConcertServer"
+        Write-Host "LAUNCHED"
+
+    - name: Wait for server process
+      ansible.windows.win_shell: |
+        $timeout = 15
+        $elapsed = 0
+        while ($elapsed -lt $timeout) {
+          $proc = Get-Process -Name UnrealMultiUserServer -ErrorAction SilentlyContinue
+          if ($proc) {
+            Write-Host "RUNNING (PID: $($proc.Id))"
+            exit 0
+          }
+          Start-Sleep -Seconds 2
+          $elapsed += 2
+        }
+        throw "UnrealMultiUserServer did not start within ${timeout}s"
+      register: server_result
+
+    - name: Show server status
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ server_result.stdout | trim }}"
