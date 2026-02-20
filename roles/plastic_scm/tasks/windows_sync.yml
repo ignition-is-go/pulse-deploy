@@ -1,0 +1,67 @@
+---
+# plastic_scm/tasks/windows_sync.yml — Update workspace to latest (day-to-day)
+
+- name: Check if workspace exists
+  ansible.windows.win_stat:
+    path: "{{ plastic_workspace }}\\.plastic"
+  register: workspace_check
+
+- name: Kill Plastic GUI
+  when: workspace_check.stat.exists
+  ansible.windows.win_shell: |
+    Stop-Process -Name plastic -Force -ErrorAction SilentlyContinue
+    Stop-Process -Name cm -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
+  failed_when: false
+  changed_when: false
+
+- name: cm update --last
+  when: workspace_check.stat.exists
+  ansible.windows.win_shell: |
+    cd "{{ plastic_workspace }}"
+    $update = & "{{ plastic_exe }}" update --last --noinput 2>&1
+    $rc = $LASTEXITCODE
+    if ($rc -ne 0) {
+      # Check for private (untracked) files and remove them
+      $private = & "{{ plastic_exe }}" status --private --short 2>&1
+      if ($private) {
+        $private | ForEach-Object {
+          $f = $_.Trim()
+          if ($f -and (Test-Path $f)) { Remove-Item $f -Force }
+        }
+      }
+      # Revert locally changed files
+      $changed = & "{{ plastic_exe }}" status --changed --short 2>&1
+      if ($changed) {
+        $changed | ForEach-Object {
+          $f = $_.Trim()
+          if ($f) { & "{{ plastic_exe }}" undochange $f 2>&1 | Out-Null }
+        }
+      }
+      # Retry update
+      $update = & "{{ plastic_exe }}" update --last --noinput 2>&1
+      $rc = $LASTEXITCODE
+      if ($rc -ne 0) {
+        Write-Host "FAILED: $update"
+        exit 1
+      }
+      Write-Host "(cleaned up local changes) "
+    }
+    $files = ($update | Where-Object { $_ -match '^(Added|Downloaded|Deleted|Moved|Changed)' }).Count
+    $cset = (& "{{ plastic_exe }}" status --head 2>&1).Trim()
+    if ($files -gt 0) {
+      Write-Host "Updated $files files — $cset"
+    } else {
+      Write-Host "$cset (no changes)"
+    }
+  register: sync_result
+
+- name: Display sync result
+  when: workspace_check.stat.exists
+  ansible.builtin.debug:
+    msg: "{{ inventory_hostname }}: {{ sync_result.stdout_lines[-1] | default('done') }}"
+
+- name: Workspace not found — skip sync
+  when: not workspace_check.stat.exists
+  ansible.builtin.debug:
+    msg: "{{ inventory_hostname }}: No workspace at {{ plastic_workspace }} — skipping sync"

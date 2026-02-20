@@ -1,0 +1,12 @@
+---
+# Install Plastic SCM binary from deploy share
+# Usage: ansible-playbook playbooks/plastic-install.yml --limit ue_staging
+
+- name: Plastic SCM — install
+  hosts: ue
+  gather_facts: true
+  tasks:
+    - ansible.builtin.include_role:
+        name: plastic_scm
+        tasks_from: windows_install.yml
+      when: ansible_os_family == "Windows" and plastic_workspace | length > 0

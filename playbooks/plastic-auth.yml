@@ -1,0 +1,12 @@
+---
+# Configure Plastic SCM client + auth profile + verify cloud access
+# Usage: ansible-playbook playbooks/plastic-auth.yml --limit ue_staging
+
+- name: Plastic SCM — authenticate
+  hosts: ue
+  gather_facts: true
+  tasks:
+    - ansible.builtin.include_role:
+        name: plastic_scm
+        tasks_from: windows_auth.yml
+      when: ansible_os_family == "Windows" and plastic_workspace | length > 0

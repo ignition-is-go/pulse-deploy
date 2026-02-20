@@ -1,0 +1,29 @@
+---
+# plastic_scm/tasks/windows_workspace.yml — Create workspace (one-time setup)
+
+- name: Check if workspace exists
+  ansible.windows.win_stat:
+    path: "{{ plastic_workspace }}\\.plastic"
+  register: workspace_check
+
+- name: Create workspace
+  when: not workspace_check.stat.exists
+  block:
+    - name: Clean up stale workspace directory
+      ansible.windows.win_file:
+        path: "{{ plastic_workspace }}"
+        state: absent
+
+    - name: Create workspace directory
+      ansible.windows.win_file:
+        path: "{{ plastic_workspace }}"
+        state: directory
+
+    - name: Create Plastic workspace
+      ansible.windows.win_shell: |
+        & "{{ plastic_exe }}" workspace create "{{ plastic_workspace_name }}" "{{ plastic_workspace }}" "{{ plastic_repo }}@{{ plastic_cloud_org }}@cloud" 2>&1
+      register: workspace_result
+
+    - name: Workspace created
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: workspace created at {{ plastic_workspace }}"

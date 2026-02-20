@@ -1,0 +1,59 @@
+---
+# plastic_scm/tasks/windows_auth.yml — Configure client + auth profile + verify cloud access
+
+- name: Check if any Plastic workspace is registered
+  ansible.windows.win_shell: |
+    $cm = "{{ plastic_exe }}"
+    $result = & $cm workspace list 2>&1
+    if ($result -match "no workspaces") { Write-Host "NONE" } else { Write-Host "EXISTS" }
+  register: any_workspace_check
+  changed_when: false
+  failed_when: false
+
+- name: Remove stale Plastic config (only on fresh machines with no workspaces)
+  when: "'NONE' in any_workspace_check.stdout"
+  ansible.windows.win_shell: |
+    $configDir = "$env:LOCALAPPDATA\plastic4"
+    if (Test-Path $configDir) {
+      Remove-Item $configDir -Recurse -Force
+      Write-Host "REMOVED stale plastic4 config"
+    } else {
+      Write-Host "No existing config to remove"
+    }
+  register: config_cleanup
+  changed_when: "'REMOVED' in config_cleanup.stdout"
+
+- name: Check if client.conf exists
+  ansible.windows.win_stat:
+    path: "%LOCALAPPDATA%\\plastic4\\client.conf"
+  register: client_conf
+
+- name: Configure Plastic SCM client
+  when: not client_conf.stat.exists
+  ansible.windows.win_shell: |
+    & "{{ plastic_exe }}" configure --language=en --workingmode=SSOWorkingMode --server="{{ plastic_cloud_org }}@cloud" --user="{{ plastic_cloud_user }}" --token="{{ plastic_api_key }}" 2>&1
+  no_log: true
+
+- name: Check if cloud profile exists
+  ansible.windows.win_shell: |
+    $result = & "{{ plastic_exe }}" profile list 2>&1
+    if ($result -match "{{ plastic_cloud_org }}@cloud") { Write-Host "EXISTS" } else { Write-Host "NONE" }
+  register: profile_check
+  changed_when: false
+
+- name: Create cloud auth profile
+  when: "'NONE' in profile_check.stdout"
+  ansible.windows.win_shell: |
+    & "{{ plastic_exe }}" profile create --server="{{ plastic_cloud_org }}@cloud" --username="{{ plastic_cloud_user }}" --token="{{ plastic_api_key }}" --workingmode=SSOWorkingMode 2>&1
+  no_log: true
+  register: profile_result
+
+- name: Verify cloud access
+  ansible.windows.win_shell: |
+    & "{{ plastic_exe }}" repository list --server="{{ plastic_cloud_org }}@cloud" 2>&1
+  register: cloud_check
+  changed_when: false
+
+- name: Cloud access verified
+  ansible.builtin.debug:
+    msg: "{{ inventory_hostname }}: cloud access OK ({{ cloud_check.stdout_lines | length }} repos)"

@@ -1,0 +1,67 @@
+---
+# plastic_scm/tasks/windows_install.yml — Install Plastic SCM from deploy share
+#
+# Runs in Session 0 (WinRM) — no cloud auth needed.
+
+- name: Check if Plastic SCM is installed
+  ansible.windows.win_stat:
+    path: "{{ plastic_exe }}"
+  register: plastic_installed
+
+- name: Install Plastic SCM from deploy share
+  when: not plastic_installed.stat.exists
+  block:
+    - name: Copy installer to temp
+      ansible.windows.win_copy:
+        src: "\\\\{{ deploy_share_host }}\\{{ deploy_share_name }}\\plastic\\{{ plastic_installer }}"
+        dest: "C:\\Windows\\Temp\\{{ plastic_installer }}"
+        remote_src: true
+
+    - name: Run Plastic SCM installer (silent)
+      ansible.windows.win_shell: |
+        Start-Process -FilePath "C:\Windows\Temp\{{ plastic_installer }}" `
+          -ArgumentList "--mode", "unattended" `
+          -Wait -NoNewWindow
+        if (!(Test-Path "{{ plastic_exe }}")) {
+          throw "Plastic SCM install failed — {{ plastic_exe }} not found"
+        }
+        Write-Host "INSTALLED"
+
+    - name: Clean up installer
+      ansible.windows.win_file:
+        path: "C:\\Windows\\Temp\\{{ plastic_installer }}"
+        state: absent
+
+- name: Kill Plastic GUI
+  ansible.windows.win_shell: |
+    Stop-Process -Name plastic -Force -ErrorAction SilentlyContinue
+    Stop-Process -Name cm -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
+  failed_when: false
+  changed_when: false
+
+- name: Stop and disable PlasticFS
+  ansible.windows.win_shell: |
+    $changed = $false
+    # Kill running process
+    if (Get-Process -Name plasticfs -ErrorAction SilentlyContinue) {
+      Stop-Process -Name plasticfs -Force
+      $changed = $true
+    }
+    # Remove startup shortcut
+    $lnk = "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\plasticfs.lnk"
+    if (Test-Path $lnk) {
+      Remove-Item $lnk -Force
+      $changed = $true
+    }
+    if ($changed) { Write-Host "CHANGED" } else { Write-Host "OK" }
+  register: plasticfs_result
+  changed_when: "'CHANGED' in plasticfs_result.stdout"
+
+- name: Stop and disable Plastic Server service
+  ansible.windows.win_service:
+    name: Plastic Server 6
+    start_mode: disabled
+    state: stopped
+    force_dependent_services: true
+  failed_when: false

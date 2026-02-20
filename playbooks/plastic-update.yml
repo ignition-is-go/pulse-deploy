@@ -1,0 +1,14 @@
+---
+# Update Plastic SCM workspace to latest (day-to-day)
+# Usage: ansible-playbook playbooks/plastic-update.yml
+#        ansible-playbook playbooks/plastic-update.yml --limit ue-staging-01
+
+- name: Plastic SCM — update
+  hosts: ue
+  gather_facts: true
+  ignore_unreachable: true
+  tasks:
+    - ansible.builtin.include_role:
+        name: plastic_scm
+        tasks_from: windows_sync.yml
+      when: ansible_os_family == "Windows" and plastic_workspace | length > 0
