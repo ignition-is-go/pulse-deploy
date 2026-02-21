@@ -12,6 +12,18 @@
   gather_facts: false
 
   tasks:
+    - name: Check for already-running Concert server
+      ansible.windows.win_shell: |
+        $procs = Get-Process -Name UnrealMultiUserServer -ErrorAction SilentlyContinue
+        if ($procs) { Write-Host "RUNNING $($procs.Count)" } else { Write-Host "NONE" }
+      register: server_running_check
+      changed_when: false
+
+    - name: Fail if Concert server is already running
+      ansible.builtin.fail:
+        msg: "UnrealMultiUserServer is already running on {{ inventory_hostname }}. Run ue-concert-server-stop.yml first."
+      when: "'RUNNING' in server_running_check.stdout"
+
     - name: Check UnrealMultiUserServer exists
       ansible.windows.win_stat:
         path: "{{ unreal_engine_dir }}/Engine/Binaries/Win64/UnrealMultiUserServer.exe"
@@ -21,11 +33,6 @@
       ansible.builtin.fail:
         msg: "UnrealMultiUserServer.exe not found at {{ unreal_engine_dir }}/Engine/Binaries/Win64/"
       when: not server_exe.stat.exists
-
-    - name: Stop existing Concert server
-      ansible.windows.win_shell: |
-        $proc = Get-Process -Name UnrealMultiUserServer -ErrorAction SilentlyContinue
-        if ($proc) { $proc | Stop-Process -Force; Write-Host "STOPPED" } else { Write-Host "NONE_RUNNING" }
 
     - name: Ensure Concert server config directory exists
       ansible.windows.win_file:

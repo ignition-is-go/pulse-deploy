@@ -11,6 +11,23 @@
 # Usage:
 #   ansible-playbook playbooks/ue-concert-editor-start.yml
 
+- name: Check for already-running UE editor
+  hosts: ue_editing
+  gather_facts: false
+
+  tasks:
+    - name: Check if UnrealEditor is running
+      ansible.windows.win_shell: |
+        $procs = Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue
+        if ($procs) { Write-Host "RUNNING $($procs.Count)" } else { Write-Host "NONE" }
+      register: editor_running_check
+      changed_when: false
+
+    - name: Fail if UE editor is already running
+      ansible.builtin.fail:
+        msg: "UnrealEditor is already running on {{ inventory_hostname }}. Run ue-concert-editor-stop.yml first."
+      when: "'RUNNING' in editor_running_check.stdout"
+
 - name: GPU health check
   ansible.builtin.import_playbook: gpu-health-check.yml
 
@@ -28,11 +45,6 @@
       ansible.builtin.fail:
         msg: "UnrealEditor.exe not found at {{ unreal_exe }}"
       when: not editor_exe.stat.exists
-
-    - name: Stop existing UE editor
-      ansible.windows.win_shell: |
-        $proc = Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue
-        if ($proc) { $proc | Stop-Process -Force; Start-Sleep -Seconds 3; Write-Host "STOPPED" } else { Write-Host "NONE_RUNNING" }
 
     - name: Write Concert editor launch script
       ansible.windows.win_copy:

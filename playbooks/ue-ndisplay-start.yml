@@ -23,6 +23,23 @@
 #   ansible-playbook playbooks/ue-ndisplay-start.yml
 #   ansible-playbook playbooks/ue-ndisplay-start.yml -e "ndisplay_map=/Game/Path/To/Map"
 
+- name: Check for already-running UE instances
+  hosts: ue_content
+  gather_facts: false
+
+  tasks:
+    - name: Check if UnrealEditor is running
+      ansible.windows.win_shell: |
+        $procs = Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue
+        if ($procs) { Write-Host "RUNNING $($procs.Count)" } else { Write-Host "NONE" }
+      register: ue_running_check
+      changed_when: false
+
+    - name: Fail if UE is already running
+      ansible.builtin.fail:
+        msg: "UnrealEditor is already running on {{ inventory_hostname }}. Run ue-ndisplay-stop.yml first."
+      when: "'RUNNING' in ue_running_check.stdout"
+
 - name: GPU health check
   ansible.builtin.import_playbook: gpu-health-check.yml
 
@@ -116,18 +133,6 @@
         - map_check is not skipped
         - not map_check.stat.exists
 
-    - name: Stop any running UE instances
-      ansible.windows.win_shell: |
-        $procs = Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue
-        if ($procs) {
-          $procs | Stop-Process -Force
-          Start-Sleep -Seconds 3
-          Write-Host "STOPPED $($procs.Count) process(es)"
-        } else {
-          Write-Host "NONE_RUNNING"
-        }
-      register: stop_result
-
     - name: Read node window settings from nDisplay config
       ansible.windows.win_shell: |
         $cfg = Get-Content "{{ ndisplay_config }}" -Raw | ConvertFrom-Json
@@ -158,7 +163,7 @@
           -dc_cfg="{{ ndisplay_config }}"
           -dc_node={{ ndisplay_node }}
           -dc_dev_mono
-          -ini:Engine:[/Script/Engine.Engine]:GameEngine=/Script/DisplayCluster.DisplayClusterGameEngine,[/Script/Engine.Engine]:GameViewportClientClassName=/Script/DisplayCluster.DisplayClusterViewportClient,[/Script/Engine.UserInterfaceSettings]:bAllowHighDPIInGameMode=True,[/Script/Engine.UserInterfaceSettings]:bAllowHighDpiWhenUnattended=True
+          -ini:Engine:[/Script/Engine.Engine]:GameEngine=/Script/DisplayCluster.DisplayClusterGameEngine,[/Script/Engine.Engine]:GameViewportClientClassName=/Script/DisplayCluster.DisplayClusterViewportClient,[/Script/Engine.UserInterfaceSettings]:bAllowHighDPIInGameMode=True,[/Script/Engine.UserInterfaceSettings]:bAllowHighDpiWhenUnattended=True,[ConsoleVariables]:Rivermax.Output.EnableMultiSRD=1{% if concert_server_ip is defined %},[/Script/UdpMessaging.UdpMessagingSettings]:MulticastEndpoint=0.0.0.0:0,[/Script/UdpMessaging.UdpMessagingSettings]:MulticastTimeToLive=0,[/Script/QuicMessaging.QuicMessagingSettings]:EnableTransport=False{% endif %}
           -ini:Game:[/Script/EngineSettings.GeneralProjectSettings]:bUseBorderlessWindow=True
           -ini:Input:[/Script/Engine.InputSettings]:DefaultPlayerInputClass=/Script/DisplayCluster.DisplayClusterPlayerInput
           -unattended
@@ -167,10 +172,9 @@
           -fixedseed
           -NoVerifyGC
           -noxrstereo
-          -ini:Engine:[ConsoleVariables]:Rivermax.Output.EnableMultiSRD=1
           {% if ndisplay_window.fullscreen | bool %}-fullscreen{% else %}-windowed -forceres WinX={{ ndisplay_window.winx }} WinY={{ ndisplay_window.winy }} ResX={{ ndisplay_window.resx }} ResY={{ ndisplay_window.resy }}{% endif %}
           {% if ndisplay_window.headless | bool %}-RenderOffscreen{% endif %}
-          {% if concert_server_ip is defined %}-messaging -CONCERTAUTOCONNECT -CONCERTSERVER="{{ concert_server_name }}" -CONCERTSESSION="{{ concert_session }}" -CONCERTDISPLAYNAME="{{ inventory_hostname }}" -UDPMESSAGING_TRANSPORT_UNICAST={{ ansible_host }}:0 -UDPMESSAGING_TRANSPORT_STATIC={{ concert_server_ip }}:{{ concert_server_port }} -ini:Engine:[/Script/UdpMessaging.UdpMessagingSettings]:MulticastEndpoint=0.0.0.0:0,[/Script/UdpMessaging.UdpMessagingSettings]:MulticastTimeToLive=0,[/Script/QuicMessaging.QuicMessagingSettings]:EnableTransport=False{% endif %}
+          {% if concert_server_ip is defined %}-messaging -CONCERTAUTOCONNECT -CONCERTSERVER="{{ concert_server_name }}" -CONCERTSESSION="{{ concert_session }}" -CONCERTDISPLAYNAME="{{ inventory_hostname }}" -UDPMESSAGING_TRANSPORT_UNICAST={{ ansible_host }}:0 -UDPMESSAGING_TRANSPORT_STATIC={{ concert_server_ip }}:{{ concert_server_port }}{% endif %}
           -RemoteControlIsHeadless
           -StageFriendlyName="{{ ndisplay_node }}"
           Log={{ ndisplay_node }}.log

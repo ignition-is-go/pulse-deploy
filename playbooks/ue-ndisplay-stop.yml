@@ -1,5 +1,10 @@
 ---
 # Stop nDisplay cluster on content nodes
+#
+# Sends WM_CLOSE via a scheduled task in the interactive session so UE can
+# shut down gracefully (disconnect Concert, flush logs, etc). Falls back to
+# force-kill if the process doesn't exit within the timeout.
+#
 # Usage: ansible-playbook playbooks/ue-ndisplay-stop.yml
 
 - name: Stop nDisplay cluster
@@ -7,23 +12,82 @@
   gather_facts: false
 
   tasks:
-    - name: Stop UnrealEditor processes
+    - name: Check if UnrealEditor is running
+      ansible.windows.win_shell: |
+        $procs = Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue
+        if ($procs) { Write-Host "RUNNING $($procs.Count)" } else { Write-Host "NONE_RUNNING" }
+      register: ue_check
+      changed_when: false
+
+    - name: Skip if nothing running
+      ansible.builtin.meta: end_host
+      when: "'NONE_RUNNING' in ue_check.stdout"
+
+    - name: Write graceful stop script
+      ansible.windows.win_copy:
+        content: |
+          @echo off
+          REM Runs in interactive session — CloseMainWindow can see UE's window
+          powershell -Command "Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue | ForEach-Object { $_.CloseMainWindow() | Out-Null }"
+        dest: C:\ndisplay-stop.bat
+
+    - name: Create graceful stop scheduled task
+      community.windows.win_scheduled_task:
+        name: nDisplayGracefulStop
+        description: Send WM_CLOSE to UnrealEditor from interactive session
+        actions:
+          - path: C:\ndisplay-stop.bat
+        triggers: []
+        username: "{{ ansible_user }}"
+        password: "{{ ansible_password }}"
+        logon_type: interactive_token
+        run_level: highest
+        state: present
+        enabled: true
+
+    - name: Run graceful stop in interactive session
+      ansible.windows.win_shell: |
+        Start-ScheduledTask -TaskName "nDisplayGracefulStop"
+        Write-Host "SENT"
+
+    - name: Wait for graceful exit
+      ansible.windows.win_shell: |
+        $timeout = 15
+        $elapsed = 0
+        while ($elapsed -lt $timeout) {
+          Start-Sleep -Seconds 2
+          $elapsed += 2
+          $remaining = Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue
+          if (-not $remaining) {
+            Write-Host "GRACEFUL_STOP"
+            exit 0
+          }
+        }
+        Write-Host "STILL_RUNNING"
+      register: graceful_result
+      changed_when: false
+
+    - name: Force-kill if graceful shutdown timed out
       ansible.windows.win_shell: |
         $procs = Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue
         if ($procs) {
           $procs | Stop-Process -Force
           Start-Sleep -Seconds 2
-          Write-Host "STOPPED $($procs.Count) process(es)"
-        } else {
-          Write-Host "NONE_RUNNING"
+          Write-Host "FORCE_STOP (graceful timed out)"
         }
-      register: stop_result
+      register: force_result
+      when: "'STILL_RUNNING' in graceful_result.stdout"
 
-    - name: Remove nDisplay scheduled task
+    - name: Clean up stop task and script
+      community.windows.win_scheduled_task:
+        name: nDisplayGracefulStop
+        state: absent
+
+    - name: Remove nDisplay launch task
       community.windows.win_scheduled_task:
         name: nDisplayLaunch
         state: absent
 
     - name: Show status
       ansible.builtin.debug:
-        msg: "{{ inventory_hostname }}: {{ stop_result.stdout | trim }}"
+        msg: "{{ inventory_hostname }}: {{ graceful_result.stdout | trim }}{{ ' -> ' + force_result.stdout | trim if force_result is not skipped else '' }}"
