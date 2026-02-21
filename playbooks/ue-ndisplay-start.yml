@@ -91,6 +91,16 @@
           - ndisplay_node is defined
         fail_msg: "ndisplay_config and ndisplay_node must be set. Populate ue_content.yml and hosts.yml."
 
+    - name: Validate nDisplay config exists on disk
+      ansible.windows.win_stat:
+        path: "{{ ndisplay_config }}"
+      register: config_check
+
+    - name: Fail if nDisplay config not found
+      ansible.builtin.fail:
+        msg: "nDisplay config not found: {{ ndisplay_config }}"
+      when: not config_check.stat.exists
+
     - name: Validate map exists on disk
       ansible.windows.win_stat:
         path: "{{ unreal_project | dirname }}/Content/{{ ndisplay_map | regex_replace('^/Game/', '') }}.umap"
