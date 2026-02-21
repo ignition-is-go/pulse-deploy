@@ -22,6 +22,7 @@
 # Usage:
 #   ansible-playbook playbooks/ue-ndisplay-start.yml
 #   ansible-playbook playbooks/ue-ndisplay-start.yml -e "ndisplay_map=/Game/Path/To/Map"
+#   ansible-playbook playbooks/ue-ndisplay-start.yml -e "skip_preflight=true"  # fast relaunch
 
 - name: Check for already-running UE instances
   hosts: ue_content
@@ -46,57 +47,7 @@
 - name: Prime OVS FDB for Rivermax hardware offload
   ansible.builtin.import_playbook: rivermax-arp-prime.yml
 
-- name: Rivermax preflight check
-  hosts: ue_content
-  gather_facts: false
-
-  tasks:
-    - name: Skip preflight if not using Rivermax config
-      ansible.builtin.meta: end_host
-      when: not (ndisplay | default('') is match('rivermax.*'))
-
-    - name: Check Rivermax DLL exists
-      ansible.windows.win_stat:
-        path: 'C:\Program Files\Mellanox\Rivermax\lib\rivermax.dll'
-      register: preflight_dll
-
-    - name: Check Rivermax license exists
-      ansible.windows.win_stat:
-        path: 'C:\Program Files\Mellanox\Rivermax\lib\rivermax.lic'
-      register: preflight_lic
-
-    - name: Check RIVERMAX_LICENSE_PATH is set
-      ansible.windows.win_shell: |
-        [System.Environment]::GetEnvironmentVariable('RIVERMAX_LICENSE_PATH', 'Machine')
-      register: preflight_env
-      changed_when: false
-
-    - name: Check Mellanox adapter visible
-      ansible.windows.win_shell: |
-        $adapter = Get-NetAdapter | Where-Object {
-          $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
-        }
-        if ($adapter) { Write-Host "OK: $($adapter.Name) ($($adapter.InterfaceDescription)) - $($adapter.Status)" }
-        else { Write-Host "MISSING" }
-      register: preflight_adapter
-      changed_when: false
-
-    - name: Fail if Rivermax is not ready
-      ansible.builtin.fail:
-        msg: |-
-          Rivermax preflight FAILED on {{ inventory_hostname }}:
-          {% if not preflight_dll.stat.exists %}  - Rivermax DLL missing (C:\Program Files\Mellanox\Rivermax\lib\rivermax.dll)
-          {% endif %}{% if not preflight_lic.stat.exists %}  - License file missing (C:\Program Files\Mellanox\Rivermax\lib\rivermax.lic)
-          {% endif %}{% if preflight_env.stdout | trim == '' %}  - RIVERMAX_LICENSE_PATH env var not set
-          {% endif %}{% if 'MISSING' in preflight_adapter.stdout %}  - No Mellanox/ConnectX adapter found
-          {% endif %}Fix: ansible-playbook playbooks/rivermax-setup.yml --limit {{ inventory_hostname }}
-      when: >-
-        not preflight_dll.stat.exists or
-        not preflight_lic.stat.exists or
-        preflight_env.stdout | trim == '' or
-        'MISSING' in preflight_adapter.stdout
-
-- name: Prepare nDisplay launch
+- name: Preflight and prepare nDisplay launch
   hosts: ue_content
   gather_facts: false
 
@@ -108,50 +59,71 @@
           - ndisplay_node is defined
         fail_msg: "ndisplay_config and ndisplay_node must be set. Populate ue_content.yml and hosts.yml."
 
-    - name: Validate nDisplay config exists on disk
-      ansible.windows.win_stat:
-        path: "{{ ndisplay_config }}"
-      register: config_check
+    - name: Rivermax preflight check
+      ansible.windows.win_shell: |
+        $errors = @()
+        if (!(Test-Path 'C:\Program Files\Mellanox\Rivermax\lib\rivermax.dll')) { $errors += 'Rivermax DLL missing' }
+        if (!(Test-Path 'C:\Program Files\Mellanox\Rivermax\lib\rivermax.lic')) { $errors += 'License file missing' }
+        $env = [System.Environment]::GetEnvironmentVariable('RIVERMAX_LICENSE_PATH', 'Machine')
+        if (!$env) { $errors += 'RIVERMAX_LICENSE_PATH env var not set' }
+        $adapter = Get-NetAdapter | Where-Object { $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*' }
+        if (!$adapter) { $errors += 'No Mellanox/ConnectX adapter found' }
+        if ($errors.Count -gt 0) { Write-Host "FAIL: $($errors -join '; ')" } else { Write-Host "OK" }
+      register: rivermax_preflight
+      changed_when: false
+      when:
+        - not (skip_preflight | default(false) | bool)
+        - ndisplay | default('') is match('rivermax.*')
+
+    - name: Fail if Rivermax is not ready
+      ansible.builtin.fail:
+        msg: "Rivermax preflight FAILED on {{ inventory_hostname }}: {{ rivermax_preflight.stdout | trim }}. Fix: ansible-playbook playbooks/rivermax-setup.yml --limit {{ inventory_hostname }}"
+      when:
+        - rivermax_preflight is not skipped
+        - "'FAIL' in rivermax_preflight.stdout"
+
+    - name: Validate files and read nDisplay node config
+      ansible.windows.win_shell: |
+        $result = @{ config = 'OK'; map = 'OK'; window = $null }
+        if (!(Test-Path "{{ ndisplay_config }}")) {
+          $result.config = 'MISSING'
+        } else {
+          $cfg = Get-Content "{{ ndisplay_config }}" -Raw | ConvertFrom-Json
+          $node = $cfg.nDisplay.cluster.nodes."{{ ndisplay_node }}"
+          $result.window = @{
+            winx = [int]$node.window.x
+            winy = [int]$node.window.y
+            resx = [int]$node.window.w
+            resy = [int]$node.window.h
+            fullscreen = [bool]$node.fullScreen
+            headless = [bool]$node.renderHeadless
+          }
+        }
+        {% if ndisplay_map is defined and ndisplay_map != 'None' %}
+        $mapPath = "{{ unreal_project | dirname }}/Content/{{ ndisplay_map | regex_replace('^/Game/', '') }}.umap"
+        if (!(Test-Path $mapPath)) { $result.map = 'MISSING' }
+        {% endif %}
+        $result | ConvertTo-Json -Compress
+      register: validate_result
+      changed_when: false
+
+    - name: Parse validation results
+      ansible.builtin.set_fact:
+        preflight: "{{ validate_result.stdout | from_json }}"
 
     - name: Fail if nDisplay config not found
       ansible.builtin.fail:
         msg: "nDisplay config not found: {{ ndisplay_config }}"
-      when: not config_check.stat.exists
-
-    - name: Validate map exists on disk
-      ansible.windows.win_stat:
-        path: "{{ unreal_project | dirname }}/Content/{{ ndisplay_map | regex_replace('^/Game/', '') }}.umap"
-      register: map_check
-      when:
-        - ndisplay_map is defined
-        - ndisplay_map != 'None'
+      when: preflight.config == 'MISSING'
 
     - name: Fail if map not found
       ansible.builtin.fail:
         msg: "Map not found: {{ ndisplay_map }} (looked for {{ unreal_project | dirname }}/Content/{{ ndisplay_map | regex_replace('^/Game/', '') }}.umap)"
-      when:
-        - map_check is not skipped
-        - not map_check.stat.exists
+      when: preflight.map == 'MISSING'
 
-    - name: Read node window settings from nDisplay config
-      ansible.windows.win_shell: |
-        $cfg = Get-Content "{{ ndisplay_config }}" -Raw | ConvertFrom-Json
-        $node = $cfg.nDisplay.cluster.nodes."{{ ndisplay_node }}"
-        $obj = @{
-          winx = [int]$node.window.x
-          winy = [int]$node.window.y
-          resx = [int]$node.window.w
-          resy = [int]$node.window.h
-          fullscreen = [bool]$node.fullScreen
-          headless = [bool]$node.renderHeadless
-        }
-        $obj | ConvertTo-Json -Compress
-      register: ndisplay_node_cfg
-      changed_when: false
-
-    - name: Parse node window settings
+    - name: Set node window config
       ansible.builtin.set_fact:
-        ndisplay_window: "{{ ndisplay_node_cfg.stdout | from_json }}"
+        ndisplay_window: "{{ preflight.window }}"
 
     - name: Build nDisplay launch arguments
       ansible.builtin.set_fact:

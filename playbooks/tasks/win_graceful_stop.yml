@@ -1,0 +1,85 @@
+---
+# Graceful shutdown of a Windows process via interactive-session scheduled task.
+#
+# WinRM runs in Session 0 which cannot send WM_CLOSE to interactive desktop
+# windows. This task deploys a stop script and runs it via a scheduled task
+# in the interactive session, then falls back to force-kill after timeout.
+#
+# Required variables:
+#   process_name: Process name without .exe (e.g. "UnrealEditor")
+#
+# Optional variables:
+#   graceful_timeout: Seconds to wait before force-kill (default: 15)
+
+- name: "Check if {{ process_name }} is running"
+  ansible.windows.win_shell: |
+    $procs = Get-Process -Name {{ process_name }} -ErrorAction SilentlyContinue
+    if ($procs) { Write-Host "RUNNING $($procs.Count)" } else { Write-Host "NONE" }
+  register: _stop_check
+  changed_when: false
+
+- name: Skip if nothing running
+  ansible.builtin.meta: end_host
+  when: "'NONE' in _stop_check.stdout"
+
+- name: "Write {{ process_name }} graceful stop script"
+  ansible.windows.win_copy:
+    content: |
+      @echo off
+      powershell -Command "Get-Process -Name {{ process_name }} -ErrorAction SilentlyContinue | ForEach-Object { $_.CloseMainWindow() | Out-Null }"
+    dest: "C:\\{{ process_name }}-stop.bat"
+
+- name: Create graceful stop scheduled task
+  community.windows.win_scheduled_task:
+    name: "{{ process_name }}GracefulStop"
+    description: "Send WM_CLOSE to {{ process_name }} from interactive session"
+    actions:
+      - path: "C:\\{{ process_name }}-stop.bat"
+    triggers: []
+    username: "{{ ansible_user }}"
+    password: "{{ ansible_password }}"
+    logon_type: interactive_token
+    run_level: highest
+    state: present
+    enabled: true
+
+- name: Run graceful stop in interactive session
+  ansible.windows.win_shell: |
+    Start-ScheduledTask -TaskName "{{ process_name }}GracefulStop"
+
+- name: "Wait for {{ process_name }} graceful exit"
+  ansible.windows.win_shell: |
+    $timeout = {{ graceful_timeout | default(15) }}
+    $elapsed = 0
+    while ($elapsed -lt $timeout) {
+      Start-Sleep -Seconds 2
+      $elapsed += 2
+      $remaining = Get-Process -Name {{ process_name }} -ErrorAction SilentlyContinue
+      if (-not $remaining) {
+        Write-Host "GRACEFUL_STOP"
+        exit 0
+      }
+    }
+    Write-Host "STILL_RUNNING"
+  register: _graceful_result
+  changed_when: false
+
+- name: "Force-kill {{ process_name }} if graceful shutdown timed out"
+  ansible.windows.win_shell: |
+    $procs = Get-Process -Name {{ process_name }} -ErrorAction SilentlyContinue
+    if ($procs) {
+      $procs | Stop-Process -Force
+      Start-Sleep -Seconds 2
+      Write-Host "FORCE_STOP (graceful timed out)"
+    }
+  register: _force_result
+  when: "'STILL_RUNNING' in _graceful_result.stdout"
+
+- name: Clean up graceful stop task
+  community.windows.win_scheduled_task:
+    name: "{{ process_name }}GracefulStop"
+    state: absent
+
+- name: Show stop status
+  ansible.builtin.debug:
+    msg: "{{ inventory_hostname }}: {{ _graceful_result.stdout | trim }}{{ ' -> ' + _force_result.stdout | trim if _force_result is not skipped else '' }}"

@@ -17,6 +17,10 @@
   gather_facts: false
 
   tasks:
+    - name: Skip if preflight disabled
+      ansible.builtin.meta: end_host
+      when: skip_preflight | default(false) | bool
+
     - name: Skip hosts without media_ip
       ansible.builtin.meta: end_host
       when: media_ip is not defined

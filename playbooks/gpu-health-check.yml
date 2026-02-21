@@ -16,6 +16,10 @@
   gather_facts: false
 
   tasks:
+    - name: Skip if preflight disabled
+      ansible.builtin.meta: end_host
+      when: skip_preflight | default(false) | bool
+
     - name: Query GPU via nvidia-smi
       ansible.windows.win_shell: |
         $nvsmi = "C:\Windows\System32\nvidia-smi.exe"
