@@ -1,0 +1,66 @@
+---
+# Set Windows OS theme to dark mode (interactive desktop session)
+#
+# Usage:
+#   ansible-playbook playbooks/win-os-dark-mode.yml --limit windows-unreal-08
+#   ansible-playbook playbooks/win-os-dark-mode.yml --limit windows
+
+- name: Windows — apply OS dark mode
+  hosts: windows
+  gather_facts: false
+
+  tasks:
+    - name: Write Windows dark-mode script
+      ansible.windows.win_copy:
+        dest: C:\Windows\Temp\win-os-dark-mode.ps1
+        content: |
+          $regPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
+          if (!(Test-Path $regPath)) { New-Item -Path $regPath -Force | Out-Null }
+          Set-ItemProperty -Path $regPath -Name 'AppsUseLightTheme' -Type DWord -Value 0
+          Set-ItemProperty -Path $regPath -Name 'SystemUsesLightTheme' -Type DWord -Value 0
+
+    - name: Create Windows dark-mode scheduled task (interactive session)
+      community.windows.win_scheduled_task:
+        name: ApplyWindowsOsDarkMode
+        description: Apply Windows OS dark mode for interactive desktop user
+        actions:
+          - path: powershell.exe
+            arguments: -NoProfile -ExecutionPolicy Bypass -File C:\Windows\Temp\win-os-dark-mode.ps1
+        triggers: []
+        username: "{{ ansible_user }}"
+        password: "{{ ansible_password }}"
+        logon_type: interactive_token
+        run_level: highest
+        state: present
+        enabled: true
+
+    - name: Start Windows dark-mode scheduled task
+      ansible.windows.win_shell: |
+        Start-ScheduledTask -TaskName "ApplyWindowsOsDarkMode"
+      changed_when: false
+
+    - name: Wait for Windows dark-mode scheduled task to finish
+      ansible.windows.win_shell: |
+        $timeoutSeconds = 30
+        $elapsed = 0
+        while ($elapsed -lt $timeoutSeconds) {
+          $info = Get-ScheduledTaskInfo -TaskName "ApplyWindowsOsDarkMode"
+          if ($info.State -ne "Running") {
+            Start-Sleep -Seconds 1
+            $final = (Get-ScheduledTaskInfo -TaskName "ApplyWindowsOsDarkMode").LastTaskResult
+            if ($final -eq 0) {
+              Write-Host "OK"
+              exit 0
+            }
+            throw "ApplyWindowsOsDarkMode failed with LastTaskResult=$final"
+          }
+          Start-Sleep -Seconds 2
+          $elapsed += 2
+        }
+        throw "ApplyWindowsOsDarkMode did not finish within ${timeoutSeconds}s"
+      changed_when: false
+
+    - name: Remove Windows dark-mode script
+      ansible.windows.win_file:
+        path: C:\Windows\Temp\win-os-dark-mode.ps1
+        state: absent
