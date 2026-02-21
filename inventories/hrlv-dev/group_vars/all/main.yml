@@ -9,3 +9,7 @@ render_server_url: "{{ vault_render_server_url }}"
 
 # Deploy share (SMB on pulse-admin)
 deploy_share: "\\\\192.168.1.70\\deploy"
+
+# Plastic SCM UI defaults
+plastic_ui_theme: "dark"
+plastic_ui_set_windows_theme: true

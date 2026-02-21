@@ -10,6 +10,9 @@
     - name: Install Plastic SCM
       ansible.builtin.include_tasks: windows_install.yml
 
+    - name: Configure Plastic SCM UI theme
+      ansible.builtin.include_tasks: windows_ui_theme.yml
+
     - name: Authenticate Plastic SCM
       ansible.builtin.include_tasks: windows_auth.yml
 

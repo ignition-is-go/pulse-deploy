@@ -1,0 +1,52 @@
+---
+# plastic_scm/tasks/windows_ui_theme.yml — Configure Plastic SCM UI theme
+
+- name: Set Windows theme preference for current user
+  when: plastic_ui_set_windows_theme | bool
+  ansible.windows.win_regedit:
+    path: HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize
+    name: "{{ item }}"
+    data: "{{ 0 if plastic_ui_theme | lower == 'dark' else 1 }}"
+    type: dword
+  loop:
+    - AppsUseLightTheme
+    - SystemUsesLightTheme
+
+- name: Set Plastic SCM UI theme in user config files
+  ansible.windows.win_shell: |
+    $theme = "{{ 'Dark' if plastic_ui_theme | lower == 'dark' else 'Light' }}"
+    $configFiles = @(
+      "$env:LOCALAPPDATA\plastic4\plasticgui.conf",
+      "$env:LOCALAPPDATA\plastic4\guiclient.conf"
+    )
+    $themeKeys = @("Theme", "ThemeMode", "ColorTheme", "SelectedTheme")
+    $changed = $false
+
+    foreach ($configFile in $configFiles) {
+      if (!(Test-Path $configFile)) { continue }
+
+      $content = Get-Content -Path $configFile -Raw
+      $updated = $content
+
+      foreach ($key in $themeKeys) {
+        $updated = [regex]::Replace(
+          $updated,
+          "(?im)^(\s*$key\s*=\s*).*$",
+          "`$1$theme"
+        )
+        $updated = [regex]::Replace(
+          $updated,
+          "(?is)<$key>\s*[^<]*\s*</$key>",
+          "<$key>$theme</$key>"
+        )
+      }
+
+      if ($updated -ne $content) {
+        Set-Content -Path $configFile -Value $updated -Encoding UTF8
+        $changed = $true
+      }
+    }
+
+    if ($changed) { Write-Host "CHANGED" } else { Write-Host "OK" }
+  register: plastic_ui_theme_result
+  changed_when: "'CHANGED' in plastic_ui_theme_result.stdout"
