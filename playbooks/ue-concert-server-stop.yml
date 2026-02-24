@@ -13,21 +13,26 @@
 
   tasks:
     - name: Check if UnrealMultiUserServer is running
-      ansible.windows.win_shell: |
-        $procs = Get-Process -Name UnrealMultiUserServer -ErrorAction SilentlyContinue
-        if ($procs) { Write-Host "RUNNING (PID: $($procs.Id))" } else { Write-Host "NONE" }
+      ansible.windows.win_command: tasklist /FI "IMAGENAME eq UnrealMultiUserServer.exe" /NH
       register: server_check
       changed_when: false
 
-    - name: Stop UnrealMultiUserServer
-      ansible.windows.win_shell: |
-        Stop-Process -Name UnrealMultiUserServer -Force
-        Start-Sleep -Seconds 2
-        $remaining = Get-Process -Name UnrealMultiUserServer -ErrorAction SilentlyContinue
-        if ($remaining) { Write-Host "STILL_RUNNING" } else { Write-Host "STOPPED" }
-      register: server_stop
-      when: "'RUNNING' in server_check.stdout"
+    - name: Force-kill UnrealMultiUserServer
+      ansible.windows.win_command: taskkill /F /IM UnrealMultiUserServer.exe
+      when: "'UnrealMultiUserServer.exe' in server_check.stdout"
+
+    - name: Verify UnrealMultiUserServer stopped
+      ansible.windows.win_command: tasklist /FI "IMAGENAME eq UnrealMultiUserServer.exe" /NH
+      register: server_verify
+      until: "'UnrealMultiUserServer.exe' not in server_verify.stdout"
+      retries: 3
+      delay: 2
+      changed_when: false
+      failed_when: false
+      when: "'UnrealMultiUserServer.exe' in server_check.stdout"
 
     - name: Show Concert server status
       ansible.builtin.debug:
-        msg: "{{ inventory_hostname }}: {{ server_stop.stdout | trim if server_stop is not skipped else 'was not running' }}"
+        msg: >-
+          {{ inventory_hostname }}: {{ 'was not running' if 'UnrealMultiUserServer.exe' not in server_check.stdout
+          else ('STOPPED' if 'UnrealMultiUserServer.exe' not in server_verify.stdout else 'STILL RUNNING') }}

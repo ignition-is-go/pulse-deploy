@@ -65,17 +65,22 @@
       ansible.windows.win_shell: |
         Start-ScheduledTask -TaskName "RivermaxMediaSender"
 
-    - name: Verify media_sender is running
+    - name: Wait for media_sender to start
       ansible.windows.win_shell: |
-        Start-Sleep -Seconds 3
-        $proc = Get-Process -Name media_sender -ErrorAction SilentlyContinue
-        if ($proc) {
-          Write-Host "RUNNING (PID $($proc.Id))"
-        } else {
-          Write-Host "FAILED TO START"
-        }
-      register: tx_status
+        (Get-Process -Name media_sender -ErrorAction SilentlyContinue).Id
+      register: tx_check
+      until: tx_check.stdout | trim | length > 0
+      retries: 3
+      delay: 2
+      changed_when: false
+      failed_when: false
 
     - name: Show TX status
       ansible.builtin.debug:
-        msg: "{{ inventory_hostname }} ({{ media_ip }}): {{ tx_status.stdout | trim }}"
+        msg: "{{ inventory_hostname }} ({{ media_ip }}): RUNNING (PID: {{ tx_check.stdout | trim }})"
+      when: tx_check.stdout | trim | length > 0
+
+    - name: Show TX failure
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} ({{ media_ip }}): FAILED TO START — check C:\\temp\\rmax-tx.log"
+      when: tx_check.stdout | trim | length == 0

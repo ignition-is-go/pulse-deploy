@@ -11,9 +11,14 @@
 
   tasks:
     - name: Stop media_receiver process
-      ansible.windows.win_shell: |
-        taskkill /F /IM media_receiver.exe 2>$null
-        taskkill /F /IM cmd.exe /FI "WINDOWTITLE eq C:\temp\rmax-rx.bat" 2>$null
+      ansible.windows.win_command: taskkill /F /IM media_receiver.exe
+      failed_when: false
+      changed_when: false
+
+    - name: Stop media_receiver cmd wrapper
+      ansible.windows.win_command: taskkill /F /IM cmd.exe /FI "WINDOWTITLE eq C:\temp\rmax-rx.bat"
+      failed_when: false
+      changed_when: false
 
     - name: Stop and remove RX scheduled task
       community.windows.win_scheduled_task:
@@ -21,11 +26,10 @@
         state: absent
 
     - name: Confirm stopped
-      ansible.windows.win_shell: |
-        $proc = Get-Process -Name media_receiver -ErrorAction SilentlyContinue
-        if ($proc) { Write-Host "STILL RUNNING (PID $($proc.Id))" } else { Write-Host "STOPPED" }
+      ansible.windows.win_command: tasklist /FI "IMAGENAME eq media_receiver.exe" /NH
       register: rx_status
+      changed_when: false
 
     - name: Show status
       ansible.builtin.debug:
-        msg: "{{ inventory_hostname }}: {{ rx_status.stdout | trim }}"
+        msg: "{{ inventory_hostname }}: {{ 'STOPPED' if 'media_receiver.exe' not in rx_status.stdout else 'STILL RUNNING' }}"

@@ -41,24 +41,19 @@
 
     - name: Wait for Windows dark-mode scheduled task to finish
       ansible.windows.win_shell: |
-        $timeoutSeconds = 30
-        $elapsed = 0
-        while ($elapsed -lt $timeoutSeconds) {
-          $info = Get-ScheduledTaskInfo -TaskName "ApplyWindowsOsDarkMode"
-          if ($info.State -ne "Running") {
-            Start-Sleep -Seconds 1
-            $final = (Get-ScheduledTaskInfo -TaskName "ApplyWindowsOsDarkMode").LastTaskResult
-            if ($final -eq 0) {
-              Write-Host "OK"
-              exit 0
-            }
-            throw "ApplyWindowsOsDarkMode failed with LastTaskResult=$final"
-          }
-          Start-Sleep -Seconds 2
-          $elapsed += 2
-        }
-        throw "ApplyWindowsOsDarkMode did not finish within ${timeoutSeconds}s"
+        (Get-ScheduledTask -TaskName "ApplyWindowsOsDarkMode").State
+      register: dark_mode_wait
+      until: dark_mode_wait.stdout | trim == 'Ready'
+      retries: 15
+      delay: 2
       changed_when: false
+
+    - name: Verify dark-mode task succeeded
+      ansible.windows.win_shell: |
+        (Get-ScheduledTaskInfo -TaskName "ApplyWindowsOsDarkMode").LastTaskResult
+      register: dark_mode_result
+      changed_when: false
+      failed_when: dark_mode_result.stdout | trim | int != 0
 
     - name: Remove Windows dark-mode script
       ansible.windows.win_file:

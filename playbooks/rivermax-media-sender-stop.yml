@@ -11,9 +11,14 @@
 
   tasks:
     - name: Stop media_sender process
-      ansible.windows.win_shell: |
-        taskkill /F /IM media_sender.exe 2>$null
-        taskkill /F /IM cmd.exe /FI "WINDOWTITLE eq C:\temp\rmax-tx.bat" 2>$null
+      ansible.windows.win_command: taskkill /F /IM media_sender.exe
+      failed_when: false
+      changed_when: false
+
+    - name: Stop media_sender cmd wrapper
+      ansible.windows.win_command: taskkill /F /IM cmd.exe /FI "WINDOWTITLE eq C:\temp\rmax-tx.bat"
+      failed_when: false
+      changed_when: false
 
     - name: Stop and remove TX scheduled task
       community.windows.win_scheduled_task:
@@ -21,11 +26,10 @@
         state: absent
 
     - name: Confirm stopped
-      ansible.windows.win_shell: |
-        $proc = Get-Process -Name media_sender -ErrorAction SilentlyContinue
-        if ($proc) { Write-Host "STILL RUNNING (PID $($proc.Id))" } else { Write-Host "STOPPED" }
+      ansible.windows.win_command: tasklist /FI "IMAGENAME eq media_sender.exe" /NH
       register: tx_status
+      changed_when: false
 
     - name: Show status
       ansible.builtin.debug:
-        msg: "{{ inventory_hostname }}: {{ tx_status.stdout | trim }}"
+        msg: "{{ inventory_hostname }}: {{ 'STOPPED' if 'media_sender.exe' not in tx_status.stdout else 'STILL RUNNING' }}"

@@ -5,18 +5,19 @@
 #        ansible-playbook playbooks/plastic-status.yml --limit windows-unreal-03
 
 - name: Check Plastic Status
-  hosts: ue
+  hosts: "{{ plastic_status_hosts | default('ue') }}"
   gather_facts: false
   ignore_unreachable: true
   serial: "{{ parallel_nodes | default(omit) }}"
 
   tasks:
     - name: Get controlled changes
-      ansible.windows.win_shell: |
-        cd "{{ plastic_workspace }}"
-        $status = & "{{ plastic_exe }}" status --controlledchanged
-        Write-Host "$status"
+      ansible.windows.win_command: >-
+        "{{ plastic_exe }}" status --controlledchanged
+      args:
+        chdir: "{{ plastic_workspace }}"
       register: plastic_result
+      changed_when: false
 
     - name: Display result
       ansible.builtin.debug:

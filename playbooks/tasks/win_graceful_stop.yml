@@ -12,19 +12,17 @@
 #   graceful_timeout: Seconds to wait before force-kill (default: 15)
 
 - name: "Check if {{ process_name }} is running"
-  ansible.windows.win_shell: |
-    $procs = Get-Process -Name {{ process_name }} -ErrorAction SilentlyContinue
-    if ($procs) { Write-Host "RUNNING $($procs.Count)" } else { Write-Host "NONE" }
+  ansible.windows.win_command: tasklist /FI "IMAGENAME eq {{ process_name }}.exe" /NH
   register: _stop_check
   changed_when: false
 
 - name: "{{ process_name }} not running — nothing to stop"
   ansible.builtin.debug:
     msg: "{{ inventory_hostname }}: {{ process_name }} is not running, skipping."
-  when: "'NONE' in _stop_check.stdout"
+  when: (process_name + '.exe') not in _stop_check.stdout
 
 - name: "Graceful stop {{ process_name }}"
-  when: "'RUNNING' in _stop_check.stdout"
+  when: (process_name + '.exe') in _stop_check.stdout
   block:
     - name: "Write {{ process_name }} graceful stop script"
       ansible.windows.win_copy:
@@ -53,34 +51,23 @@
 
     - name: "Wait for {{ process_name }} graceful exit"
       ansible.windows.win_shell: |
-        $timeout = {{ graceful_timeout | default(15) }}
-        $elapsed = 0
-        while ($elapsed -lt $timeout) {
-          Start-Sleep -Seconds 2
-          $elapsed += 2
-          $remaining = Get-Process -Name {{ process_name }} -ErrorAction SilentlyContinue
-          if (-not $remaining) {
-            Write-Host "GRACEFUL_STOP after ${elapsed}s"
-            exit 0
-          }
-        }
-        Write-Host "TIMED_OUT after ${timeout}s — process still running"
+        if (Get-Process -Name {{ process_name }} -ErrorAction SilentlyContinue) { Write-Host "RUNNING" } else { Write-Host "STOPPED" }
       register: _graceful_result
-      changed_when: "'GRACEFUL_STOP' in _graceful_result.stdout"
+      until: _graceful_result.stdout | trim == 'STOPPED'
+      retries: "{{ ((graceful_timeout | default(15)) | int // 2) + 1 }}"
+      delay: 2
+      failed_when: false
+      changed_when: _graceful_result.stdout | trim == 'STOPPED'
 
     - name: "{{ process_name }} graceful exit result"
       ansible.builtin.debug:
-        msg: "{{ inventory_hostname }}: {{ _graceful_result.stdout | trim }}"
+        msg: "{{ inventory_hostname }}: {{ 'graceful stop succeeded' if _graceful_result.stdout | trim == 'STOPPED' else 'timed out — process still running' }}"
 
     - name: "Force-kill {{ process_name }} if graceful shutdown timed out"
       ansible.windows.win_shell: |
-        $procs = Get-Process -Name {{ process_name }} -ErrorAction SilentlyContinue
-        if ($procs) {
-          $procs | Stop-Process -Force
-          Start-Sleep -Seconds 2
-          Write-Host "FORCE_STOP (graceful timed out)"
-        }
-      when: "'TIMED_OUT' in _graceful_result.stdout"
+        Get-Process -Name {{ process_name }} -ErrorAction SilentlyContinue | Stop-Process -Force
+      register: _force_result
+      when: _graceful_result.stdout | trim != 'STOPPED'
 
     - name: Clean up graceful stop task
       community.windows.win_scheduled_task:
@@ -90,5 +77,5 @@
     - name: Show stop status
       ansible.builtin.debug:
         msg: >-
-          {{ inventory_hostname }}: {{ _graceful_result.stdout | trim }}{{ ' -> ' + _force_result.stdout | trim
-          if _force_result is defined and _force_result is not skipped else '' }}
+          {{ inventory_hostname }}: {{ 'graceful stop' if _graceful_result.stdout | trim == 'STOPPED'
+          else 'force stop (graceful timed out)' }}
