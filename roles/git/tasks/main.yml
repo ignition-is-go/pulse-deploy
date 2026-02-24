@@ -1,0 +1,29 @@
+---
+# git — Git for Windows installation (if missing) and validation
+#
+# Requires (group_vars):
+#   git_installer_source: UNC path to Git for Windows exe on NAS
+
+- name: Check if Git installed
+  ansible.windows.win_stat:
+    path: C:\Program Files\Git\cmd\git.exe
+  register: git_check
+
+- name: Copy Git installer from NAS
+  ansible.windows.win_copy:
+    src: "{{ git_installer_source }}"
+    dest: C:\Windows\Temp\git-installer.exe
+    remote_src: true
+  when: not git_check.stat.exists
+
+- name: Install Git for Windows (silent)
+  ansible.windows.win_shell: >-
+    Start-Process -FilePath "C:\Windows\Temp\git-installer.exe"
+    -ArgumentList "/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh"
+    -Wait -PassThru
+  when: not git_check.stat.exists
+
+- name: Verify git is callable
+  ansible.windows.win_shell: >-
+    & "C:\Program Files\Git\cmd\git.exe" --version
+  changed_when: false

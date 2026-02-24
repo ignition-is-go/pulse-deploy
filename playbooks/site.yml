@@ -20,7 +20,7 @@
     - win_base
 
 - name: GPU validation — Windows nodes with GPUs
-  hosts: ue_content:ue_previs:touch:arnold_fusion:workstation
+  hosts: ue_content:ue_previs:ue_plugin_dev:touch:arnold_fusion:workstation
   gather_facts: false
   roles:
     - nvidia_gpu_win
@@ -57,6 +57,22 @@
   gather_facts: false
   roles:
     - unreal_engine
+
+- name: Plugin dev nodes
+  hosts: ue_plugin_dev
+  gather_facts: false
+  roles:
+    - unreal_engine
+    - git
+    - vs_buildtools
+
+- name: UE automation runners
+  hosts: win_ue_runner
+  gather_facts: false
+  roles:
+    - unreal_engine
+    - git
+    - vs_buildtools
 
 - name: Touch nodes
   hosts: touch

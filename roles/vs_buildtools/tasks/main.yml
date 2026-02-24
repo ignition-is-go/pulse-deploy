@@ -1,0 +1,38 @@
+---
+# vs_buildtools — Visual Studio Build Tools with C++ workload (if missing) and validation
+#
+# Requires (group_vars):
+#   vs_buildtools_installer_source: UNC path to vs_BuildTools.exe on NAS
+
+- name: Check if VS Build Tools installed
+  ansible.windows.win_stat:
+    path: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\MSBuild\\Current\\Bin\\MSBuild.exe"
+  register: msbuild_check
+
+- name: Copy VS Build Tools installer from NAS
+  ansible.windows.win_copy:
+    src: "{{ vs_buildtools_installer_source }}"
+    dest: C:\Windows\Temp\vs_buildtools.exe
+    remote_src: true
+  when: not msbuild_check.stat.exists
+
+- name: Install VS Build Tools with UE 5.7 C++ workload (silent)
+  ansible.windows.win_shell: >-
+    Start-Process -FilePath "C:\Windows\Temp\vs_buildtools.exe"
+    -ArgumentList "--wait --quiet --norestart --nocache
+    --add Microsoft.VisualStudio.Workload.VCTools
+    --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64
+    --add Microsoft.VisualStudio.Component.Windows11SDK.26100
+    --add Microsoft.VisualStudio.Component.VC.ASAN
+    --add Microsoft.VisualStudio.Component.VC.Llvm.Clang
+    --add Microsoft.NetCore.Component.Runtime.8.0
+    --includeRecommended"
+    -Wait -PassThru
+  when: not msbuild_check.stat.exists
+  async: 1800
+  poll: 30
+
+- name: Verify MSBuild is callable
+  ansible.windows.win_shell: >-
+    & "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe" -version
+  changed_when: false

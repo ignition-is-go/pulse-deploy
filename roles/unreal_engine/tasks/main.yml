@@ -1,17 +1,50 @@
 ---
-# unreal_engine — Layer 3: UE install validation and environment
+# unreal_engine — Layer 3: UE installation (if missing) and validation
+#
+# Requires (group_vars):
+#   unreal_engine_dir: Install location (e.g. F:/Epic Games/UE_5.7)
+#   unreal_exe: Path to UnrealEditor.exe (derived from unreal_engine_dir)
+#   ue_msi_source: UNC path to UE offline MSI installer on NAS
+#   unreal_project: Path to .uproject file (can be empty string)
+#
+# Epic offline installer docs:
+#   https://dev.epicgames.com/documentation/en-us/unreal-engine/offline-installer-of-unreal-engine
 
-- name: Verify Unreal Engine installation
+- name: Check if Unreal Engine installed
   ansible.windows.win_stat:
     path: "{{ unreal_exe }}"
   register: ue_check
 
-- name: Fail if Unreal Engine not installed
-  ansible.builtin.fail:
-    msg: "Unreal Engine not found at {{ unreal_exe }} on {{ inventory_hostname }}"
+- name: Copy UE MSI installer from NAS
+  ansible.windows.win_copy:
+    src: "{{ ue_msi_source }}"
+    dest: C:\Windows\Temp\UnrealEngine.msi
+    remote_src: true
   when: not ue_check.stat.exists
 
-- name: Verify project file exists
+- name: Install Unreal Engine (silent)
+  ansible.windows.win_shell: >-
+    msiexec /i "C:\Windows\Temp\UnrealEngine.msi" /qn /norestart
+    /l+ "C:\Windows\Temp\ue_install.log"
+    INSTALLLOCATION="{{ unreal_engine_dir | regex_replace('/', '\\') }}"
+    ENGINE_SYMBOLS_CHECKED=0
+    ENGINE_IOS_CHECKED=0
+    ENGINE_TVOS_CHECKED=0
+    ENGINE_ANDROID_CHECKED=0
+    ENGINE_LUMIN_CHECKED=0
+    ENGINE_HOLOLENS_CHECKED=0
+    ENGINE_LINUX_CHECKED=0
+  when: not ue_check.stat.exists
+  async: 3600
+  poll: 30
+
+- name: Verify Unreal Engine installed
+  ansible.windows.win_stat:
+    path: "{{ unreal_exe }}"
+  register: ue_post_check
+  failed_when: not ue_post_check.stat.exists
+
+- name: Check project file exists
   ansible.windows.win_stat:
     path: "{{ unreal_project }}"
   register: project_check

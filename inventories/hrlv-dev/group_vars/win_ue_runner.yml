@@ -1,4 +1,7 @@
 ---
-# Headless UE automation runner — no GPU, no editor UI
-plastic_workspace: ""  # TBD
-unreal_project: ""     # TBD
+# Headless UE automation runner — no GPU, C: drive
+unreal_engine_dir: "C:/Epic Games/UE_5.7"
+plastic_workspace: "C:/P-0616-HRLV"
+unreal_project: "C:/P-0616-HRLV/ue/HRLV_Content/HRLV_Content.uproject"
+git_installer_source: "{{ deploy_share }}\\installers\\Git-2.53.0-64-bit.exe"
+vs_buildtools_installer_source: "{{ deploy_share }}\\installers\\vs_buildtools.exe"
