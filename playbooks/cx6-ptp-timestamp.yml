@@ -12,15 +12,27 @@
   gather_facts: false
 
   tasks:
-    - name: Check PTP Hardware Timestamp setting
+    - name: Discover ConnectX-6 adapter
       ansible.windows.win_shell: |
         $adapters = @(Get-NetAdapter | Where-Object {
-          $_.InterfaceDescription -like "*Mellanox*" -or $_.InterfaceDescription -like "*ConnectX*"
+          $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
         })
         if ($adapters.Count -eq 0) { throw "ConnectX adapter not found" }
         if ($adapters.Count -gt 1) { throw "Multiple ConnectX adapters found ($($adapters.Count)), expected 1" }
-        $prop = Get-NetAdapterAdvancedProperty -Name $adapters[0].Name -RegistryKeyword "*PtpHardwareTimestamp" -ErrorAction SilentlyContinue
-        if (-not $prop) { throw "PtpHardwareTimestamp property not found on $($adapters[0].Name)" }
+        $adapters[0].Name
+      register: cx6_discovery
+      changed_when: false
+      when: rivermax | default(false)
+
+    - name: Set ConnectX-6 adapter name
+      ansible.builtin.set_fact:
+        cx6_adapter: "{{ cx6_discovery.stdout | trim }}"
+      when: rivermax | default(false)
+
+    - name: Check PTP Hardware Timestamp setting
+      ansible.windows.win_shell: |
+        $prop = Get-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "*PtpHardwareTimestamp" -ErrorAction Stop
+        if (-not $prop) { throw "PtpHardwareTimestamp property not found on {{ cx6_adapter }}" }
         $prop.DisplayValue
       register: ptp_check
       changed_when: false
@@ -28,22 +40,14 @@
 
     - name: Enable PTP Hardware Timestamp
       ansible.windows.win_shell: |
-        $adapter = Get-NetAdapter | Where-Object {
-          $_.InterfaceDescription -like "*Mellanox*" -or $_.InterfaceDescription -like "*ConnectX*"
-        }
-        Set-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*PtpHardwareTimestamp" -RegistryValue 1
+        Set-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "*PtpHardwareTimestamp" -RegistryValue 1
       when:
         - rivermax | default(false)
         - ptp_check.stdout | default('') | trim != "Enabled"
-      register: ptp_set
 
     - name: Verify PTP Hardware Timestamp is enabled
       ansible.windows.win_shell: |
-        $adapter = Get-NetAdapter | Where-Object {
-          $_.InterfaceDescription -like "*Mellanox*" -or $_.InterfaceDescription -like "*ConnectX*"
-        }
-        $prop = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*PtpHardwareTimestamp"
-        $prop.DisplayValue
+        (Get-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "*PtpHardwareTimestamp").DisplayValue
       register: ptp_verify
       changed_when: false
       when: rivermax | default(false)

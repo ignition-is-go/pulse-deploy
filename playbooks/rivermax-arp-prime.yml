@@ -30,12 +30,11 @@
         all_media_ips: "{{ hostvars | dict2items | selectattr('value.media_ip', 'defined') | map(attribute='value.media_ip') | list }}"
 
     - name: Ping all other media IPs (triggers ARP, primes OVS FDB)
-      ansible.windows.win_shell: |
-        $ips = @("{{ all_media_ips | join('", "') }}")
-        $myIp = "{{ media_ip }}"
-        foreach ($ip in $ips) {
-          if ($ip -ne $myIp) {
-            ping -n 1 -w 500 $ip | Out-Null
-          }
-        }
-        Write-Host "Primed {{ all_media_ips | length - 1 }} peers from {{ media_ip }}"
+      ansible.windows.win_command: ping -n 1 -w 500 {{ item }}
+      loop: "{{ all_media_ips | difference([media_ip]) }}"
+      changed_when: false
+      failed_when: false
+
+    - name: Show ARP prime result
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: primed {{ all_media_ips | difference([media_ip]) | length }} peers from {{ media_ip }}"

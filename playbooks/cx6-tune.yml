@@ -22,15 +22,29 @@
   gather_facts: false
 
   tasks:
+    - name: Discover ConnectX-6 adapter
+      ansible.windows.win_shell: |
+        $adapters = @(Get-NetAdapter | Where-Object {
+          $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
+        })
+        if ($adapters.Count -eq 0) { throw "ConnectX adapter not found" }
+        if ($adapters.Count -gt 1) { throw "Multiple ConnectX adapters found ($($adapters.Count)), expected 1" }
+        $adapters[0].Name
+      register: cx6_discovery
+      changed_when: false
+      when: rivermax | default(false)
+
+    - name: Set ConnectX-6 adapter name
+      ansible.builtin.set_fact:
+        cx6_adapter: "{{ cx6_discovery.stdout | trim }}"
+      when: rivermax | default(false)
+
     - name: Max out receive and transmit ring buffers
       ansible.windows.win_shell: |
-        $adapter = Get-NetAdapter | Where-Object {
-          $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
-        }
         foreach ($kw in @("*ReceiveBuffers", "*TransmitBuffers")) {
-          $prop = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword $kw
+          $prop = Get-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword $kw
           if ([int]$prop.RegistryValue[0] -lt $prop.NumericParameterMaxValue) {
-            Set-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword $kw -RegistryValue $prop.NumericParameterMaxValue
+            Set-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword $kw -RegistryValue $prop.NumericParameterMaxValue
             Write-Output "$kw: $($prop.RegistryValue) -> $($prop.NumericParameterMaxValue)"
           } else {
             Write-Output "$kw: already at max ($($prop.RegistryValue))"
@@ -44,19 +58,16 @@
 
     - name: Set RX interrupt moderation to aggressive
       ansible.windows.win_shell: |
-        $adapter = Get-NetAdapter | Where-Object {
-          $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
-        }
-        $mod = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "RxIntModeration"
-        $prof = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "RxIntModerationProfile"
+        $mod = Get-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "RxIntModeration"
+        $prof = Get-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "RxIntModerationProfile"
         $changed = $false
         if ([int]$mod.RegistryValue[0] -ne 1) {
-          Set-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "RxIntModeration" -RegistryValue 1
+          Set-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "RxIntModeration" -RegistryValue 1
           Write-Output "RxIntModeration: $($mod.RegistryValue) -> 1 (static)"
           $changed = $true
         }
         if ([int]$prof.RegistryValue[0] -ne 2) {
-          Set-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "RxIntModerationProfile" -RegistryValue 2
+          Set-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "RxIntModerationProfile" -RegistryValue 2
           Write-Output "RxIntModerationProfile: $($prof.RegistryValue) -> 2 (aggressive)"
           $changed = $true
         }
@@ -69,13 +80,10 @@
 
     - name: Verify final settings
       ansible.windows.win_shell: |
-        $adapter = Get-NetAdapter | Where-Object {
-          $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
-        }
-        $rx = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*ReceiveBuffers"
-        $tx = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*TransmitBuffers"
-        $rssQ = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "*NumRSSQueues"
-        $rxMod = Get-NetAdapterAdvancedProperty -Name $adapter.Name -RegistryKeyword "RxIntModerationProfile"
+        $rx = Get-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "*ReceiveBuffers"
+        $tx = Get-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "*TransmitBuffers"
+        $rssQ = Get-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "*NumRSSQueues"
+        $rxMod = Get-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "RxIntModerationProfile"
         Write-Output "Ring: RX=$($rx.DisplayValue)/$($rx.NumericParameterMaxValue) TX=$($tx.DisplayValue)/$($tx.NumericParameterMaxValue)"
         Write-Output "RSS Queues: $($rssQ.DisplayValue)"
         Write-Output "RxIntModProfile: $($rxMod.DisplayValue)"
