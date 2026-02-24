@@ -1,0 +1,21 @@
+---
+# Upgrade Plastic SCM client to a new version
+#
+# Prerequisites:
+#   1. Place the new installer on the deploy share at:
+#      \\192.168.1.70\deploy\plastic\<installer-filename>.exe
+#   2. Set plastic_installer to the new filename (in group_vars or via -e)
+#
+# Usage: ansible-playbook playbooks/plastic-upgrade.yml --limit ue_staging
+#        ansible-playbook playbooks/plastic-upgrade.yml --limit ue -e plastic_installer=unity-vcs-11.0.17.xxxx-win.exe
+
+- name: Plastic SCM — upgrade
+  hosts: "{{ plastic_upgrade_hosts | default('ue') }}"
+  gather_facts: true
+  serial: "{{ parallel_nodes | default(omit) }}"
+
+  tasks:
+    - ansible.builtin.include_role:
+        name: plastic_scm
+        tasks_from: windows_upgrade.yml
+      when: ansible_os_family == "Windows" and plastic_workspace | length > 0

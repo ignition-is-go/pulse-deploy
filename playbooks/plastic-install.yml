@@ -3,7 +3,7 @@
 # Usage: ansible-playbook playbooks/plastic-install.yml --limit ue_staging
 
 - name: Plastic SCM — install
-  hosts: ue
+  hosts: "{{ plastic_install_hosts | default('ue') }}"
   gather_facts: true
   tasks:
     - ansible.builtin.include_role:

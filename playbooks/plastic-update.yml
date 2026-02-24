@@ -4,7 +4,7 @@
 #        ansible-playbook playbooks/plastic-update.yml --limit ue-staging-01
 
 - name: Plastic SCM — update
-  hosts: ue
+  hosts: "{{ plastic_update_hosts | default('ue') }}"
   gather_facts: true
   ignore_unreachable: true
   tasks:

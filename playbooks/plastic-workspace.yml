@@ -3,7 +3,7 @@
 # Usage: ansible-playbook playbooks/plastic-workspace.yml --limit ue_staging
 
 - name: Plastic SCM — create workspace
-  hosts: ue
+  hosts: "{{ plastic_workspace_hosts | default('ue') }}"
   gather_facts: true
   tasks:
     - ansible.builtin.include_role:
