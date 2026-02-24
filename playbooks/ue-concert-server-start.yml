@@ -5,11 +5,12 @@
 # Uses unicast UdpMessaging to avoid multicast flooding on the media network.
 #
 # Usage:
-#   ansible-playbook playbooks/concert-server.yml
+#   ansible-playbook playbooks/ue-concert-server-start.yml
 
 - name: Configure Concert server
   hosts: ue_editing
   gather_facts: false
+  any_errors_fatal: true
 
   tasks:
     - name: Check for already-running Concert server

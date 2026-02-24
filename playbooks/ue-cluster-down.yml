@@ -1,0 +1,22 @@
+---
+# Stop the full content cluster (nDisplay + Concert)
+#
+# Sequence (reverse of cluster-up):
+#   1. nDisplay cluster (ue_content) — render nodes first
+#   2. Concert editor  (ue_editing)  — editor disconnects from session
+#   3. Concert server  (ue_editing)  — server last (clients should be gone)
+#
+# Each phase uses graceful shutdown (WM_CLOSE → timeout → force-kill).
+# Phases are independent — a failure in one does not skip the others.
+#
+# Usage:
+#   ansible-playbook playbooks/cluster-down.yml
+
+- name: "=== Phase 1: nDisplay cluster ==="
+  ansible.builtin.import_playbook: ue-content-stop.yml
+
+- name: "=== Phase 2: Concert editor ==="
+  ansible.builtin.import_playbook: ue-concert-editor-stop.yml
+
+- name: "=== Phase 3: Concert server ==="
+  ansible.builtin.import_playbook: ue-concert-server-stop.yml

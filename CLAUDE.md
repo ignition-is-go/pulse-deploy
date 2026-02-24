@@ -100,7 +100,7 @@ This is the #1 source of bugs. Understand it before writing any Windows task.
     state: present
 ```
 
-The `render_worker`, `ue-ndisplay-start`, and Rivermax sender/receiver playbooks all use this pattern. Follow it.
+The `render_worker`, `ue-content-start`, and Rivermax sender/receiver playbooks all use this pattern. Follow it.
 
 **Plastic SCM (`cm.exe`) does NOT need scheduled tasks.** Cloud operations (workspace create, update, repository list) work fine via WinRM `win_shell`. The only requirement is working DNS — fresh VMs from cloudbase-init may not have DNS configured (see `win_base` role).
 
@@ -110,10 +110,10 @@ The `render_worker`, `ue-ndisplay-start`, and Rivermax sender/receiver playbooks
 
 - **Idempotent tasks**: Check state before changing it. Use `win_stat`/`stat` to verify files exist, `changed_when: false` for read-only commands, `register` + conditional `when:` for skip logic.
 - **Error handling**: Validate after changes (e.g., rivermax role checks DLL + license + adapter after install). Use `ansible.builtin.fail` with actionable error messages.
-- **Preflight patterns**: `ue-ndisplay-start.yml` validates map exists on disk, runs Rivermax preflight checks, primes OVS FDB — all before launching. Follow this pattern for operational playbooks.
+- **Preflight patterns**: `ue-content-start.yml` validates map exists on disk, runs Rivermax preflight checks, primes OVS FDB — all before launching. Follow this pattern for operational playbooks.
 - **Async for long ops**: UE builds use `async: <seconds>` + `poll: 0` + `async_status` polling loop. See `build_pipeline` role.
 - **No Jinja2 template files**: All dynamic content is built inline in playbooks via `win_copy content:` or `set_fact`. Don't add a `templates/` directory.
-- **Playbook headers**: Include usage comments at top of playbooks (see `ue-ndisplay-start.yml` for example).
+- **Playbook headers**: Include usage comments at top of playbooks (see `ue-content-start.yml` for example).
 - **Serial control**: Use `serial: "{{ parallel_nodes | default(omit) }}"` when the user may want throttled rollouts.
 
 ## Key Files
@@ -125,7 +125,7 @@ The `render_worker`, `ue-ndisplay-start`, and Rivermax sender/receiver playbooks
 | `inventories/hrlv-dev/group_vars/ue.yml` | Shared UE config (engine path, Plastic, worker) |
 | `inventories/hrlv-dev/group_vars/ue_content.yml` | nDisplay cluster config (project, map, configs) |
 | `playbooks/site.yml` | Full convergence — applies all roles |
-| `playbooks/ue-ndisplay-start.yml` | Launch nDisplay cluster (preflight → validate → launch) |
+| `playbooks/ue-content-start.yml` | Launch nDisplay cluster (preflight → validate → launch) |
 | `playbooks/deploy.yml` | Day-to-day Plastic sync + worker update |
 | `ansible.cfg` | Default inventory, vault password file, collections paths |
 
@@ -138,8 +138,8 @@ ansible-playbook playbooks/site.yml --limit windows-unreal-render-01
 
 # Day-to-day
 ansible-playbook playbooks/deploy.yml --limit ue
-ansible-playbook playbooks/ue-ndisplay-start.yml
-ansible-playbook playbooks/ue-ndisplay-stop.yml
+ansible-playbook playbooks/ue-content-start.yml
+ansible-playbook playbooks/ue-content-stop.yml
 
 # Dry run (safe to run anytime)
 ansible-playbook playbooks/site.yml --limit ue --check

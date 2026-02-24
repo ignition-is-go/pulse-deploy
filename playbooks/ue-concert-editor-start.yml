@@ -14,6 +14,7 @@
 - name: Check for already-running UE editor
   hosts: ue_editing
   gather_facts: false
+  any_errors_fatal: true
 
   tasks:
     - name: Check if UnrealEditor is running
@@ -30,10 +31,13 @@
 
 - name: GPU health check
   ansible.builtin.import_playbook: gpu-health-check.yml
+  vars:
+    gpu_check_hosts: ue_editing
 
 - name: Launch Concert editor
   hosts: ue_editing
   gather_facts: false
+  any_errors_fatal: true
 
   tasks:
     - name: Check UnrealEditor exists

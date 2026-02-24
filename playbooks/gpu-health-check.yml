@@ -5,15 +5,18 @@
 # Import this into any playbook that requires a functional GPU.
 #
 # Usage:
-#   ansible-playbook playbooks/gpu-check.yml
-#   ansible-playbook playbooks/gpu-check.yml --limit ue_content
+#   ansible-playbook playbooks/gpu-health-check.yml --limit ue_content
+#   ansible-playbook playbooks/gpu-health-check.yml --limit ue_editing
 #
-# Import from another playbook:
-#   - ansible.builtin.import_playbook: gpu-check.yml
+# Import from another playbook (set gpu_check_hosts to scope targets):
+#   - ansible.builtin.import_playbook: gpu-health-check.yml
+#     vars:
+#       gpu_check_hosts: ue_editing
 
 - name: GPU health check
-  hosts: ue_content:ue_previs:ue_editing
+  hosts: "{{ gpu_check_hosts | default('ue') }}"
   gather_facts: false
+  any_errors_fatal: true
 
   tasks:
     - name: Skip if preflight disabled

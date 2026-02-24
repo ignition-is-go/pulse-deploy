@@ -20,13 +20,14 @@
 #   - Firewall rules applied (playbooks/ue-firewall-rules.yml)
 #
 # Usage:
-#   ansible-playbook playbooks/ue-ndisplay-start.yml
-#   ansible-playbook playbooks/ue-ndisplay-start.yml -e "ndisplay_map=/Game/Path/To/Map"
-#   ansible-playbook playbooks/ue-ndisplay-start.yml -e "skip_preflight=true"  # fast relaunch
+#   ansible-playbook playbooks/ue-content-start.yml
+#   ansible-playbook playbooks/ue-content-start.yml -e "ndisplay_map=/Game/Path/To/Map"
+#   ansible-playbook playbooks/ue-content-start.yml -e "skip_preflight=true"  # fast relaunch
 
 - name: Check for already-running UE instances
   hosts: ue_content
   gather_facts: false
+  any_errors_fatal: true
 
   tasks:
     - name: Check if UnrealEditor is running
@@ -38,11 +39,13 @@
 
     - name: Fail if UE is already running
       ansible.builtin.fail:
-        msg: "UnrealEditor is already running on {{ inventory_hostname }}. Run ue-ndisplay-stop.yml first."
+        msg: "UnrealEditor is already running on {{ inventory_hostname }}. Run ue-content-stop.yml first."
       when: "'RUNNING' in ue_running_check.stdout"
 
 - name: GPU health check
   ansible.builtin.import_playbook: gpu-health-check.yml
+  vars:
+    gpu_check_hosts: ue_content
 
 - name: Prime OVS FDB for Rivermax hardware offload
   ansible.builtin.import_playbook: rivermax-arp-prime.yml
@@ -50,6 +53,7 @@
 - name: Preflight and prepare nDisplay launch
   hosts: ue_content
   gather_facts: false
+  any_errors_fatal: true
 
   tasks:
     - name: Validate nDisplay config is set
@@ -73,7 +77,7 @@
       changed_when: false
       when:
         - not (skip_preflight | default(false) | bool)
-        - ndisplay | default('') is match('rivermax.*')
+        - (ndisplay | default('')) is match('rivermax.*')
 
     - name: Fail if Rivermax is not ready
       ansible.builtin.fail:
@@ -175,6 +179,7 @@
 - name: Launch nDisplay cluster
   hosts: ue_content
   gather_facts: false
+  any_errors_fatal: true
 
   tasks:
     - name: Start nDisplay on all nodes
