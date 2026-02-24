@@ -6,6 +6,7 @@ locals {
   windows_gpu_vms = merge(
     var.ue_content,
     var.ue_previs,
+    var.ue_plugin_dev,
     var.touch,
     var.arnold_fusion,
     var.workstation,
@@ -14,6 +15,7 @@ locals {
   windows_gpu_vm_tags = merge(
     { for k, _ in var.ue_content : k => ["windows", "ue", "ue-content", "gpu"] },
     { for k, _ in var.ue_previs : k => ["windows", "ue", "ue-previs", "gpu"] },
+    { for k, _ in var.ue_plugin_dev : k => ["windows", "ue", "ue-plugin-dev", "gpu"] },
     { for k, _ in var.touch : k => ["windows", "touch", "gpu"] },
     { for k, _ in var.arnold_fusion : k => ["windows", "arnold-fusion", "gpu"] },
     { for k, _ in var.workstation : k => ["windows", "workstation", "gpu"] },
@@ -22,6 +24,7 @@ locals {
   windows_gpu_vm_descriptions = merge(
     { for k, _ in var.ue_content : k => "UE nDisplay content render node" },
     { for k, _ in var.ue_previs : k => "UE nDisplay previs render node" },
+    { for k, _ in var.ue_plugin_dev : k => "UE plugin development node" },
     { for k, _ in var.touch : k => "TouchDesigner volumetric content" },
     { for k, _ in var.arnold_fusion : k => "Arnold/Fusion offline render" },
     { for k, _ in var.workstation : k => "Artist workstation" },
@@ -46,21 +49,21 @@ module "windows_gpu_vm" {
   os_type        = "win11"
 
   pci_devices = concat(
-    # GPUs — xvga only on the first GPU
+    # GPUs — all functions, ROM-Bar on, PCIe on, no primary GPU
     [for i, slot in each.value.gpu_slots : {
       device = "hostpci${i}"
       id     = var.proxmox_hosts[each.value.node].gpus[slot]
-      xvga   = false
       pcie   = true
       rombar = true
+      xvga   = false
     }],
     # CX6 VF — next hostpci slot after GPUs
     each.value.cx6_slot != null ? [{
       device = "hostpci${length(each.value.gpu_slots)}"
       id     = var.proxmox_hosts[each.value.node].cx6_vfs[each.value.cx6_slot]
-      xvga   = false
       pcie   = true
       rombar = true
+      xvga   = false
     }] : [],
   )
 

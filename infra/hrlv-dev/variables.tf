@@ -187,6 +187,35 @@ variable "ue_build" {
   default = {}
 }
 
+variable "ue_plugin_dev" {
+  description = "UE plugin development nodes (Windows + GPU)"
+  type = map(object({
+    id        = number
+    ip        = string
+    node      = string
+    cores     = number
+    memory_mb = number
+    disk_gb   = number
+    gpu_slots = list(number)
+    cx6_slot  = optional(number)
+  }))
+  default = {}
+}
+
+variable "win_ue_runner" {
+  description = "Headless UE automation runner nodes (Windows, no GPU)"
+  type = map(object({
+    id        = number
+    ip        = string
+    node      = string
+    cores     = number
+    memory_mb = number
+    disk_gb   = number
+    cx6_slot  = optional(number)
+  }))
+  default = {}
+}
+
 variable "ue_staging" {
   description = "Plastic sync + build distribution nodes (Windows)"
   type = map(object({
