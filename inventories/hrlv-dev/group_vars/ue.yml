@@ -13,6 +13,9 @@ plastic_cloud_org: "{{ vault_plastic_cloud_org }}"
 plastic_cloud_user: "{{ vault_plastic_cloud_user }}"
 plastic_api_key: "{{ vault_plastic_api_key }}"
 
+# Staging sync — NAS/DMZ workspace path (robocopy source for destination nodes)
+staging_workspace_unc: "\\\\192.168.1.70\\deploy\\P-0616-HRLV"
+
 # Render worker (Rust binary)
 worker_path: C:\ue-render-farm
 worker_exe: worker.exe
