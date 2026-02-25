@@ -54,6 +54,22 @@ output "ue_build" {
   } }
 }
 
+output "ue_plugin_dev" {
+  description = "UE plugin development nodes"
+  value = { for k, v in var.ue_plugin_dev : k => {
+    id = v.id
+    ip = v.ip
+  } }
+}
+
+output "win_ue_runner" {
+  description = "Headless UE automation runners"
+  value = { for k, v in var.win_ue_runner : k => {
+    id = v.id
+    ip = v.ip
+  } }
+}
+
 output "ue_staging" {
   description = "UE staging / distribution nodes"
   value = { for k, v in var.ue_staging : k => {

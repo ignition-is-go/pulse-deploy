@@ -144,6 +144,12 @@ variable "protection" {
 
 # --- Overrides ----------------------------------------------------------------
 
+variable "vga_type" {
+  description = "VGA display type (std, qxl, virtio, none). null = Proxmox default"
+  type        = string
+  default     = null
+}
+
 variable "override_bios" {
   description = "Force bios type. null = seabios (default)"
   type        = string

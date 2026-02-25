@@ -26,3 +26,38 @@ provider "proxmox" {
     agent = true
   }
 }
+
+# -----------------------------------------------------------------------------
+# Hostname length guard — Windows NetBIOS limit is 15 characters.
+# Cloudbase-init's SetHostNamePlugin silently truncates longer names, causing
+# the actual hostname to diverge from the Terraform/Ansible inventory name.
+# -----------------------------------------------------------------------------
+
+locals {
+  all_hostnames = concat(
+    keys(var.ue_content),
+    keys(var.ue_previs),
+    keys(var.touch),
+    keys(var.arnold_fusion),
+    keys(var.workstation),
+    keys(var.ue_build),
+    keys(var.ue_plugin_dev),
+    keys(var.win_ue_runner),
+    keys(var.ue_staging),
+    keys(var.optik),
+    keys(var.rship),
+    keys(var.pulse_admin),
+    keys(var.pixelfarm),
+    keys(var.rustdesk),
+  )
+  oversized_hostnames = [for n in local.all_hostnames : "${n} (${length(n)})" if length(n) > 15]
+}
+
+resource "terraform_data" "hostname_length_check" {
+  lifecycle {
+    precondition {
+      condition     = length(local.oversized_hostnames) == 0
+      error_message = "Hostnames exceed 15 chars and will be silently truncated by Windows: ${join(", ", local.oversized_hostnames)}"
+    }
+  }
+}

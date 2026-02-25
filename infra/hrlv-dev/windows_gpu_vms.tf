@@ -47,6 +47,7 @@ module "windows_gpu_vm" {
   datastore_id   = var.proxmox_hosts[each.value.node].storage_id
   network_bridge = var.network_bridge
   os_type        = "win11"
+  vga_type       = "qxl"
 
   pci_devices = concat(
     # GPUs — all functions, ROM-Bar on, PCIe on, no primary GPU

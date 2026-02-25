@@ -1,0 +1,38 @@
+---
+# rustdesk-restart.yml — Full restart of RustDesk (PulseRemoteDesktopVM) service
+#
+# Usage:
+#   ansible-playbook playbooks/rustdesk-restart.yml --limit ue-plugindev-01
+
+- name: Restart RustDesk
+  hosts: windows
+  gather_facts: false
+  tasks:
+    - name: Stop RustDesk service
+      ansible.windows.win_service:
+        name: PulseRemoteDesktopVM
+        state: stopped
+        force_dependent_services: true
+
+    - name: Start RustDesk service
+      ansible.windows.win_service:
+        name: PulseRemoteDesktopVM
+        state: started
+
+    - name: Verify RustDesk is running
+      ansible.windows.win_service:
+        name: PulseRemoteDesktopVM
+      register: rustdesk_svc
+      failed_when: rustdesk_svc.state != 'running'
+
+    - name: Show RustDesk ID
+      ansible.windows.win_command:
+        argv:
+          - C:\Program Files\PulseRemoteDesktopVM\PulseRemoteDesktopVM.exe
+          - --get-id
+      register: rustdesk_id
+      changed_when: false
+
+    - name: Display RustDesk ID
+      ansible.builtin.debug:
+        msg: "RustDesk ID: {{ rustdesk_id.stdout | trim }}"

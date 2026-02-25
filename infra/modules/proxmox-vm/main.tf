@@ -101,6 +101,13 @@ resource "proxmox_virtual_environment_vm" "this" {
     }
   }
 
+  dynamic "vga" {
+    for_each = var.vga_type != null ? [1] : []
+    content {
+      type = var.vga_type
+    }
+  }
+
   operating_system {
     type = var.os_type
   }

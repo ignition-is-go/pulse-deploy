@@ -4,7 +4,7 @@
 # Unreal Engine paths
 unreal_engine_dir: "F:/Epic Games/UE_5.7"
 unreal_exe: "{{ unreal_engine_dir }}/Engine/Binaries/Win64/UnrealEditor.exe"
-ue_installer_source: "{{ deploy_share }}\\installers\\ue"
+ue_installer_source: "{{ deploy_share }}\\installers\\unreal-engine\\5.7"
 
 # Plastic SCM
 plastic_exe: "C:/Program Files/PlasticSCM5/client/cm.exe"
