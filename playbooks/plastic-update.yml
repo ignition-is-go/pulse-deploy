@@ -8,7 +8,8 @@
   gather_facts: true
   ignore_unreachable: true
   tasks:
-    - ansible.builtin.include_role:
+    - name: Include Plastic SCM sync tasks
+      ansible.builtin.include_role:
         name: plastic_scm
         tasks_from: windows_sync.yml
       when: ansible_os_family == "Windows" and plastic_workspace | length > 0

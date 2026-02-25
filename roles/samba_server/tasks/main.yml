@@ -49,6 +49,7 @@
       {{ smb_password }}
       {{ smb_password }}
   when: pdbedit_check.rc != 0
+  changed_when: true
   no_log: true
 
 - name: Update Samba password
@@ -70,10 +71,11 @@
     section: global
     option: "{{ item.option }}"
     value: "{{ item.value }}"
+    mode: "0644"
   loop:
     - { option: map to guest, value: never }
     - { option: server min protocol, value: SMB2_02 }
-  notify: reload smbd
+  notify: Reload smbd
 
 - name: Configure deploy share
   community.general.ini_file:
@@ -81,6 +83,7 @@
     section: deploy
     option: "{{ item.option }}"
     value: "{{ item.value }}"
+    mode: "0644"
   loop:
     - { option: path, value: /mnt/deploy }
     - { option: browseable, value: "yes" }
@@ -90,7 +93,7 @@
     - { option: force user, value: "{{ smb_user }}" }
     - { option: create mask, value: "0664" }
     - { option: directory mask, value: "0775" }
-  notify: reload smbd
+  notify: Reload smbd
 
 - name: Validate smb.conf
   ansible.builtin.command:

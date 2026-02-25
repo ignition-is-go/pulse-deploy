@@ -4,7 +4,7 @@
 # Usage:
 #   ansible-playbook playbooks/ue-firewall-rules.yml
 
-- name: nDisplay firewall rules
+- name: UE nDisplay firewall rules
   hosts: ue_content
   gather_facts: false
 

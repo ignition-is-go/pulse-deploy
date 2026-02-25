@@ -1,5 +1,5 @@
 ---
-- name: reload smbd
+- name: Reload smbd
   ansible.builtin.service:
     name: smbd
     state: reloaded

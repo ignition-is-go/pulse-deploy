@@ -100,7 +100,7 @@
     level: machine
     state: present
 
-- name: Set RIVERMAX_PATH_{{ rivermax_sdk_version }} system environment variable
+- name: "Set RIVERMAX_PATH system environment variable — {{ rivermax_sdk_version }}"
   ansible.windows.win_environment:
     name: "RIVERMAX_PATH_{{ rivermax_sdk_version }}"
     value: "{{ rivermax_install_dir }}"
@@ -164,7 +164,10 @@
 
 - name: Check Mellanox adapter is visible
   ansible.windows.win_shell: |
-    Get-NetAdapter | Where-Object { $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*' } | Format-Table Name, InterfaceDescription, Status -AutoSize
+    Get-NetAdapter |
+      Where-Object { $_.InterfaceDescription -like '*Mellanox*' -or
+                     $_.InterfaceDescription -like '*ConnectX*' } |
+      Format-Table Name, InterfaceDescription, Status -AutoSize
   register: adapter_check
   changed_when: false
 

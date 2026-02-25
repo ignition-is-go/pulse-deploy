@@ -6,7 +6,8 @@
   hosts: "{{ plastic_install_hosts | default('ue') }}"
   gather_facts: true
   tasks:
-    - ansible.builtin.include_role:
+    - name: Include Plastic SCM install tasks
+      ansible.builtin.include_role:
         name: plastic_scm
         tasks_from: windows_install.yml
       when: ansible_os_family == "Windows" and plastic_workspace | length > 0

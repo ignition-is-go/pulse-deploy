@@ -15,7 +15,7 @@
   failed_when: false
   changed_when: false
 
-- name: cm update --last
+- name: Run cm update --last
   when: workspace_check.stat.exists
   ansible.windows.win_shell: |
     cd "{{ plastic_workspace }}"

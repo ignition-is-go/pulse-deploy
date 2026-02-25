@@ -43,7 +43,10 @@
     - name: Write TX launch script
       ansible.windows.win_copy:
         content: |
-          & "{{ rmax_sender }}" -s C:\temp\rmax-tx.sdp --src-ip={{ media_ip }} --dst-ip={{ rmax_dst_ip }} --dst-port={{ rmax_dst_port }} --fps={{ rmax_fps }} -v system 2>&1 | Tee-Object -FilePath C:\temp\rmax-tx.log
+          & "{{ rmax_sender }}" -s C:\temp\rmax-tx.sdp `
+            --src-ip={{ media_ip }} --dst-ip={{ rmax_dst_ip }} `
+            --dst-port={{ rmax_dst_port }} --fps={{ rmax_fps }} `
+            -v system 2>&1 | Tee-Object -FilePath C:\temp\rmax-tx.log
         dest: C:\temp\rmax-tx.ps1
 
     - name: Create TX scheduled task

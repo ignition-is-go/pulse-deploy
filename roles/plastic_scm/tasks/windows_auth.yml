@@ -31,7 +31,12 @@
 - name: Configure Plastic SCM client
   when: not client_conf.stat.exists
   ansible.windows.win_shell: |
-    & "{{ plastic_exe }}" configure --language=en --workingmode=SSOWorkingMode --server="{{ plastic_cloud_org }}@cloud" --user="{{ plastic_cloud_user }}" --token="{{ plastic_api_key }}" 2>&1
+    & "{{ plastic_exe }}" configure `
+      --language=en `
+      --workingmode=SSOWorkingMode `
+      --server="{{ plastic_cloud_org }}@cloud" `
+      --user="{{ plastic_cloud_user }}" `
+      --token="{{ plastic_api_key }}" 2>&1
   no_log: true
 
 - name: Check if cloud profile exists
@@ -44,7 +49,11 @@
 - name: Create cloud auth profile
   when: "'NONE' in profile_check.stdout"
   ansible.windows.win_shell: |
-    & "{{ plastic_exe }}" profile create --server="{{ plastic_cloud_org }}@cloud" --username="{{ plastic_cloud_user }}" --token="{{ plastic_api_key }}" --workingmode=SSOWorkingMode 2>&1
+    & "{{ plastic_exe }}" profile create `
+      --server="{{ plastic_cloud_org }}@cloud" `
+      --username="{{ plastic_cloud_user }}" `
+      --token="{{ plastic_api_key }}" `
+      --workingmode=SSOWorkingMode 2>&1
   no_log: true
   register: profile_result
 

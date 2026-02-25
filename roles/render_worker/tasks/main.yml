@@ -37,7 +37,10 @@
     $action = New-ScheduledTaskAction -Execute "{{ worker_path }}\{{ worker_exe }}" -WorkingDirectory "{{ worker_path }}" -Argument "{{ render_server_url }}"
     $trigger = New-ScheduledTaskTrigger -AtLogon
     $principal = New-ScheduledTaskPrincipal -UserId "$env:USERNAME" -LogonType Interactive -RunLevel Highest
-    $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -RestartCount 3 -RestartInterval (New-TimeSpan -Minutes 1)
+    $settings = New-ScheduledTaskSettingsSet `
+      -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries `
+      -StartWhenAvailable -RestartCount 3 `
+      -RestartInterval (New-TimeSpan -Minutes 1)
     Register-ScheduledTask -TaskName "{{ worker_task_name }}" -Action $action -Trigger $trigger -Principal $principal -Settings $settings -Force | Out-Null
     Write-Host "Scheduled task created"
   when: "'not_found' in task_check.stdout"

@@ -11,12 +11,12 @@
 # Optional variables:
 #   graceful_timeout: Seconds to wait before force-kill (default: 15)
 
-- name: "Check if {{ process_name }} is running"
+- name: "Check if process is running — {{ process_name }}"
   ansible.windows.win_command: tasklist /FI "IMAGENAME eq {{ process_name }}.exe" /NH
   register: _stop_check
   changed_when: false
 
-- name: "{{ process_name }} not running — nothing to stop"
+- name: "Process not running, nothing to stop — {{ process_name }}"
   ansible.builtin.debug:
     msg: "{{ inventory_hostname }}: {{ process_name }} is not running, skipping."
   when: (process_name + '.exe') not in _stop_check.stdout
@@ -24,7 +24,7 @@
 - name: "Graceful stop {{ process_name }}"
   when: (process_name + '.exe') in _stop_check.stdout
   block:
-    - name: "Write {{ process_name }} graceful stop script"
+    - name: "Write graceful stop script — {{ process_name }}"
       ansible.windows.win_copy:
         content: |
           @echo off
@@ -49,7 +49,7 @@
       ansible.windows.win_shell: |
         Start-ScheduledTask -TaskName "{{ process_name }}GracefulStop"
 
-    - name: "Wait for {{ process_name }} graceful exit"
+    - name: "Wait for graceful exit — {{ process_name }}"
       ansible.windows.win_shell: |
         if (Get-Process -Name {{ process_name }} -ErrorAction SilentlyContinue) { Write-Host "RUNNING" } else { Write-Host "STOPPED" }
       register: _graceful_result
@@ -59,11 +59,11 @@
       failed_when: false
       changed_when: _graceful_result.stdout | trim == 'STOPPED'
 
-    - name: "{{ process_name }} graceful exit result"
+    - name: "Graceful exit result — {{ process_name }}"
       ansible.builtin.debug:
         msg: "{{ inventory_hostname }}: {{ 'graceful stop succeeded' if _graceful_result.stdout | trim == 'STOPPED' else 'timed out — process still running' }}"
 
-    - name: "Force-kill {{ process_name }} if graceful shutdown timed out"
+    - name: "Force-kill if graceful shutdown timed out — {{ process_name }}"
       ansible.windows.win_shell: |
         Get-Process -Name {{ process_name }} -ErrorAction SilentlyContinue | Stop-Process -Force
       register: _force_result

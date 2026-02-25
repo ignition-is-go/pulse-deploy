@@ -1,0 +1,10 @@
+---
+exclude_paths:
+  - infra/
+  - inventories/*/group_vars/all/vault.yml
+
+# apply-role.yml uses {{ target }} which is undefined at lint time
+extra_vars:
+  target: all
+  role_name: win_base
+  tasks_from: main

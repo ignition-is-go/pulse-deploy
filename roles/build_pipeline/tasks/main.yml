@@ -2,6 +2,10 @@
 # build_pipeline — Build UE, stage to SMB, distribute
 # Consolidates cl-build-unreal.yml, build-and-monitor.yml,
 # copy-build-to-nfs.yml, distribute-build-to-previs.yml
+#
+# TODO: This role is untested. defaults/main.yml has stale values (UE_5.6),
+# smb_drive_letter is undefined, CMD line continuations need validation.
+# Needs full rewrite and testing before production use.
 
 - name: Start Unreal Build
   args:
@@ -22,7 +26,9 @@
 
 - name: Wait for build to complete
   ansible.windows.win_shell: |
-    while (!(Test-Path "{{ build_log }}") -or !((Get-Content "{{ build_log }}" -Tail 5) -match "BUILD SUCCESSFUL|BUILD FAILED|AutomationTool exiting|ExitCode=")) {
+    $pattern = "BUILD SUCCESSFUL|BUILD FAILED|AutomationTool exiting|ExitCode="
+    while (!(Test-Path "{{ build_log }}") -or
+           !((Get-Content "{{ build_log }}" -Tail 5) -match $pattern)) {
       Start-Sleep -Seconds 2
     }
     "Build complete"
@@ -44,7 +50,10 @@
 
 - name: Find latest build folder
   ansible.windows.win_shell: |
-    Get-ChildItem "{{ build_dir }}" -Directory | Where-Object { $_.Name -like "Windows_*" } | Sort-Object LastWriteTime -Descending | Select-Object -First 1 -ExpandProperty FullName
+    Get-ChildItem "{{ build_dir }}" -Directory |
+      Where-Object { $_.Name -like "Windows_*" } |
+      Sort-Object LastWriteTime -Descending |
+      Select-Object -First 1 -ExpandProperty FullName
   register: latest_build
 
 - name: Copy build to SMB share

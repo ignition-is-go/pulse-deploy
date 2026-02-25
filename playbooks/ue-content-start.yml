@@ -7,7 +7,7 @@
 #
 #   UnrealEditor.exe "Project.uproject" -game None -messaging -dc_cluster -nosplash
 #     -dc_cfg="path/to/config.ndisplay" -dc_node=Node_0 -dc_dev_mono
-#     -ini:Engine:[/Script/Engine.Engine]:GameEngine=/Script/DisplayCluster.DisplayClusterGameEngine,[/Script/Engine.Engine]:GameViewportClientClassName=/Script/DisplayCluster.DisplayClusterViewportClient
+#     -ini:Engine:[/Script/Engine.Engine]:GameEngine=...DisplayClusterGameEngine,...  (truncated, see launch task below)
 #     -ini:Game:[/Script/EngineSettings.GeneralProjectSettings]:bUseBorderlessWindow=True
 #     -ini:Input:[/Script/Engine.InputSettings]:DefaultPlayerInputClass=/Script/DisplayCluster.DisplayClusterPlayerInput
 #     -unattended -NoScreenMessages -fixedseed -NoVerifyGC -noxrstereo
@@ -79,7 +79,10 @@
 
     - name: Fail if Rivermax is not ready
       ansible.builtin.fail:
-        msg: "Rivermax preflight FAILED on {{ inventory_hostname }}: {{ rivermax_preflight.stdout | trim }}. Fix: ansible-playbook playbooks/rivermax-setup.yml --limit {{ inventory_hostname }}"
+        msg: >-
+          Rivermax preflight FAILED on {{ inventory_hostname }}:
+          {{ rivermax_preflight.stdout | trim }}.
+          Fix: ansible-playbook playbooks/rivermax-setup.yml --limit {{ inventory_hostname }}
       when:
         - rivermax_preflight is not skipped
         - "'FAIL' in rivermax_preflight.stdout"

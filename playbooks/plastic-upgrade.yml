@@ -15,7 +15,8 @@
   serial: "{{ parallel_nodes | default(omit) }}"
 
   tasks:
-    - ansible.builtin.include_role:
+    - name: Include Plastic SCM upgrade tasks
+      ansible.builtin.include_role:
         name: plastic_scm
         tasks_from: windows_upgrade.yml
       when: ansible_os_family == "Windows" and plastic_workspace | length > 0
