@@ -54,7 +54,7 @@ Layer 3: Applications  → unreal_engine, render_worker, arnold, optik, rship
 
 ```
 all
-├─ windows          (WinRM NTLM :5985)
+├─ windows          (WinRM NTLM :5985, become: runas for SMB access)
 │  ├─ ue
 │  │  ├─ ue_content   (4 nDisplay render nodes, rivermax: true)
 │  │  ├─ ue_previs    (1 previs editor, rivermax: true)
@@ -88,6 +88,8 @@ Get this right or things break silently:
 ## Windows / WinRM Constraints
 
 This is the #1 source of bugs. Understand it before writing any Windows task.
+
+**WinRM double-hop is solved via `become: runas`.** WinRM's NTLM transport creates a network logon (type 3) — credentials cannot be forwarded to a second network resource (e.g., SMB share on the NAS). All Windows hosts have `ansible_become: true` / `ansible_become_method: runas` in `hosts.yml`, which creates an interactive logon token (type 2) with full credential material. This means `win_stat`, `win_copy`, `win_command` etc. can access UNC paths (`\\192.168.1.70\deploy`) without any `net use` hacks. The `seclogon` (Secondary Logon) service must be running — `win_base` ensures this. **NEVER use `net use` with credentials in tasks to work around SMB access issues.** If UNC access fails, the problem is `become` configuration, not missing `net use`.
 
 **WinRM runs in Session 0** — an isolated service session, NOT the interactive desktop. Anything done via `win_shell` is invisible to the logged-in user:
 - Mapped drives don't appear

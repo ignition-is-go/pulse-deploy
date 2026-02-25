@@ -1,0 +1,106 @@
+---
+# samba_server — Layer 2: Samba deploy share on pulse-admin
+#
+# Manages the authenticated SMB share that Windows VMs use to access
+# installers, workspaces, and deployment files on the NAS.
+#
+# The Samba user matches the Windows VM credentials so NTLM auth
+# is transparent — no net use or credential mapping needed.
+#
+# Requires (group_vars):
+#   smb_user: Samba username (must match Windows ansible_user)
+#   smb_password: Samba password (must match Windows ansible_password)
+#
+# Sources:
+#   https://wiki.samba.org/index.php/Setting_up_Samba_as_a_Standalone_Server
+#   https://www.samba.org/samba/docs/current/man-html/smb.conf.5.html
+
+- name: Ensure Samba is installed
+  ansible.builtin.apt:
+    name: samba
+    state: present
+
+- name: Create SMB service account
+  ansible.builtin.user:
+    name: "{{ smb_user }}"
+    system: true
+    create_home: false
+    shell: /usr/sbin/nologin
+
+- name: Check if user exists in Samba passdb
+  ansible.builtin.command:
+    argv:
+      - pdbedit
+      - -L
+      - "{{ smb_user }}"
+  register: pdbedit_check
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: Add user to Samba passdb
+  ansible.builtin.command:
+    argv:
+      - smbpasswd
+      - -a
+      - -s
+      - "{{ smb_user }}"
+    stdin: |-
+      {{ smb_password }}
+      {{ smb_password }}
+  when: pdbedit_check.rc != 0
+  no_log: true
+
+- name: Update Samba password
+  ansible.builtin.command:
+    argv:
+      - smbpasswd
+      - -s
+      - "{{ smb_user }}"
+    stdin: |-
+      {{ smb_password }}
+      {{ smb_password }}
+  when: pdbedit_check.rc == 0
+  no_log: true
+  changed_when: false
+
+- name: Configure global settings
+  community.general.ini_file:
+    path: /etc/samba/smb.conf
+    section: global
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+  loop:
+    - { option: map to guest, value: never }
+    - { option: server min protocol, value: SMB2_02 }
+  notify: reload smbd
+
+- name: Configure deploy share
+  community.general.ini_file:
+    path: /etc/samba/smb.conf
+    section: deploy
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+  loop:
+    - { option: path, value: /mnt/deploy }
+    - { option: browseable, value: "yes" }
+    - { option: read only, value: "no" }
+    - { option: guest ok, value: "no" }
+    - { option: valid users, value: "{{ smb_user }}" }
+    - { option: force user, value: "{{ smb_user }}" }
+    - { option: create mask, value: "0664" }
+    - { option: directory mask, value: "0775" }
+  notify: reload smbd
+
+- name: Validate smb.conf
+  ansible.builtin.command:
+    argv:
+      - testparm
+      - -s
+  changed_when: false
+
+- name: Ensure Samba is running and enabled
+  ansible.builtin.service:
+    name: smbd
+    state: started
+    enabled: true

@@ -3,6 +3,12 @@
 # Ensures WinRM, firewall, auto-logon, and power settings are correct.
 # Prerequisite: scripts/bootstrap-ansible.ps1 must have been run via Proxmox console first.
 
+- name: Ensure Secondary Logon service is running
+  ansible.windows.win_service:
+    name: seclogon
+    start_mode: auto
+    state: started
+
 - name: Ensure WinRM service is running
   ansible.windows.win_service:
     name: WinRM
