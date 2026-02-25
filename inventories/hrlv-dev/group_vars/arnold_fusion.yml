@@ -1,6 +1,8 @@
 ---
 # Arnold/Fusion render node configuration
 
+nvidia_supported_gpus: ["RTX 6000 Ada"]
+
 # TODO: Set Arnold/Fusion paths when provisioning these nodes
 # arnold_install_dir: "C:/Program Files/Autodesk/Arnold"
 # fusion_install_dir: "C:/Program Files/Blackmagic Design/Fusion"

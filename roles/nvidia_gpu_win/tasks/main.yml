@@ -1,44 +1,67 @@
 ---
-# nvidia_gpu_win — Layer 1: NVIDIA GPU driver validation (Windows)
-# Verifies GPU is detected and driver is installed.
-# Driver installation is done manually or via NVIDIA Enterprise tools;
-# this role validates state and reports issues.
+# nvidia_gpu_win -- Layer 1: NVIDIA GPU driver installation and validation (Windows)
+#
+# Detects NVIDIA GPU via PCI vendor ID, installs driver if missing,
+# validates GPU model against nvidia_supported_gpus after driver is present.
+#
+# Requires (group_vars):
+#   nvidia_driver_source: UNC path to NVIDIA driver exe on NAS
+#   nvidia_supported_gpus: list of GPU name substrings this driver supports
+#     e.g. ["RTX A4000", "RTX 6000 Ada"]
 
-- name: Check for NVIDIA GPU
+- name: Detect NVIDIA PCI hardware
   ansible.windows.win_shell: |
-    $gpu = Get-WmiObject Win32_VideoController | Where-Object { $_.Name -like '*NVIDIA*' }
-    if ($gpu) {
-      Write-Host "found"
-      Write-Host "Name: $($gpu.Name)"
-      Write-Host "Driver: $($gpu.DriverVersion)"
-    } else {
-      Write-Host "not_found"
-    }
-  register: gpu_check
+    $pci = Get-WmiObject Win32_PnPEntity | Where-Object { $_.DeviceID -like '*VEN_10DE*' -and $_.DeviceID -like 'PCI*' }
+    if ($pci) { "found" } else { "not_found" }
+  register: gpu_pci_detect
   changed_when: false
-
-- name: Display GPU status
-  ansible.builtin.debug:
-    msg: "{{ gpu_check.stdout | trim }}"
 
 - name: Fail if no NVIDIA GPU detected
   ansible.builtin.fail:
     msg: "No NVIDIA GPU detected on {{ inventory_hostname }}. Check PCI passthrough configuration."
-  when: "'not_found' in gpu_check.stdout"
+  when: "'not_found' in gpu_pci_detect.stdout"
 
-- name: Check NVIDIA SMI
-  ansible.windows.win_shell: |
-    $nvsmi = "C:\Windows\System32\nvidia-smi.exe"
-    if (Test-Path $nvsmi) {
-      & $nvsmi --query-gpu=name,driver_version,memory.total --format=csv,noheader
-    } else {
-      Write-Host "nvidia-smi not found"
-    }
+- name: Check if NVIDIA driver installed
+  ansible.windows.win_stat:
+    path: C:\Windows\System32\nvidia-smi.exe
   register: nvsmi_check
-  changed_when: false
-  failed_when: false
 
-- name: Display nvidia-smi output
+- name: Copy NVIDIA driver from NAS
+  ansible.windows.win_copy:
+    src: "{{ nvidia_driver_source }}"
+    dest: C:\Windows\Temp\nvidia-driver.exe
+    remote_src: true
+  when: not nvsmi_check.stat.exists
+
+- name: Install NVIDIA driver (silent)
+  ansible.windows.win_shell: >-
+    Start-Process -FilePath "C:\Windows\Temp\nvidia-driver.exe"
+    -ArgumentList "-s -noreboot -noeula"
+    -Wait -PassThru
+  when: not nvsmi_check.stat.exists
+  async: 600
+  poll: 15
+
+- name: Query GPU via nvidia-smi
+  ansible.windows.win_command:
+    argv:
+      - C:\Windows\System32\nvidia-smi.exe
+      - --query-gpu=name,driver_version,memory.total
+      - --format=csv,noheader
+  register: nvsmi_verify
+  changed_when: false
+
+- name: Set GPU model fact
+  ansible.builtin.set_fact:
+    gpu_model: "{{ nvsmi_verify.stdout | trim }}"
+
+- name: Display GPU info
   ansible.builtin.debug:
-    msg: "{{ nvsmi_check.stdout | trim }}"
-  when: "'not found' not in nvsmi_check.stdout"
+    msg: "{{ gpu_model }}"
+
+- name: Validate GPU is supported by configured driver
+  ansible.builtin.fail:
+    msg: >-
+      GPU '{{ gpu_model }}' on {{ inventory_hostname }} is not in nvidia_supported_gpus: {{ nvidia_supported_gpus }}.
+      Check group_vars — the configured driver may be wrong for this GPU.
+  when: nvidia_supported_gpus | select('in', gpu_model) | list | length == 0
