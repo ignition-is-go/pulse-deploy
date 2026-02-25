@@ -1,0 +1,27 @@
+---
+# git/tasks/clone.yml — Clone git repos defined in git_repos
+#
+# Requires:
+#   git_repos: list of {repo, dest} dicts
+#
+# Usage in site.yml:
+#   - ansible.builtin.include_role:
+#       name: git
+#       tasks_from: clone
+
+- name: Clone git repos
+  ansible.windows.win_command:
+    argv:
+      - C:\Program Files\Git\cmd\git.exe
+      - clone
+      - "{{ item.repo }}"
+      - "{{ item.dest }}"
+    creates: "{{ item.dest }}\\.git"
+  loop: "{{ git_repos }}"
+
+- name: Verify git repos cloned
+  ansible.windows.win_stat:
+    path: "{{ item.dest }}\\.git"
+  register: git_clone_verify
+  failed_when: not git_clone_verify.stat.exists
+  loop: "{{ git_repos }}"

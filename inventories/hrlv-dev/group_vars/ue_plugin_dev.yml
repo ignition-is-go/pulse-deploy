@@ -1,7 +1,11 @@
 ---
 # UE plugin development node — full editor with GPU, C: drive
+nvidia_supported_gpus: ["RTX A4000"]
 unreal_engine_dir: "C:/Epic Games/UE_5.7"
 plastic_workspace: "C:/P-0616-HRLV"
 unreal_project: "C:/P-0616-HRLV/ue/HRLV_Content/HRLV_Content.uproject"
-git_installer_source: "{{ deploy_share }}\\installers\\Git-2.53.0-64-bit.exe"
-vs_buildtools_installer_source: "{{ deploy_share }}\\installers\\vs_buildtools.exe"
+git_installer_source: "{{ deploy_share }}\\installers\\Git-2.53.0-64-bit\\Git-2.53.0-64-bit.exe"
+vs_buildtools_layout_source: "{{ deploy_share }}\\installers\\vs_BuildTools"
+git_repos:
+  - repo: "git@github.com:ignition-is-go/pulse-unreal.git"
+    dest: "C:/pulse-unreal"

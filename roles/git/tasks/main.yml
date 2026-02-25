@@ -1,8 +1,9 @@
 ---
-# git — Git for Windows installation (if missing) and validation
+# git — Git for Windows installation and SSH deploy key configuration
 #
 # Requires (group_vars):
 #   git_installer_source: UNC path to Git for Windows exe on NAS
+#   git_deploy_key: (optional) SSH private key for GitHub auth
 
 - name: Check if Git installed
   ansible.windows.win_stat:
@@ -17,13 +18,55 @@
   when: not git_check.stat.exists
 
 - name: Install Git for Windows (silent)
-  ansible.windows.win_shell: >-
-    Start-Process -FilePath "C:\Windows\Temp\git-installer.exe"
-    -ArgumentList "/VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh"
-    -Wait -PassThru
+  ansible.windows.win_package:
+    path: C:\Windows\Temp\git-installer.exe
+    arguments: /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh
+    state: present
+    product_id: Git_is1
   when: not git_check.stat.exists
 
 - name: Verify git is callable
-  ansible.windows.win_shell: >-
-    & "C:\Program Files\Git\cmd\git.exe" --version
+  ansible.windows.win_command:
+    argv:
+      - C:\Program Files\Git\cmd\git.exe
+      - --version
   changed_when: false
+
+- name: Create .ssh directory
+  ansible.windows.win_file:
+    path: C:\Users\{{ ansible_user }}\.ssh
+    state: directory
+  when: git_deploy_key is defined
+
+- name: Deploy SSH key
+  ansible.windows.win_copy:
+    content: "{{ git_deploy_key }}\n"
+    dest: C:\Users\{{ ansible_user }}\.ssh\id_ed25519
+  when: git_deploy_key is defined
+  no_log: true
+
+- name: Scan GitHub host keys
+  ansible.windows.win_command:
+    argv:
+      - C:\Program Files\Git\usr\bin\ssh-keyscan.exe
+      - github.com
+  register: github_host_keys
+  changed_when: false
+  when: git_deploy_key is defined
+
+- name: Set GitHub known hosts
+  ansible.windows.win_copy:
+    content: "{{ github_host_keys.stdout }}"
+    dest: C:\Users\{{ ansible_user }}\.ssh\known_hosts
+  when: git_deploy_key is defined
+
+- name: Verify SSH auth to GitHub
+  ansible.windows.win_command:
+    argv:
+      - C:\Program Files\Git\usr\bin\ssh.exe
+      - -T
+      - git@github.com
+  register: git_ssh_verify
+  changed_when: false
+  failed_when: "'successfully authenticated' not in git_ssh_verify.stderr"
+  when: git_deploy_key is defined

@@ -1,0 +1,15 @@
+---
+# apply-role.yml — Run a single role against a target for iterative development
+#
+# Usage:
+#   ansible-playbook playbooks/apply-role.yml -e target=ue-plugin-dev-01 -e role_name=win_base
+#   ansible-playbook playbooks/apply-role.yml -e target=ue_staging -e role_name=plastic_scm
+#   ansible-playbook playbooks/apply-role.yml -e target=ue-plugin-dev-01 -e role_name=nvidia_gpu_win --check
+
+- hosts: "{{ target }}"
+  gather_facts: true
+  tasks:
+    - name: "Apply role: {{ role_name }}"
+      ansible.builtin.include_role:
+        name: "{{ role_name }}"
+        tasks_from: "{{ tasks_from | default('main') }}"

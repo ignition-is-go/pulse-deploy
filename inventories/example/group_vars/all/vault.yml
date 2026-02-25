@@ -11,3 +11,7 @@ vault_ansible_password: "changeme"
 # vault_plastic_cloud_org: ""
 # vault_render_server_url: ""
 # vault_linux_ssh_user: ""
+# vault_git_deploy_key: |
+#   -----BEGIN OPENSSH PRIVATE KEY-----
+#   <paste key here>
+#   -----END OPENSSH PRIVATE KEY-----
