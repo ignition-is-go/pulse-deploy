@@ -32,8 +32,8 @@
     - role: rivermax
       when: rivermax | default(false)
 
-- name: All UE nodes — shared layers
-  hosts: ue
+- name: Plastic SCM — staging and plugin dev nodes
+  hosts: ue_staging:ue_plugin_dev
   gather_facts: false
   roles:
     - plastic_scm
@@ -62,17 +62,23 @@
   hosts: ue_plugin_dev
   gather_facts: false
   roles:
-    - unreal_engine
     - git
     - vs_buildtools
+    - unreal_engine
+  tasks:
+    - name: Clone git repos
+      ansible.builtin.include_role:
+        name: git
+        tasks_from: clone
+      when: git_repos is defined
 
 - name: UE automation runners
   hosts: win_ue_runner
   gather_facts: false
   roles:
-    - unreal_engine
     - git
     - vs_buildtools
+    - unreal_engine
 
 - name: Touch nodes
   hosts: touch
@@ -93,6 +99,12 @@
   roles:
     - linux_base
 
+- name: Pulse admin — deploy share
+  hosts: pulse_admin
+  gather_facts: false
+  roles:
+    - samba_server
+
 - name: Optik
   hosts: optik
   gather_facts: false
@@ -100,7 +112,7 @@
     - nvidia_gpu_linux
     - optik
 
-- name: rship workers
+- name: Rship server nodes
   hosts: rship
   gather_facts: false
   roles:
