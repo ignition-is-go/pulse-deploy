@@ -363,7 +363,7 @@ ansible-playbook playbooks/site.yml --limit ue --check
 ansible-playbook playbooks/status.yml
 ansible-playbook playbooks/ptp-status.yml
 ansible-playbook playbooks/plastic-status.yml
-ansible all -m ping --limit windows
+ansible windows -m ansible.windows.win_ping
 
 # Vault operations
 ansible-vault edit inventories/hrlv-dev/group_vars/all/vault.yml
