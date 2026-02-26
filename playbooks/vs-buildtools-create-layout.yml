@@ -7,7 +7,7 @@
 # Components match UE 5.7 requirements per Epic docs.
 #
 # Usage:
-#   ansible-playbook playbooks/vs-buildtools-create-layout.yml --limit ue-plugin-dev-01
+#   ansible-playbook playbooks/vs-buildtools-create-layout.yml --limit ue-plugindev-01
 #
 # Sources:
 #   https://dev.epicgames.com/documentation/en-us/unreal-engine/setting-up-visual-studio-development-environment-for-cplusplus-projects-in-unreal-engine
@@ -18,7 +18,7 @@
   gather_facts: false
   vars:
     layout_local: C:\vs_BuildTools_layout
-    layout_nas: "{{ deploy_share }}\\installers\\vs_BuildTools"
+    layout_nas: "{{ deploy_share }}\\installers\\vs-buildtools\\17.14"
     bootstrapper_url: "https://aka.ms/vs/17/release/vs_buildtools.exe"
 
   tasks:
@@ -87,7 +87,10 @@
     - name: "Monitor layout copy progress"
       ansible.windows.win_shell: |
         $log = "C:\Windows\Temp\robocopy-vs-layout-to-nas.log"
-        if (Test-Path $log) { (Get-Content $log -Tail 1).Trim() }
+        if (Test-Path $log) {
+          $line = (Get-Content $log -Tail 1).Trim()
+          if ($line) { [Console]::Error.WriteLine($line) }
+        }
         $procs = Get-Process -Name Robocopy -ErrorAction SilentlyContinue |
           Where-Object { $_.StartTime -gt (Get-Date).AddMinutes(-35) }
         if ($procs) { exit 1 } else { exit 0 }

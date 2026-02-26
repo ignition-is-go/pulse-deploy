@@ -89,7 +89,7 @@
 
 - name: Copy RustDesk installer from NAS
   ansible.windows.win_copy:
-    src: "{{ deploy_share }}\\installers\\pulseremotedesktopvm\\pulseremotedesktopvm.msi"
+    src: "{{ deploy_share }}\\installers\\rustdesk\\1.4.3\\pulseremotedesktopvm.msi"
     dest: C:\Windows\Temp\pulseremotedesktopvm.msi
     remote_src: true
   when: not rustdesk_check.stat.exists
@@ -124,6 +124,14 @@
       - --set-id
       - "{{ rustdesk_id }}"
   when: rustdesk_id is defined and rustdesk_current_id.stdout | trim != rustdesk_id
+
+- name: Install NuGet package provider
+  ansible.windows.win_shell: Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
+  changed_when: false
+
+- name: Install DisplayConfig PowerShell module
+  ansible.windows.win_shell: Install-Module -Name DisplayConfig -RequiredVersion 1.1.1 -Force -Scope AllUsers -AllowClobber
+  changed_when: false
 
 - name: Set high performance power plan
   ansible.windows.win_shell: |

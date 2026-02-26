@@ -2,7 +2,6 @@
 # nDisplay cluster configuration
 
 nvidia_supported_gpus: ["RTX 6000 Ada"]
-edid_file: "{{ deploy_share }}\\edids\\60Hz 8Bit\\2560x1440 QHD@60Hz 8Bit.bin"
 
 plastic_workspace: "F:/P-0616-HRLV"
 unreal_project: "F:/P-0616-HRLV/ue/HRLV_Content/HRLV_Content.uproject"

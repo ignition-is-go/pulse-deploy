@@ -1,0 +1,89 @@
+---
+# vdd-set-resolution.yml — Set VDD virtual display resolution
+#
+# Display config APIs require the interactive desktop session, so
+# this runs via scheduled task with interactive_token logon.
+# Requires: win_base role (installs NuGet + DisplayConfig module).
+#
+# Usage:
+#   ansible-playbook playbooks/vdd-set-resolution.yml --limit ue-plugindev-01
+#   ansible-playbook playbooks/vdd-set-resolution.yml --limit ue-plugindev-01 -e vdd_width=1920 -e vdd_height=1080
+
+- name: Set VDD resolution
+  hosts: windows
+  gather_facts: false
+  vars:
+    vdd_width: 2560
+    vdd_height: 1440
+  tasks:
+    - name: Write resolution script
+      ansible.windows.win_copy:
+        dest: C:\Windows\Temp\set-vdd-res.ps1
+        content: |
+          Import-Module DisplayConfig
+          $log = @()
+
+          $vdd = Get-DisplayInfo | Where-Object { $_.DisplayName -eq "VDD by MTT" }
+          if (-not $vdd) { "VDD display not found" | Out-File C:\Windows\Temp\set-vdd-res.log; exit 1 }
+
+          Set-DisplayResolution -DisplayId $vdd.DisplayId -Width {{ vdd_width }} -Height {{ vdd_height }}
+          $log += "Set VDD to {{ vdd_width }}x{{ vdd_height }}"
+
+          $qxl = Get-DisplayInfo | Where-Object { $_.DisplayName -like "*QXL*" -or $_.DisplayName -like "*Red Hat*" }
+          if ($qxl) {
+            Disable-Display -DisplayId $qxl.DisplayId
+            $log += "Disabled QXL display"
+          }
+
+          $log -join "`n" | Out-File C:\Windows\Temp\set-vdd-res.log
+
+    - name: Create scheduled task for resolution change
+      community.windows.win_scheduled_task:
+        name: _vdd_set_resolution
+        actions:
+          - path: powershell.exe
+            arguments: -ExecutionPolicy Bypass -File C:\Windows\Temp\set-vdd-res.ps1
+        triggers: []
+        username: "{{ ansible_user }}"
+        password: "{{ ansible_password }}"
+        logon_type: interactive_token
+        run_level: highest
+        state: present
+      no_log: true
+
+    - name: Run scheduled task
+      ansible.windows.win_shell: |
+        Start-ScheduledTask -TaskName "_vdd_set_resolution"
+        Start-Sleep -Seconds 5
+      changed_when: true
+
+    - name: Read result
+      ansible.windows.win_shell: Get-Content C:\Windows\Temp\set-vdd-res.log
+      register: vdd_res
+      changed_when: false
+
+    - name: Remove scheduled task
+      community.windows.win_scheduled_task:
+        name: _vdd_set_resolution
+        state: absent
+
+    - name: Display result
+      ansible.builtin.debug:
+        msg: "{{ vdd_res.stdout | trim }}"
+
+    - name: Verify VDD resolution
+      ansible.windows.win_shell: |
+        $vdd = Get-CimInstance Win32_VideoController | Where-Object { $_.Name -eq "Virtual Display Driver" }
+        if (-not $vdd) { throw "VDD adapter not found" }
+        $w = $vdd.CurrentHorizontalResolution
+        $h = $vdd.CurrentVerticalResolution
+        if ($w -ne {{ vdd_width }} -or $h -ne {{ vdd_height }}) {
+          throw "VDD resolution is ${w}x${h}, expected {{ vdd_width }}x{{ vdd_height }}"
+        }
+        Write-Host "Verified: VDD at ${w}x${h}"
+      register: vdd_verify
+      changed_when: false
+
+    - name: Display verification
+      ansible.builtin.debug:
+        msg: "{{ vdd_verify.stdout | trim }}"

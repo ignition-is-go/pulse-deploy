@@ -1,7 +1,7 @@
 ---
 # UE plugin development node — full editor with GPU, C: drive
 nvidia_supported_gpus: ["RTX A4000"]
-edid_file: "{{ deploy_share }}\\edids\\60Hz 8Bit\\2560x1440 QHD@60Hz 8Bit.bin"
+
 unreal_engine_dir: "C:/Program Files/Epic Games/5.7"
 plastic_workspace: "C:/P-0616-HRLV"
 unreal_project: "C:/P-0616-HRLV/ue/HRLV_Content/HRLV_Content.uproject"

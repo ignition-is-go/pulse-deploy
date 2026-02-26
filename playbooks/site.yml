@@ -24,6 +24,7 @@
   gather_facts: false
   roles:
     - nvidia_gpu_win
+    - virtual_display_driver
 
 - name: Rivermax — all Windows nodes with rivermax enabled
   hosts: windows

@@ -2,7 +2,6 @@
 # Arnold/Fusion render node configuration
 
 nvidia_supported_gpus: ["RTX 6000 Ada"]
-edid_file: "{{ deploy_share }}\\edids\\60Hz 8Bit\\2560x1440 QHD@60Hz 8Bit.bin"
 
 # TODO: Set Arnold/Fusion paths when provisioning these nodes
 # arnold_install_dir: "C:/Program Files/Autodesk/Arnold"
