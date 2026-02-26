@@ -67,7 +67,6 @@
       "/i", "C:\Windows\Temp\ue-installer\UnrealEngineInstaller.msi",
       "/qn", "/norestart",
       "/l*v", "C:\Windows\Temp\ue_install.log",
-      "INSTALLLOCATION={{ unreal_engine_dir | regex_replace('/', '\\') }}",
       "ENGINE_SYMBOLS_CHECKED=0",
       "ENGINE_IOS_CHECKED=0",
       "ENGINE_TVOS_CHECKED=0",
