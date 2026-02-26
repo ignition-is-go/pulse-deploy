@@ -12,7 +12,16 @@
       "WebFetch(domain:netboxlabs.com)",
       "WebFetch(domain:alex.dzyoba.com)",
       "WebFetch(domain:megapixelvr.com)",
-      "WebFetch(domain:help.disguise.one)"
+      "WebFetch(domain:help.disguise.one)",
+      "Bash(gh api:*)",
+      "Bash(find:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.ansible.com)",
+      "WebFetch(domain:www.nvidia.com)",
+      "WebFetch(domain:forums.developer.nvidia.com)",
+      "WebFetch(domain:developer.nvidia.com)",
+      "WebFetch(domain:developer.hashicorp.com)",
+      "WebFetch(domain:nvidia.custhelp.com)"
     ]
   }
 }
