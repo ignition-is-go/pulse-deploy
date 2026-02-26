@@ -1,0 +1,82 @@
+---
+# uwd-build-proxy — Build patched UWD proxy DLL on a Windows host with MSVC
+#
+# Usage: ansible-playbook playbooks/uwd-build-proxy.yml -e target=ue-plugindev-01
+#
+# Requires: VS Build Tools 2022 with C++ desktop workload
+
+- name: Build patched UWD proxy DLL
+  hosts: "{{ target }}"
+  gather_facts: false
+
+  vars:
+    build_dir: C:\Windows\Temp\uwd-build
+    nas_dest: "{{ deploy_share }}\\installers\\uwd"
+
+  tasks:
+    - name: Create build directory
+      ansible.windows.win_file:
+        path: "{{ build_dir }}"
+        state: directory
+
+    - name: Copy source files to build host
+      ansible.windows.win_copy:
+        src: "{{ playbook_dir }}/../roles/win_watermark/files/uwd-proxy/{{ item }}"
+        dest: "{{ build_dir }}\\{{ item }}"
+      loop:
+        - main.cpp
+        - main.h
+        - import_patch.cpp
+        - import_patch.h
+        - min_crt.cpp
+        - min_crt.h
+
+    - name: Write build script
+      ansible.windows.win_copy:
+        dest: "{{ build_dir }}\\build.bat"
+        content: |
+          @echo off
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64
+          if errorlevel 1 exit /b 1
+          cl.exe /nologo /O1 /GS- /DUNICODE /D_UNICODE /LD /Zl ^
+            {{ build_dir }}\main.cpp ^
+            {{ build_dir }}\import_patch.cpp ^
+            {{ build_dir }}\min_crt.cpp ^
+            /Fe:{{ build_dir }}\painter_x64.dll ^
+            /Fo:{{ build_dir }}\ ^
+            /link /NODEFAULTLIB /ENTRY:DllMain ^
+            kernel32.lib user32.lib gdi32.lib shlwapi.lib
+          if errorlevel 1 exit /b 1
+
+    - name: Compile proxy DLL with MSVC
+      ansible.windows.win_command:
+        argv:
+          - cmd.exe
+          - /c
+          - "{{ build_dir }}\\build.bat"
+      register: build_result
+
+    - name: Show build output
+      ansible.builtin.debug:
+        var: build_result.stdout_lines
+
+    - name: Verify DLL was built
+      ansible.windows.win_stat:
+        path: "{{ build_dir }}\\painter_x64.dll"
+      register: dll_stat
+      failed_when: not dll_stat.stat.exists
+
+    - name: Show DLL size
+      ansible.builtin.debug:
+        msg: "Built painter_x64.dll — {{ dll_stat.stat.size }} bytes"
+
+    - name: Copy built DLL to NAS
+      ansible.windows.win_copy:
+        src: "{{ build_dir }}\\painter_x64.dll"
+        dest: "{{ nas_dest }}\\painter_x64.dll"
+        remote_src: true
+
+    - name: Clean up build directory
+      ansible.windows.win_file:
+        path: "{{ build_dir }}"
+        state: absent

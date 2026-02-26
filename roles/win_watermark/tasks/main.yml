@@ -85,17 +85,9 @@
     Unregister-ScheduledTask -TaskName "_uwd_registry" -Confirm:$false
   when: "watermark_check.stdout | trim == 'NOT_INSTALLED' or watermark_check.stdout | trim == 'NO_KEY'"
 
-- name: Restart explorer in interactive session
-  ansible.windows.win_shell: |
-    $action = New-ScheduledTaskAction -Execute "cmd.exe" `
-      -Argument "/c taskkill /f /im explorer.exe & start explorer.exe"
-    Register-ScheduledTask -TaskName "_restart_explorer" -Action $action `
-      -User "{{ ansible_user }}" -Password "{{ ansible_password }}" -Force
-    Start-ScheduledTask -TaskName "_restart_explorer"
-    Start-Sleep -Seconds 5
-    Unregister-ScheduledTask -TaskName "_restart_explorer" -Confirm:$false
+- name: Reboot to load proxy DLL into explorer
+  ansible.windows.win_reboot:
   when: "watermark_check.stdout | trim == 'NOT_INSTALLED' or watermark_check.stdout | trim == 'NO_KEY'"
-  no_log: true
 
 - name: Verify watermark disabler installed
   ansible.windows.win_shell: |
