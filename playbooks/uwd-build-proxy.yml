@@ -21,7 +21,7 @@
 
     - name: Copy source files to build host
       ansible.windows.win_copy:
-        src: "{{ playbook_dir }}/../roles/win_watermark/files/uwd-proxy/{{ item }}"
+        src: "{{ playbook_dir }}/../roles/win_disable_watermark/files/uwd-proxy/{{ item }}"
         dest: "{{ build_dir }}\\{{ item }}"
       loop:
         - main.cpp

@@ -37,7 +37,23 @@ Layered roles: OS base → Drivers → Shared infra → Applications. Node ident
 
 ## Inventory
 
-`windows` (WinRM NTLM :5985, become: runas) → `ue` (ue_content, ue_previs, ue_editing, ue_staging), `touch`. `linux` (SSH) → `optik`, `pulse_admin` (local, root!), `rship`. Two sources: `hosts.yml` (manual) + `terraform.yml` (Terraform state) — never duplicate hosts across them.
+Two sources: `hosts.yml` (manual) + `terraform.yml` (Terraform state) — never duplicate hosts across them. Use `ansible-inventory --graph` to verify, NEVER pipe through python/jq.
+
+```
+windows (WinRM NTLM :5985, become: runas):
+  ue:
+    ue_content:     windows-unreal-render-01, -02, -03, -04
+    ue_previs:      windows-unreal-render-05
+    ue_editing:     windows-unreal-08
+    ue_staging:     ue-staging-01          (terraform)
+    ue_plugin_dev:  ue-plugindev-01, ue-plugindev-02
+    win_ue_runner:  ue-runner-01
+  touch:            windows-touch-01
+linux (SSH):
+  optik:            optik-01
+  pulse_admin:      pulse-admin            (local, root!)
+  rship:            rship-01, rship-02, rship-03
+```
 
 ## Variables
 

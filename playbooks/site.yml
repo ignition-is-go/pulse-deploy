@@ -19,6 +19,8 @@
   roles:
     - win_base
     - win_theme
+    - win_disable_wlms
+    - win_disable_watermark
 
 - name: GPU validation — Windows nodes with GPUs
   hosts: ue_content:ue_previs:ue_plugin_dev:touch:arnold_fusion:workstation
