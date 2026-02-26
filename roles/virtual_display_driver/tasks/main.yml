@@ -71,3 +71,115 @@
 - name: Display VDD status
   ansible.builtin.debug:
     msg: "{{ vdd_verify.stdout | trim }}"
+
+# --- Resolution configuration (requires interactive desktop session) ---
+
+- name: Check for interactive desktop session
+  ansible.windows.win_shell: |
+    $session = query user 2>&1
+    if ($session -match "{{ ansible_user }}") { "ACTIVE" } else { "NONE" }
+  register: desktop_session
+  changed_when: false
+
+- name: Reboot to activate auto-logon desktop session
+  ansible.windows.win_reboot:
+    post_reboot_delay: 30
+  when: "'NONE' in desktop_session.stdout"
+
+- name: Write VDD display configuration script
+  ansible.windows.win_copy:
+    dest: C:\Windows\Temp\set-vdd-res.ps1
+    content: |
+      try {
+        $log = @()
+        Import-Module DisplayConfig
+
+        $vdd = Get-DisplayInfo | Where-Object { $_.DisplayName -eq "VDD by MTT" }
+        if (-not $vdd) {
+          $all = (Get-DisplayInfo).DisplayName -join ', '
+          $log += "FAIL: VDD not found in: $all"
+          $log -join "`n" | Out-File C:\Windows\Temp\set-vdd-res.log
+          exit 1
+        }
+
+        $log += "Before: mode=$($vdd.Mode) primary=$($vdd.Primary)"
+
+        # Check other (non-VDD) displays
+        $others = Get-DisplayInfo | Where-Object { $_.DisplayName -ne "VDD by MTT" -and $_.Active }
+        $othersActive = $others.Count -gt 0
+
+        # Skip if already correct
+        if ($vdd.Primary -and $vdd.Mode -match "^{{ vdd_width }}x{{ vdd_height }}" -and -not $othersActive) {
+          $log += "PASS: already at {{ vdd_width }}x{{ vdd_height }} primary, no other displays active"
+          $log -join "`n" | Out-File C:\Windows\Temp\set-vdd-res.log
+          exit 0
+        }
+
+        # Apply: set primary + resolution + disable other displays atomically
+        $config = Get-DisplayConfig |
+          Set-DisplayPrimary -DisplayId $vdd.DisplayId |
+          Set-DisplayResolution -DisplayId $vdd.DisplayId -Width {{ vdd_width }} -Height {{ vdd_height }}
+        foreach ($other in $others) {
+          $log += "Disabling: $($other.DisplayName) (DisplayId=$($other.DisplayId))"
+          $config = $config | Disable-Display -DisplayId $other.DisplayId
+        }
+        $config | Use-DisplayConfig
+
+        Start-Sleep -Seconds 2
+        $check = Get-DisplayInfo | Where-Object { $_.DisplayName -eq "VDD by MTT" }
+        $othersAfter = Get-DisplayInfo | Where-Object { $_.DisplayName -ne "VDD by MTT" -and $_.Active }
+        $log += "After: mode=$($check.Mode) primary=$($check.Primary) others_active=$($othersAfter.Count)"
+
+        if ($check.Primary -and $check.Mode -match "^{{ vdd_width }}x{{ vdd_height }}" -and $othersAfter.Count -eq 0) {
+          $log += "PASS: VDD primary at $($check.Mode), no other displays active"
+        } elseif ($check.Primary -and $check.Mode -match "^{{ vdd_width }}x{{ vdd_height }}") {
+          $log += "PASS: VDD primary at $($check.Mode) (warning: $($othersAfter.Count) other display(s) still active)"
+        } else {
+          $log += "FAIL: expected {{ vdd_width }}x{{ vdd_height }} primary"
+        }
+
+        $log -join "`n" | Out-File C:\Windows\Temp\set-vdd-res.log
+      } catch {
+        "FAIL: $_ $($_.ScriptStackTrace)" | Out-File C:\Windows\Temp\set-vdd-res.log
+      }
+
+- name: Create VDD display configuration scheduled task
+  community.windows.win_scheduled_task:
+    name: _vdd_set_resolution
+    actions:
+      - path: powershell.exe
+        arguments: -ExecutionPolicy Bypass -File C:\Windows\Temp\set-vdd-res.ps1
+    triggers: []
+    username: "{{ ansible_user }}"
+    password: "{{ ansible_password }}"
+    logon_type: interactive_token
+    run_level: highest
+    state: present
+  no_log: true
+  changed_when: false
+
+- name: Run VDD display configuration task
+  ansible.windows.win_shell: |
+    Start-ScheduledTask -TaskName "_vdd_set_resolution"
+    Start-Sleep -Seconds 5
+  changed_when: false
+
+- name: Read VDD display configuration result
+  ansible.windows.win_shell: Get-Content C:\Windows\Temp\set-vdd-res.log
+  register: vdd_res_result
+  changed_when: "'already at' not in vdd_res_result.stdout"
+
+- name: Remove VDD display configuration task
+  community.windows.win_scheduled_task:
+    name: _vdd_set_resolution
+    state: absent
+  changed_when: false
+
+- name: Verify VDD display configuration
+  ansible.builtin.fail:
+    msg: "{{ vdd_res_result.stdout | trim }}"
+  when: "'PASS' not in vdd_res_result.stdout"
+
+- name: Display VDD configuration result
+  ansible.builtin.debug:
+    msg: "{{ vdd_res_result.stdout | trim }}"
