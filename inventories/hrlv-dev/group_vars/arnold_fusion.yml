@@ -2,6 +2,8 @@
 # Arnold/Fusion render node configuration
 
 nvidia_supported_gpus: ["RTX 6000 Ada"]
+vdd_width: 2560
+vdd_height: 1440
 
 # TODO: Set Arnold/Fusion paths when provisioning these nodes
 # arnold_install_dir: "C:/Program Files/Autodesk/Arnold"

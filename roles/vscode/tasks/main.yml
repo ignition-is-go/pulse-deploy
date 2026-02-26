@@ -1,0 +1,39 @@
+---
+# vscode — Visual Studio Code (user installer, silent)
+#
+# Requires (group_vars):
+#   vscode_installer_source: UNC path to VS Code user installer exe on NAS
+
+- name: Check if VS Code installed
+  ansible.windows.win_stat:
+    path: C:\Users\{{ ansible_user }}\AppData\Local\Programs\Microsoft VS Code\Code.exe
+  register: vscode_check
+
+- name: Copy VS Code installer from NAS
+  ansible.windows.win_copy:
+    src: "{{ vscode_installer_source }}"
+    dest: C:\Windows\Temp\vscode-setup.exe
+    remote_src: true
+  when: not vscode_check.stat.exists
+
+- name: Install VS Code (silent)
+  ansible.windows.win_command:
+    argv:
+      - C:\Windows\Temp\vscode-setup.exe
+      - /VERYSILENT
+      - /NORESTART
+      - /MERGETASKS=!runcode,addcontextmenufiles,addcontextmenufolders,addtopath
+  when: not vscode_check.stat.exists
+  async: 300
+  poll: 15
+
+- name: Verify VS Code installed
+  ansible.windows.win_stat:
+    path: C:\Users\{{ ansible_user }}\AppData\Local\Programs\Microsoft VS Code\Code.exe
+  register: vscode_verify
+  failed_when: not vscode_verify.stat.exists
+
+- name: Clean up VS Code installer
+  ansible.windows.win_file:
+    path: C:\Windows\Temp\vscode-setup.exe
+    state: absent

@@ -1,0 +1,107 @@
+---
+# win_watermark — Remove Windows activation/evaluation watermark
+#
+# Replicates Universal Watermark Disabler's mechanism:
+# COM-hijacking via proxy DLL injected into ExplorerFrame.
+# Does not modify system files.
+#
+# Requires (group_vars):
+#   deploy_share: UNC path to deploy share
+#
+# Source: https://github.com/pr701/universal-watermark-disabler
+
+- name: Check if watermark disabler already installed
+  ansible.windows.win_shell: |
+    $clsid = "HKCR:\CLSID\{ab0b37ec-56f6-4a0e-a8fd-7a8bf7c2da96}\InProcServer32"
+    New-PSDrive -Name HKCR -PSProvider Registry -Root HKEY_CLASSES_ROOT -ErrorAction SilentlyContinue | Out-Null
+    if (Test-Path $clsid) {
+      $val = (Get-ItemProperty $clsid).'(default)'
+      if ($val -like '*painter*') { "INSTALLED" } else { "NOT_INSTALLED" }
+    } else { "NO_KEY" }
+  register: watermark_check
+  changed_when: false
+
+- name: Copy proxy DLL from NAS
+  ansible.windows.win_copy:
+    src: "{{ deploy_share }}\\installers\\uwd\\painter_x64.dll"
+    dest: C:\Windows\System32\painter_x64.dll
+    remote_src: true
+  when: "watermark_check.stdout | trim == 'NOT_INSTALLED' or watermark_check.stdout | trim == 'NO_KEY'"
+
+- name: Install watermark disabler via SYSTEM scheduled task
+  ansible.windows.win_shell: |
+    $script = @'
+    $clsidPath = "HKCR:\CLSID\{ab0b37ec-56f6-4a0e-a8fd-7a8bf7c2da96}\InProcServer32"
+    New-PSDrive -Name HKCR -PSProvider Registry -Root HKEY_CLASSES_ROOT -ErrorAction SilentlyContinue | Out-Null
+
+    # Take ownership and grant access
+    $key = [Microsoft.Win32.Registry]::ClassesRoot.OpenSubKey(
+      "CLSID\{ab0b37ec-56f6-4a0e-a8fd-7a8bf7c2da96}\InProcServer32",
+      [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree,
+      [System.Security.AccessControl.RegistryRights]::TakeOwnership)
+    $acl = $key.GetAccessControl()
+    $admin = New-Object System.Security.Principal.NTAccount("BUILTIN\Administrators")
+    $acl.SetOwner($admin)
+    $key.SetAccessControl($acl)
+    $key.Close()
+
+    # Reopen with full control
+    $key = [Microsoft.Win32.Registry]::ClassesRoot.OpenSubKey(
+      "CLSID\{ab0b37ec-56f6-4a0e-a8fd-7a8bf7c2da96}\InProcServer32",
+      [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree,
+      [System.Security.AccessControl.RegistryRights]::ChangePermissions)
+    $acl = $key.GetAccessControl()
+    $everyone = New-Object System.Security.Principal.NTAccount("Everyone")
+    $rule = New-Object System.Security.AccessControl.RegistryAccessRule(
+      $everyone, "FullControl", "Allow")
+    $acl.AddAccessRule($rule)
+    $key.SetAccessControl($acl)
+    $key.Close()
+
+    # Write proxy DLL path
+    Set-ItemProperty $clsidPath -Name "(default)" -Value "C:\Windows\System32\painter_x64.dll"
+
+    # Lock it back down — remove Everyone full control
+    $key = [Microsoft.Win32.Registry]::ClassesRoot.OpenSubKey(
+      "CLSID\{ab0b37ec-56f6-4a0e-a8fd-7a8bf7c2da96}\InProcServer32",
+      [Microsoft.Win32.RegistryKeyPermissionCheck]::ReadWriteSubTree,
+      [System.Security.AccessControl.RegistryRights]::ChangePermissions)
+    $acl = $key.GetAccessControl()
+    $acl.RemoveAccessRule($rule) | Out-Null
+    $key.SetAccessControl($acl)
+    $key.Close()
+
+    "SUCCESS"
+    '@
+    $bytes = [System.Text.Encoding]::Unicode.GetBytes($script)
+    $encoded = [Convert]::ToBase64String($bytes)
+
+    $action = New-ScheduledTaskAction -Execute "powershell.exe" `
+      -Argument "-EncodedCommand $encoded"
+    $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+    Register-ScheduledTask -TaskName "_uwd_registry" -Action $action -Principal $principal -Force
+    Start-ScheduledTask -TaskName "_uwd_registry"
+    Start-Sleep -Seconds 5
+    Unregister-ScheduledTask -TaskName "_uwd_registry" -Confirm:$false
+  when: "watermark_check.stdout | trim == 'NOT_INSTALLED' or watermark_check.stdout | trim == 'NO_KEY'"
+
+- name: Restart explorer in interactive session
+  ansible.windows.win_shell: |
+    $action = New-ScheduledTaskAction -Execute "cmd.exe" `
+      -Argument "/c taskkill /f /im explorer.exe & start explorer.exe"
+    Register-ScheduledTask -TaskName "_restart_explorer" -Action $action `
+      -User "{{ ansible_user }}" -Password "{{ ansible_password }}" -Force
+    Start-ScheduledTask -TaskName "_restart_explorer"
+    Start-Sleep -Seconds 5
+    Unregister-ScheduledTask -TaskName "_restart_explorer" -Confirm:$false
+  when: "watermark_check.stdout | trim == 'NOT_INSTALLED' or watermark_check.stdout | trim == 'NO_KEY'"
+  no_log: true
+
+- name: Verify watermark disabler installed
+  ansible.windows.win_shell: |
+    New-PSDrive -Name HKCR -PSProvider Registry -Root HKEY_CLASSES_ROOT -ErrorAction SilentlyContinue | Out-Null
+    $val = (Get-ItemProperty "HKCR:\CLSID\{ab0b37ec-56f6-4a0e-a8fd-7a8bf7c2da96}\InProcServer32").'(default)'
+    "CLSID_VALUE=$val"
+  register: watermark_verify
+  changed_when: false
+  failed_when: "'painter_x64.dll' not in watermark_verify.stdout"

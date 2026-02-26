@@ -1,0 +1,46 @@
+---
+# win_disable_wlms — Disable Windows License Monitoring Service
+#
+# WLMS enforces evaluation expiry: watermark, nag popups, and hourly
+# auto-shutdown after the 180-day trial ends. Disabling it suppresses
+# all of that.
+#
+# The service is protected — even local admin cannot modify it via
+# normal sc config. We use a SYSTEM-level scheduled task to disable it.
+
+- name: Check WLMS service state
+  ansible.windows.win_shell: |
+    $svc = Get-Service -Name WLMS -ErrorAction SilentlyContinue
+    if ($svc) { "StartType=$($svc.StartType) Status=$($svc.Status)" } else { "NOT_FOUND" }
+  register: wlms_check
+  changed_when: false
+
+- name: Disable WLMS via SYSTEM scheduled task
+  ansible.windows.win_shell: |
+    $action = New-ScheduledTaskAction -Execute "sc.exe" -Argument "config WLMS start= disabled"
+    $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+    Register-ScheduledTask -TaskName "_disable_wlms" -Action $action -Principal $principal -Force
+    Start-ScheduledTask -TaskName "_disable_wlms"
+    Start-Sleep -Seconds 3
+    Unregister-ScheduledTask -TaskName "_disable_wlms" -Confirm:$false
+  when: "'NOT_FOUND' not in wlms_check.stdout and 'StartType=Disabled' not in wlms_check.stdout"
+
+- name: Stop WLMS via SYSTEM scheduled task
+  ansible.windows.win_shell: |
+    $action = New-ScheduledTaskAction -Execute "sc.exe" -Argument "stop WLMS"
+    $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
+    Register-ScheduledTask -TaskName "_stop_wlms" -Action $action -Principal $principal -Force
+    Start-ScheduledTask -TaskName "_stop_wlms"
+    Start-Sleep -Seconds 3
+    Unregister-ScheduledTask -TaskName "_stop_wlms" -Confirm:$false
+  when:
+    - "'NOT_FOUND' not in wlms_check.stdout"
+    - "'Status=Running' in wlms_check.stdout"
+
+- name: Verify WLMS is disabled
+  ansible.windows.win_shell: |
+    $svc = Get-Service -Name WLMS -ErrorAction SilentlyContinue
+    if ($svc) { "StartType=$($svc.StartType) Status=$($svc.Status)" } else { "NOT_FOUND" }
+  register: wlms_verify
+  changed_when: false
+  failed_when: "'StartType=Disabled' not in wlms_verify.stdout and 'NOT_FOUND' not in wlms_verify.stdout"

@@ -26,14 +26,15 @@
           $vdd = Get-DisplayInfo | Where-Object { $_.DisplayName -eq "VDD by MTT" }
           if (-not $vdd) { "VDD display not found" | Out-File C:\Windows\Temp\set-vdd-res.log; exit 1 }
 
-          Set-DisplayResolution -DisplayId $vdd.DisplayId -Width {{ vdd_width }} -Height {{ vdd_height }}
-          $log += "Set VDD to {{ vdd_width }}x{{ vdd_height }}"
-
           $qxl = Get-DisplayInfo | Where-Object { $_.DisplayName -like "*QXL*" -or $_.DisplayName -like "*Red Hat*" }
           if ($qxl) {
             Disable-Display -DisplayId $qxl.DisplayId
             $log += "Disabled QXL display"
+            Start-Sleep -Seconds 2
           }
+
+          Set-DisplayResolution -DisplayId $vdd.DisplayId -Width {{ vdd_width }} -Height {{ vdd_height }}
+          $log += "Set VDD to {{ vdd_width }}x{{ vdd_height }}"
 
           $log -join "`n" | Out-File C:\Windows\Temp\set-vdd-res.log
 

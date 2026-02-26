@@ -26,6 +26,8 @@
           throw "Plastic SCM install failed — {{ plastic_exe }} not found"
         }
         Write-Host "INSTALLED"
+      async: 600
+      poll: 15
 
     - name: Clean up installer
       ansible.windows.win_file:

@@ -18,6 +18,7 @@
   gather_facts: true
   roles:
     - win_base
+    - win_theme
 
 - name: GPU validation — Windows nodes with GPUs
   hosts: ue_content:ue_previs:ue_plugin_dev:touch:arnold_fusion:workstation
@@ -65,6 +66,8 @@
   roles:
     - git
     - vs_buildtools
+    - vscode
+    - visual_studio
     - unreal_engine
   tasks:
     - name: Clone git repos

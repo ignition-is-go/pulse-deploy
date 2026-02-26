@@ -112,10 +112,11 @@ resource "proxmox_virtual_environment_vm" "this" {
     type = var.os_type
   }
 
-  started         = var.started
-  on_boot         = var.on_boot
-  stop_on_destroy = true
-  protection      = var.protection
+  started              = var.started
+  on_boot              = var.on_boot
+  reboot_after_update  = false
+  stop_on_destroy      = true
+  protection           = var.protection
 
   lifecycle {
     ignore_changes = [disk[0].size]

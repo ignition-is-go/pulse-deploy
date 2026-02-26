@@ -1,0 +1,42 @@
+---
+# visual_studio — Visual Studio Community 2022 with C++ desktop workload
+#
+# Uses the web bootstrapper (vs_community.exe) which downloads components
+# during install. Nodes need internet access for first install.
+#
+# Requires (group_vars):
+#   vs_community_installer_source: UNC path to VisualStudioSetup.exe on NAS
+
+- name: Check if Visual Studio Community installed
+  ansible.windows.win_stat:
+    path: C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\devenv.exe
+  register: vs_community_check
+
+- name: Copy VS Community installer from NAS
+  ansible.windows.win_copy:
+    src: "{{ vs_community_installer_source }}"
+    dest: C:\Windows\Temp\VisualStudioSetup.exe
+    remote_src: true
+  when: not vs_community_check.stat.exists
+
+- name: Install Visual Studio Community (silent)
+  ansible.windows.win_shell: >-
+    Start-Process -FilePath "C:\Windows\Temp\VisualStudioSetup.exe"
+    -ArgumentList "--wait --quiet --norestart --nocache
+    --add Microsoft.VisualStudio.Workload.NativeDesktop
+    --includeRecommended"
+    -Wait -PassThru
+  when: not vs_community_check.stat.exists
+  async: 3600
+  poll: 30
+
+- name: Verify Visual Studio Community installed
+  ansible.windows.win_stat:
+    path: C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\devenv.exe
+  register: vs_community_verify
+  failed_when: not vs_community_verify.stat.exists
+
+- name: Clean up VS Community installer
+  ansible.windows.win_file:
+    path: C:\Windows\Temp\VisualStudioSetup.exe
+    state: absent
