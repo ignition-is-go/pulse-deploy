@@ -65,6 +65,20 @@
     - { name: DefaultDomainName, data: "" }
   no_log: true
 
+- name: Disable Server Manager at logon
+  ansible.windows.win_regedit:
+    path: HKCU:\Software\Microsoft\ServerManager
+    name: DoNotOpenServerManagerAtLogon
+    data: 1
+    type: dword
+
+- name: Disable Shutdown Event Tracker
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Reliability
+    name: ShutdownReasonOn
+    data: 0
+    type: dword
+
 - name: Disable lock screen
   ansible.windows.win_regedit:
     path: HKLM:\SOFTWARE\Policies\Microsoft\Windows\Personalization
@@ -108,29 +122,20 @@
   register: rustdesk_post_check
   failed_when: not rustdesk_post_check.stat.exists
 
-- name: Get current RustDesk ID
-  ansible.windows.win_command:
-    argv:
-      - C:\Program Files\PulseRemoteDesktopVM\PulseRemoteDesktopVM.exe
-      - --get-id
-  register: rustdesk_current_id
-  changed_when: false
-  when: rustdesk_id is defined
-
-- name: Set RustDesk ID
-  ansible.windows.win_command:
-    argv:
-      - C:\Program Files\PulseRemoteDesktopVM\PulseRemoteDesktopVM.exe
-      - --set-id
-      - "{{ rustdesk_id }}"
-  when: rustdesk_id is defined and rustdesk_current_id.stdout | trim != rustdesk_id
-
 - name: Install NuGet package provider
   ansible.windows.win_shell: Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
   changed_when: false
 
+- name: Remove old DisplayConfig module versions
+  ansible.windows.win_shell: |
+    Get-Module -Name DisplayConfig -ListAvailable |
+      Where-Object { $_.Version -lt '5.0' } |
+      ForEach-Object { Remove-Item -Recurse -Force $_.ModuleBase; "removed $($_.Version)" }
+  register: dc_cleanup
+  changed_when: "'removed' in dc_cleanup.stdout"
+
 - name: Install DisplayConfig PowerShell module
-  ansible.windows.win_shell: Install-Module -Name DisplayConfig -RequiredVersion 1.1.1 -Force -Scope AllUsers -AllowClobber
+  ansible.windows.win_shell: Install-Module -Name DisplayConfig -MinimumVersion 5.0 -Force -Scope AllUsers -AllowClobber
   changed_when: false
 
 - name: Set high performance power plan

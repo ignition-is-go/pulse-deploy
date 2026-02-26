@@ -16,38 +16,15 @@
     path: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\MSBuild\\Current\\Bin\\MSBuild.exe"
   register: msbuild_check
 
-- name: Start VS Build Tools layout copy from NAS
+- name: Copy VS Build Tools layout from NAS
   ansible.windows.win_command: >-
-    robocopy "{{ vs_buildtools_layout_source }}" "C:\Windows\Temp\vs_BuildTools" /MIR /NDL /R:5 /W:10 /LOG:C:\Windows\Temp\robocopy-vs-buildtools.log
+    robocopy "{{ vs_buildtools_layout_source }}" "C:\Windows\Temp\vs_BuildTools" /MIR /NDL /R:5 /W:10
   async: 1800
-  poll: 0
-  register: vs_copy_job
-  when: not msbuild_check.stat.exists
-
-- name: "Monitor VS Build Tools copy progress"
-  ansible.windows.win_shell: |
-    $log = "C:\Windows\Temp\robocopy-vs-buildtools.log"
-    if (Test-Path $log) {
-      $line = (Get-Content $log -Tail 1).Trim()
-      if ($line) { [Console]::Error.WriteLine($line) }
-    }
-    $procs = Get-Process -Name Robocopy -ErrorAction SilentlyContinue |
-      Where-Object { $_.StartTime -gt (Get-Date).AddMinutes(-35) }
-    if ($procs) { exit 1 } else { exit 0 }
-  register: vs_copy_progress
-  until: vs_copy_progress.rc == 0
-  retries: 120
-  delay: 15
-  changed_when: false
-  when: vs_copy_job is not skipped
-
-- name: Collect VS Build Tools copy result
-  ansible.builtin.async_status:
-    jid: "{{ vs_copy_job.ansible_job_id }}"
+  poll: 30
   register: vs_copy_result
   failed_when: vs_copy_result.rc >= 8
   changed_when: vs_copy_result.rc in [1, 3, 5, 7]
-  when: vs_copy_job is not skipped
+  when: not msbuild_check.stat.exists
 
 - name: Install VS Build Tools from offline layout (silent)
   ansible.windows.win_shell: >-
@@ -71,3 +48,8 @@
       - C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe
       - -version
   changed_when: false
+
+- name: Clean up VS Build Tools installer cache
+  ansible.windows.win_file:
+    path: C:\Windows\Temp\vs_BuildTools
+    state: absent

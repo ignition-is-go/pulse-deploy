@@ -1,0 +1,43 @@
+---
+# win_theme — Apply Windows dark theme via .theme file
+#
+# Launches C:\Windows\Resources\Themes\dark.theme in the interactive
+# desktop session. Windows applies wallpaper, colors, cursors, and
+# dark mode in one shot — same as clicking the theme in Settings.
+#
+# The .theme launch opens the Settings app briefly; a follow-up task
+# closes it automatically.
+#
+# Requires: Themes service running (default on Desktop Experience).
+
+- name: Check if dark theme already active
+  ansible.windows.win_shell: |
+    (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes").CurrentTheme
+  register: current_theme
+  changed_when: false
+
+- name: Apply dark theme via scheduled task
+  ansible.windows.win_shell: |
+    $action = New-ScheduledTaskAction -Execute "C:\Windows\Resources\Themes\dark.theme"
+    $task = Register-ScheduledTask -TaskName "ApplyDarkTheme" -Action $action `
+      -User "{{ ansible_user }}" -Force
+    Start-ScheduledTask -TaskName "ApplyDarkTheme"
+    Start-Sleep -Seconds 5
+    Unregister-ScheduledTask -TaskName "ApplyDarkTheme" -Confirm:$false
+  when: current_theme.stdout | trim | lower is not search('dark.theme')
+
+- name: Close Settings app opened by theme apply
+  ansible.windows.win_shell: |
+    Get-Process -Name SystemSettings -ErrorAction SilentlyContinue | Stop-Process -Force
+  changed_when: false
+  when: current_theme.stdout | trim | lower is not search('dark.theme')
+
+- name: Verify dark theme is active
+  ansible.windows.win_shell: |
+    $t = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes").CurrentTheme
+    $apps = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize").AppsUseLightTheme
+    $sys = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize").SystemUsesLightTheme
+    "CurrentTheme=$t AppsLight=$apps SystemLight=$sys"
+  register: theme_verify
+  changed_when: false
+  failed_when: "'AppsLight=0' not in theme_verify.stdout or 'SystemLight=0' not in theme_verify.stdout"

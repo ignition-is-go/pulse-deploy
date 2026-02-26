@@ -76,41 +76,23 @@
       register: layout_verify
       failed_when: not layout_verify.stat.exists
 
-    - name: Start layout copy to NAS
+    - name: Copy layout to NAS
       ansible.windows.win_command: >-
-        robocopy "{{ layout_local }}" "{{ layout_nas }}" /MIR /COPY:DT /NDL /R:5 /W:10 /LOG:C:\Windows\Temp\robocopy-vs-layout-to-nas.log
+        robocopy "{{ layout_local }}" "{{ layout_nas }}" /MIR /COPY:DT /NDL /R:5 /W:10
       async: 1800
-      poll: 0
-      register: layout_copy_job
-      when: not nas_layout_check.stat.exists
-
-    - name: "Monitor layout copy progress"
-      ansible.windows.win_shell: |
-        $log = "C:\Windows\Temp\robocopy-vs-layout-to-nas.log"
-        if (Test-Path $log) {
-          $line = (Get-Content $log -Tail 1).Trim()
-          if ($line) { [Console]::Error.WriteLine($line) }
-        }
-        $procs = Get-Process -Name Robocopy -ErrorAction SilentlyContinue |
-          Where-Object { $_.StartTime -gt (Get-Date).AddMinutes(-35) }
-        if ($procs) { exit 1 } else { exit 0 }
-      register: layout_copy_progress
-      until: layout_copy_progress.rc == 0
-      retries: 120
-      delay: 15
-      changed_when: false
-      when: layout_copy_job is not skipped
-
-    - name: Collect layout copy result
-      ansible.builtin.async_status:
-        jid: "{{ layout_copy_job.ansible_job_id }}"
+      poll: 30
       register: layout_copy_result
       failed_when: layout_copy_result.rc >= 8
       changed_when: layout_copy_result.rc in [1, 3, 5, 7]
-      when: layout_copy_job is not skipped
+      when: not nas_layout_check.stat.exists
 
     - name: Verify layout on NAS
       ansible.windows.win_stat:
         path: "{{ layout_nas }}\\Catalog.json"
       register: nas_verify
       failed_when: not nas_verify.stat.exists
+
+    - name: Clean up local layout staging directory
+      ansible.windows.win_file:
+        path: "{{ layout_local }}"
+        state: absent

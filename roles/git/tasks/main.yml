@@ -32,6 +32,11 @@
       - --version
   changed_when: false
 
+- name: Clean up Git installer
+  ansible.windows.win_file:
+    path: C:\Windows\Temp\git-installer.exe
+    state: absent
+
 - name: Create .ssh directory
   ansible.windows.win_file:
     path: C:\Users\{{ ansible_user }}\.ssh
@@ -60,10 +65,25 @@
     dest: C:\Users\{{ ansible_user }}\.ssh\known_hosts
   when: git_deploy_key is defined
 
+- name: Configure git SSH command
+  ansible.windows.win_command:
+    argv:
+      - C:\Program Files\Git\cmd\git.exe
+      - config
+      - --global
+      - core.sshCommand
+      - "\"C:/Program Files/Git/usr/bin/ssh.exe\" -o UserKnownHostsFile=C:/Users/{{ ansible_user }}/.ssh/known_hosts -i C:/Users/{{ ansible_user }}/.ssh/id_ed25519"
+  changed_when: false
+  when: git_deploy_key is defined
+
 - name: Verify SSH auth to GitHub
   ansible.windows.win_command:
     argv:
       - C:\Program Files\Git\usr\bin\ssh.exe
+      - -o
+      - UserKnownHostsFile=C:\Users\{{ ansible_user }}\.ssh\known_hosts
+      - -i
+      - C:\Users\{{ ansible_user }}\.ssh\id_ed25519
       - -T
       - git@github.com
   register: git_ssh_verify

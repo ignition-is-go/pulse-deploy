@@ -65,3 +65,8 @@
       GPU '{{ gpu_model }}' on {{ inventory_hostname }} is not in nvidia_supported_gpus: {{ nvidia_supported_gpus }}.
       Check group_vars — the configured driver may be wrong for this GPU.
   when: nvidia_supported_gpus | select('in', gpu_model) | list | length == 0
+
+- name: Clean up NVIDIA driver installer
+  ansible.windows.win_file:
+    path: C:\Windows\Temp\nvidia-driver.exe
+    state: absent
