@@ -46,7 +46,7 @@
     gpu_check_hosts: ue_content
 
 - name: Prime OVS FDB for Rivermax hardware offload
-  ansible.builtin.import_playbook: rivermax-arp-prime.yml
+  ansible.builtin.import_playbook: rmax-arp-prime.yml
 
 - name: Preflight and prepare nDisplay launch
   hosts: ue_content
@@ -82,7 +82,7 @@
         msg: >-
           Rivermax preflight FAILED on {{ inventory_hostname }}:
           {{ rivermax_preflight.stdout | trim }}.
-          Fix: ansible-playbook playbooks/rivermax-setup.yml --limit {{ inventory_hostname }}
+          Fix: ansible-playbook playbooks/rmax-setup.yml --limit {{ inventory_hostname }}
       when:
         - rivermax_preflight is not skipped
         - "'FAIL' in rivermax_preflight.stdout"

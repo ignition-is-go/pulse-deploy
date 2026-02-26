@@ -2,8 +2,8 @@
 # Stop Rivermax media_sender and clean up
 #
 # Usage:
-#   ansible-playbook playbooks/rivermax-media-sender-stop.yml --limit windows-unreal-render-01
-#   ansible-playbook playbooks/rivermax-media-sender-stop.yml --limit ue_content
+#   ansible-playbook playbooks/rmax-media-sender-stop.yml --limit windows-unreal-render-01
+#   ansible-playbook playbooks/rmax-media-sender-stop.yml --limit ue_content
 
 - name: Stop Rivermax media_sender
   hosts: windows

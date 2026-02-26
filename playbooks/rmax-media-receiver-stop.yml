@@ -2,8 +2,8 @@
 # Stop Rivermax media_receiver and clean up
 #
 # Usage:
-#   ansible-playbook playbooks/rivermax-media-receiver-stop.yml --limit windows-unreal-render-05
-#   ansible-playbook playbooks/rivermax-media-receiver-stop.yml --limit ue_content
+#   ansible-playbook playbooks/rmax-media-receiver-stop.yml --limit windows-unreal-render-05
+#   ansible-playbook playbooks/rmax-media-receiver-stop.yml --limit ue_content
 
 - name: Stop Rivermax media_receiver
   hosts: windows

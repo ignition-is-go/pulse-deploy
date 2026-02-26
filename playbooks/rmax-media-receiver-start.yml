@@ -3,8 +3,8 @@
 # Listens for a 2110-20 stream on the node's media_ip.
 #
 # Usage:
-#   ansible-playbook playbooks/rivermax-rx-start.yml --limit windows-unreal-render-05
-#   ansible-playbook playbooks/rivermax-rx-start.yml --limit windows-unreal-render-05 -e "rmax_src_ip=10.0.0.1"
+#   ansible-playbook playbooks/rmax-media-receiver-start.yml --limit windows-unreal-render-05
+#   ansible-playbook playbooks/rmax-media-receiver-start.yml --limit windows-unreal-render-05 -e "rmax_src_ip=10.0.0.1"
 
 - name: Start Rivermax media_receiver
   hosts: windows

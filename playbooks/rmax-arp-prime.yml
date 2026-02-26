@@ -9,7 +9,7 @@
 # When: Run this BEFORE starting any Rivermax media streams (nDisplay, media_sender, etc.)
 #
 # Usage:
-#   ansible-playbook playbooks/rivermax-arp-prime.yml
+#   ansible-playbook playbooks/rmax-arp-prime.yml
 
 - name: Prime OVS FDB — ARP exchange between all Rivermax VFs
   hosts: ue:touch
