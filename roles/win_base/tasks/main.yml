@@ -129,6 +129,35 @@
   register: rustdesk_post_check
   failed_when: not rustdesk_post_check.stat.exists
 
+- name: Check if PowerToys is installed
+  ansible.windows.win_stat:
+    path: C:\Program Files\PowerToys
+  register: powertoys_check
+
+- name: Copy PowerToys installer from NAS
+  ansible.windows.win_copy:
+    src: "{{ deploy_share }}\\installers\\powertoys\\0.97.2\\PowerToysSetup-0.97.2-x64.exe"
+    dest: C:\Windows\Temp\PowerToysSetup-0.97.2-x64.exe
+    remote_src: true
+  when: not powertoys_check.stat.exists
+
+- name: Install PowerToys (silent)
+  ansible.windows.win_command:
+    argv:
+      - C:\Windows\Temp\PowerToysSetup-0.97.2-x64.exe
+      - /install
+      - /quiet
+      - /norestart
+      - /log
+      - C:\Windows\Temp\powertoys_install.log
+  when: not powertoys_check.stat.exists
+
+- name: Verify PowerToys installed
+  ansible.windows.win_stat:
+    path: C:\Program Files\PowerToys\PowerToys.exe
+  register: powertoys_post_check
+  failed_when: not powertoys_post_check.stat.exists
+
 - name: Install NuGet package provider
   ansible.windows.win_shell: Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
   changed_when: false

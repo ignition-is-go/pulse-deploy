@@ -22,6 +22,7 @@
 # Usage:
 #   ansible-playbook playbooks/ue-content-start.yml
 #   ansible-playbook playbooks/ue-content-start.yml -e "ndisplay_map=/Game/Path/To/Map"
+#   ansible-playbook playbooks/ue-content-start.yml --limit windows-unreal-render-01 -e "ndisplay=rivermax_1node" -e "ndisplay_map=/Game/Path/To/Map"  # single node
 #   ansible-playbook playbooks/ue-content-start.yml -e "skip_preflight=true"  # fast relaunch
 
 - name: Check for already-running UE instances
