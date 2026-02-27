@@ -54,7 +54,6 @@
           "--add", "Microsoft.VisualStudio.Component.VC.ASAN",
           "--add", "Microsoft.VisualStudio.Component.VC.Llvm.Clang",
           "--add", "Microsoft.NetCore.Component.Runtime.8.0",
-          "--add", "Microsoft.Net.Component.4.6.2.TargetingPack",
           "--includeRecommended", "--lang", "en-US", "--quiet"
         ) -PassThru
         Start-Sleep -Seconds 10
