@@ -23,3 +23,4 @@ plastic_repo_key_url: "https://www.plasticscm.com/plasticrepo/plasticscm-cloud.g
 plastic_repo_url: "https://www.plasticscm.com/plasticrepo/plasticscm-cloud-stable/ubuntu"
 plastic_server: "cloud"
 plastic_branch: "/main"
+plastic_changeset: ""

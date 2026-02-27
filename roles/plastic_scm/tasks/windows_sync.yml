@@ -15,10 +15,64 @@
   failed_when: false
   changed_when: false
 
-- name: Run cm update --last
-  when: workspace_check.stat.exists
+- name: Warn — both plastic_changeset and plastic_branch specified, using changeset
+  when:
+    - workspace_check.stat.exists
+    - plastic_changeset | length > 0
+    - plastic_branch != "/main"
+  ansible.builtin.debug:
+    msg: >-
+      Both plastic_changeset ({{ plastic_changeset }}) and plastic_branch ({{ plastic_branch }})
+      specified — using changeset {{ plastic_changeset }}
+
+- name: Switch workspace to target changeset
+  when:
+    - workspace_check.stat.exists
+    - plastic_changeset | length > 0
   async: 3600
-  poll: 30
+  poll: 10
+  ansible.windows.win_shell: |
+    cd "{{ plastic_workspace }}"
+    $result = & "{{ plastic_exe }}" switch cs:{{ plastic_changeset }} --noinput 2>&1
+    $rc = $LASTEXITCODE
+    if ($rc -ne 0) {
+      Write-Host "FAILED: $result"
+      exit 1
+    }
+    Write-Host "Switched to changeset {{ plastic_changeset }}"
+  register: switch_cs_result
+  changed_when: true
+
+- name: Switch workspace to target branch
+  when:
+    - workspace_check.stat.exists
+    - plastic_changeset | length == 0
+    - plastic_branch | length > 0
+  async: 3600
+  poll: 10
+  ansible.windows.win_shell: |
+    cd "{{ plastic_workspace }}"
+    $current = & "{{ plastic_exe }}" status --head 2>&1
+    if ($current -match "{{ plastic_branch | regex_escape }}") {
+      Write-Host "Already on {{ plastic_branch }}"
+      exit 0
+    }
+    $result = & "{{ plastic_exe }}" switch "br:{{ plastic_branch }}" --noinput 2>&1
+    $rc = $LASTEXITCODE
+    if ($rc -ne 0) {
+      Write-Host "FAILED: $result"
+      exit 1
+    }
+    Write-Host "Switched to {{ plastic_branch }}"
+  register: switch_br_result
+  changed_when: "'Already on' not in (switch_br_result.stdout | default(''))"
+
+- name: Run cm update --last
+  when:
+    - workspace_check.stat.exists
+    - plastic_changeset | length == 0
+  async: 3600
+  poll: 10
   ansible.windows.win_shell: |
     cd "{{ plastic_workspace }}"
     $update = & "{{ plastic_exe }}" update --last --noinput 2>&1
@@ -59,8 +113,17 @@
   register: sync_result
   changed_when: "'no changes' not in sync_result.stdout"
 
+- name: Display changeset switch result
+  when:
+    - workspace_check.stat.exists
+    - plastic_changeset | length > 0
+  ansible.builtin.debug:
+    msg: "{{ inventory_hostname }}: {{ switch_cs_result.stdout_lines[-1] | default('done') }}"
+
 - name: Display sync result
-  when: workspace_check.stat.exists
+  when:
+    - workspace_check.stat.exists
+    - plastic_changeset | length == 0
   ansible.builtin.debug:
     msg: "{{ inventory_hostname }}: {{ sync_result.stdout_lines[-1] | default('done') }}"
 
