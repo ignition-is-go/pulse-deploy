@@ -1,0 +1,38 @@
+---
+# win_install_chrome — Install Google Chrome (silent)
+#
+# Uses the standalone offline installer from NAS.
+#
+# Requires (group_vars):
+#   chrome_installer_source: UNC path to Chrome installer on NAS
+
+- name: Check if Chrome is installed
+  ansible.windows.win_stat:
+    path: C:\Program Files\Google\Chrome\Application\chrome.exe
+  register: chrome_check
+
+- name: Copy Chrome installer from NAS
+  ansible.windows.win_copy:
+    src: "{{ chrome_installer_source }}"
+    dest: C:\Windows\Temp\ChromeSetup.exe
+    remote_src: true
+  when: not chrome_check.stat.exists
+
+- name: Install Google Chrome (silent)
+  ansible.windows.win_command:
+    argv:
+      - C:\Windows\Temp\ChromeSetup.exe
+      - /silent
+      - /install
+  when: not chrome_check.stat.exists
+
+- name: Verify Chrome installed
+  ansible.windows.win_stat:
+    path: C:\Program Files\Google\Chrome\Application\chrome.exe
+  register: chrome_verify
+  failed_when: not chrome_verify.stat.exists
+
+- name: Clean up Chrome installer
+  ansible.windows.win_file:
+    path: C:\Windows\Temp\ChromeSetup.exe
+    state: absent

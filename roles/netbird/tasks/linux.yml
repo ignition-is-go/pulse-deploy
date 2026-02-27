@@ -1,0 +1,12 @@
+---
+# netbird/tasks/linux.yml — Install Netbird on Linux
+
+- name: Check if Netbird is installed
+  ansible.builtin.stat:
+    path: /usr/bin/netbird
+  register: netbird_check
+
+- name: Install Netbird
+  ansible.builtin.shell: curl -fsSL https://pkgs.netbird.io/install.sh | sh
+  when: not netbird_check.stat.exists
+  changed_when: true

@@ -1,0 +1,78 @@
+---
+# win_remove_edge — Remove Microsoft Edge and block reinstallation
+#
+# Discovers installed Edge version dynamically, uninstalls via setup.exe,
+# blocks reinstall via EdgeUpdate registry key, removes shortcuts.
+
+- name: Check if Edge is installed
+  ansible.windows.win_shell: |
+    $edge = "C:\Program Files (x86)\Microsoft\Edge\Application"
+    if (Test-Path $edge) {
+      $ver = Get-ChildItem $edge -Directory |
+        Where-Object { $_.Name -match '^\d+\.' } |
+        Sort-Object { [version]$_.Name } -Descending |
+        Select-Object -First 1
+      if ($ver -and (Test-Path "$($ver.FullName)\Installer\setup.exe")) {
+        "INSTALLED=$($ver.FullName)\Installer\setup.exe"
+      } else { "NOT_INSTALLED" }
+    } else { "NOT_INSTALLED" }
+  register: edge_check
+  changed_when: false
+
+- name: Uninstall Microsoft Edge via setup.exe
+  ansible.windows.win_command:
+    argv:
+      - "{{ (edge_check.stdout | trim).split('=', 1)[1] }}"
+      - --uninstall
+      - --system-level
+      - --force-uninstall
+  when: "'INSTALLED=' in edge_check.stdout"
+  failed_when: false
+  changed_when: true
+
+- name: Block Edge reinstallation via Windows Update
+  ansible.windows.win_regedit:
+    path: HKLM:\SOFTWARE\Microsoft\EdgeUpdate
+    name: DoNotUpdateToEdgeWithChromium
+    data: 1
+    type: dword
+
+- name: Remove Edge desktop shortcuts
+  ansible.windows.win_shell: |
+    $removed = 0
+    Get-ChildItem "C:\Users\*\Desktop\Microsoft Edge.lnk" -ErrorAction SilentlyContinue |
+      ForEach-Object { Remove-Item $_.FullName -Force; $removed++ }
+    if (Test-Path "C:\Users\Public\Desktop\Microsoft Edge.lnk") {
+      Remove-Item "C:\Users\Public\Desktop\Microsoft Edge.lnk" -Force; $removed++
+    }
+    "REMOVED=$removed"
+  register: edge_desktop_shortcuts
+  changed_when: "'REMOVED=0' not in edge_desktop_shortcuts.stdout"
+
+- name: Remove Edge Start Menu shortcuts
+  ansible.windows.win_shell: |
+    $removed = 0
+    $paths = @(
+      "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Microsoft Edge.lnk"
+    )
+    $paths += Get-ChildItem "C:\Users\*\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Microsoft Edge.lnk" `
+      -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName
+    foreach ($p in $paths) {
+      if (Test-Path $p) { Remove-Item $p -Force; $removed++ }
+    }
+    "REMOVED=$removed"
+  register: edge_shortcuts
+  changed_when: "'REMOVED=0' not in edge_shortcuts.stdout"
+
+- name: Verify Edge is removed
+  ansible.windows.win_shell: |
+    $edge = "C:\Program Files (x86)\Microsoft\Edge\Application"
+    if (Test-Path $edge) {
+      $ver = Get-ChildItem $edge -Directory |
+        Where-Object { $_.Name -match '^\d+\.' } |
+        Select-Object -First 1
+      if ($ver) { "STILL_INSTALLED" } else { "REMOVED" }
+    } else { "REMOVED" }
+  register: edge_verify
+  changed_when: false
+  failed_when: "'STILL_INSTALLED' in edge_verify.stdout"

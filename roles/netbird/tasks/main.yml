@@ -1,0 +1,16 @@
+---
+# netbird — Install Netbird mesh VPN client (no configuration)
+#
+# Cross-platform: Windows (exe from NAS), Linux (apt repo).
+# Enrollment is handled by the separate netbird_configure role.
+#
+# Requires (group_vars):
+#   netbird_installer_source: (Windows only) UNC path to Netbird installer on NAS
+
+- name: Windows — Netbird install
+  ansible.builtin.include_tasks: windows.yml
+  when: ansible_os_family == "Windows"
+
+- name: Linux — Netbird install
+  ansible.builtin.include_tasks: linux.yml
+  when: ansible_os_family == "Debian"

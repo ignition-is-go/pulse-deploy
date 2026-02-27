@@ -6,3 +6,6 @@
 rivermax_winof2_installer: "{{ deploy_share }}\\rivermax\\MLNX_WinOF2-24_10_50010_All_x64.exe"
 rivermax_sdk_installer: "{{ deploy_share }}\\rivermax\\Rivermax_Windows_1.71.30.zip"
 rivermax_license_src: "{{ deploy_share }}\\rivermax\\Rivermax-12022026-qty3-1a7da843cfd1.lic"
+
+# Netbird
+netbird_installer_source: "{{ deploy_share }}\\installers\\netbird\\0.66.0\\netbird_installer_0.66.0_windows_amd64.exe"

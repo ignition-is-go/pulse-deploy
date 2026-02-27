@@ -1,0 +1,26 @@
+---
+# netbird_configure/tasks/linux.yml — Enroll Netbird on Linux
+
+- name: Check Netbird status
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/netbird
+      - status
+  register: netbird_status
+  changed_when: false
+  failed_when: false
+
+- name: Enroll Netbird with setup key
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/netbird
+      - up
+      - --management-url
+      - "{{ netbird_management_url }}"
+      - --admin-url
+      - "{{ netbird_admin_url }}"
+      - --setup-key
+      - "{{ netbird_setup_key }}"
+  when: "'Connected' not in netbird_status.stdout"
+  no_log: true
+  changed_when: true

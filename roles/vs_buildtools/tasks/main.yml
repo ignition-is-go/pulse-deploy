@@ -6,6 +6,7 @@
 #
 # Requires (group_vars):
 #   vs_buildtools_layout_source: UNC path to offline layout directory on NAS
+#   dotnet_runtime_installer_source: UNC path to windowsdesktop-runtime exe on NAS
 #
 # Sources:
 #   https://dev.epicgames.com/documentation/en-us/unreal-engine/setting-up-visual-studio-development-environment-for-cplusplus-projects-in-unreal-engine
@@ -16,6 +17,11 @@
     path: "C:\\Program Files (x86)\\Microsoft Visual Studio\\2022\\BuildTools\\MSBuild\\Current\\Bin\\MSBuild.exe"
   register: msbuild_check
 
+- name: Check if .NET Framework 4.6.2 targeting pack installed
+  ansible.windows.win_stat:
+    path: "C:\\Program Files (x86)\\Reference Assemblies\\Microsoft\\Framework\\.NETFramework\\v4.6.2"
+  register: netfx_targeting_check
+
 - name: Copy VS Build Tools layout from NAS
   ansible.windows.win_command: >-
     robocopy "{{ vs_buildtools_layout_source }}" "C:\Windows\Temp\vs_BuildTools" /MIR /NDL /R:5 /W:10
@@ -24,7 +30,7 @@
   register: vs_copy_result
   failed_when: vs_copy_result.rc >= 8
   changed_when: vs_copy_result.rc in [1, 3, 5, 7]
-  when: not msbuild_check.stat.exists
+  when: not msbuild_check.stat.exists or not netfx_targeting_check.stat.exists
 
 - name: Install VS Build Tools from offline layout (silent)
   ansible.windows.win_shell: >-
@@ -36,9 +42,10 @@
     --add Microsoft.VisualStudio.Component.VC.ASAN
     --add Microsoft.VisualStudio.Component.VC.Llvm.Clang
     --add Microsoft.NetCore.Component.Runtime.8.0
+    --add Microsoft.Net.Component.4.6.2.TargetingPack
     --includeRecommended"
     -Wait -PassThru
-  when: not msbuild_check.stat.exists
+  when: not msbuild_check.stat.exists or not netfx_targeting_check.stat.exists
   async: 1800
   poll: 30
 
@@ -52,4 +59,36 @@
 - name: Clean up VS Build Tools installer cache
   ansible.windows.win_file:
     path: C:\Windows\Temp\vs_BuildTools
+    state: absent
+
+- name: Check if .NET 8.0 runtime host installed
+  ansible.windows.win_stat:
+    path: C:\Program Files\dotnet\dotnet.exe
+  register: dotnet_host_check
+
+- name: Copy .NET 8.0 Desktop Runtime installer from NAS
+  ansible.windows.win_copy:
+    src: "{{ dotnet_runtime_installer_source }}"
+    dest: C:\Windows\Temp\windowsdesktop-runtime-8.0-win-x64.exe
+    remote_src: true
+  when: not dotnet_host_check.stat.exists
+
+- name: Install .NET 8.0 Desktop Runtime (silent)
+  ansible.windows.win_command:
+    argv:
+      - C:\Windows\Temp\windowsdesktop-runtime-8.0-win-x64.exe
+      - /install
+      - /quiet
+      - /norestart
+  when: not dotnet_host_check.stat.exists
+
+- name: Verify .NET 8.0 runtime host is present
+  ansible.windows.win_stat:
+    path: C:\Program Files\dotnet\dotnet.exe
+  register: dotnet_host_verify
+  failed_when: not dotnet_host_verify.stat.exists
+
+- name: Clean up .NET runtime installer
+  ansible.windows.win_file:
+    path: C:\Windows\Temp\windowsdesktop-runtime-8.0-win-x64.exe
     state: absent

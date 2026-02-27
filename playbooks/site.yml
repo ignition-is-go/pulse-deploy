@@ -66,6 +66,8 @@
   hosts: ue_plugin_dev
   gather_facts: false
   roles:
+    - win_remove_edge
+    - win_install_chrome
     - git
     - vs_buildtools
     - vscode
@@ -123,3 +125,11 @@
   gather_facts: false
   roles:
     - rship
+
+# === Cross-platform ===
+
+- name: Netbird mesh VPN — all hosts
+  hosts: all
+  gather_facts: true
+  roles:
+    - netbird

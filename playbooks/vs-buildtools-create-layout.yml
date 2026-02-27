@@ -54,6 +54,7 @@
           "--add", "Microsoft.VisualStudio.Component.VC.ASAN",
           "--add", "Microsoft.VisualStudio.Component.VC.Llvm.Clang",
           "--add", "Microsoft.NetCore.Component.Runtime.8.0",
+          "--add", "Microsoft.Net.Component.4.6.2.TargetingPack",
           "--includeRecommended", "--lang", "en-US", "--quiet"
         ) -PassThru
         Start-Sleep -Seconds 10
@@ -84,7 +85,6 @@
       register: layout_copy_result
       failed_when: layout_copy_result.rc >= 8
       changed_when: layout_copy_result.rc in [1, 3, 5, 7]
-      when: not nas_layout_check.stat.exists
 
     - name: Verify layout on NAS
       ansible.windows.win_stat:

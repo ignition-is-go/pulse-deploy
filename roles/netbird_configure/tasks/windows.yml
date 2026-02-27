@@ -1,0 +1,25 @@
+---
+# netbird_configure/tasks/windows.yml — Enroll Netbird on Windows
+
+- name: Check Netbird status
+  ansible.windows.win_command:
+    argv:
+      - netbird
+      - status
+  register: netbird_status
+  changed_when: false
+  failed_when: false
+
+- name: Enroll Netbird with setup key
+  ansible.windows.win_command:
+    argv:
+      - netbird
+      - up
+      - --management-url
+      - "{{ netbird_management_url }}"
+      - --admin-url
+      - "{{ netbird_admin_url }}"
+      - --setup-key
+      - "{{ netbird_setup_key }}"
+  when: "'Connected' not in netbird_status.stdout"
+  no_log: true
