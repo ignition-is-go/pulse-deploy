@@ -35,6 +35,14 @@
   roles:
     - role: rivermax
       when: rivermax | default(false)
+    - role: cx6_ip
+      when: rivermax | default(false)
+    - role: cx6_tune
+      when: rivermax | default(false)
+    - role: cx6_ptp_timestamp
+      when: rivermax | default(false)
+    - role: ptp_w32time
+      when: rivermax | default(false)
 
 - name: Plastic SCM — staging and plugin dev nodes
   hosts: ue_staging:ue_plugin_dev

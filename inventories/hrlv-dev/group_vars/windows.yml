@@ -2,6 +2,10 @@
 # Windows group vars — applied to all Windows VMs
 # WinRM connection vars are set in inventory/hosts.yml under windows.vars
 
+# PTP (applied when rivermax: true)
+ptp_masters: "10.0.0.100"
+ptp_domain: 0
+
 # Rivermax (applied when rivermax: true)
 rivermax_winof2_installer: "{{ deploy_share }}\\rivermax\\MLNX_WinOF2-24_10_50010_All_x64.exe"
 rivermax_sdk_installer: "{{ deploy_share }}\\rivermax\\Rivermax_Windows_1.71.30.zip"

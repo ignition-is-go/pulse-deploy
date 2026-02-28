@@ -1,0 +1,87 @@
+---
+# cx6_tune — Tune ConnectX-6 VF for high-throughput ST 2110
+#
+# ST 2110 video generates ~1M+ small UDP packets/sec per stream. This role:
+#   1. Maxes out VF ring buffers (default 512 too small, causes drops)
+#   2. Sets aggressive interrupt moderation (coalesces packets, fewer interrupts)
+#
+# RSS is already 16 queues by default on these VFs — no change needed.
+# Interrupt moderation defaults to Adaptive/Moderate which doesn't coalesce
+# aggressively enough for sustained 1M+ pps loads.
+#
+# Proxmox host-side (run manually on each hypervisor):
+#   for i in 0 1 2 3 4 5 6 7; do ethtool -G ens13f0r${i} rx 8192 tx 8192 2>/dev/null; done
+
+- name: Discover ConnectX-6 adapter
+  ansible.windows.win_shell: |
+    $adapters = @(Get-NetAdapter | Where-Object {
+      $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
+    })
+    if ($adapters.Count -eq 0) { throw "ConnectX adapter not found" }
+    if ($adapters.Count -gt 1) { throw "Multiple ConnectX adapters found ($($adapters.Count)), expected 1" }
+    $adapters[0].Name
+  register: cx6_discovery
+  changed_when: false
+  when: rivermax | default(false)
+
+- name: Set ConnectX-6 adapter name
+  ansible.builtin.set_fact:
+    cx6_adapter: "{{ cx6_discovery.stdout | trim }}"
+  when: rivermax | default(false)
+
+- name: Max out receive and transmit ring buffers
+  ansible.windows.win_shell: |
+    foreach ($kw in @("*ReceiveBuffers", "*TransmitBuffers")) {
+      $prop = Get-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword $kw
+      if ([int]$prop.RegistryValue[0] -lt $prop.NumericParameterMaxValue) {
+        Set-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword $kw -RegistryValue $prop.NumericParameterMaxValue
+        Write-Output "$kw: $($prop.RegistryValue) -> $($prop.NumericParameterMaxValue)"
+      } else {
+        Write-Output "$kw: already at max ($($prop.RegistryValue))"
+      }
+    }
+  register: ring_result
+  changed_when: "'->' in ring_result.stdout"
+  when: rivermax | default(false)
+
+# --- Interrupt moderation: aggressive coalescing for sustained high-pps ---
+
+- name: Set RX interrupt moderation to aggressive
+  ansible.windows.win_shell: |
+    $mod = Get-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "RxIntModeration"
+    $prof = Get-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "RxIntModerationProfile"
+    $changed = $false
+    if ([int]$mod.RegistryValue[0] -ne 1) {
+      Set-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "RxIntModeration" -RegistryValue 1
+      Write-Output "RxIntModeration: $($mod.RegistryValue) -> 1 (static)"
+      $changed = $true
+    }
+    if ([int]$prof.RegistryValue[0] -ne 2) {
+      Set-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "RxIntModerationProfile" -RegistryValue 2
+      Write-Output "RxIntModerationProfile: $($prof.RegistryValue) -> 2 (aggressive)"
+      $changed = $true
+    }
+    if (-not $changed) { Write-Output "already at static/aggressive" }
+  register: intmod_result
+  changed_when: "'->' in intmod_result.stdout"
+  when: rivermax | default(false)
+
+# --- Verify ---
+
+- name: Verify final settings
+  ansible.windows.win_shell: |
+    $rx = Get-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "*ReceiveBuffers"
+    $tx = Get-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "*TransmitBuffers"
+    $rssQ = Get-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "*NumRSSQueues"
+    $rxMod = Get-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword "RxIntModerationProfile"
+    Write-Output "Ring: RX=$($rx.DisplayValue)/$($rx.NumericParameterMaxValue) TX=$($tx.DisplayValue)/$($tx.NumericParameterMaxValue)"
+    Write-Output "RSS Queues: $($rssQ.DisplayValue)"
+    Write-Output "RxIntModProfile: $($rxMod.DisplayValue)"
+  register: tune_verify
+  changed_when: false
+  when: rivermax | default(false)
+
+- name: Display final settings
+  ansible.builtin.debug:
+    msg: "{{ inventory_hostname }}:\n{{ tune_verify.stdout | trim }}"
+  when: rivermax | default(false)
