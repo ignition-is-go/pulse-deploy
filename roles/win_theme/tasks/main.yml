@@ -28,8 +28,10 @@
 
 - name: Close Settings app opened by theme apply
   ansible.windows.win_shell: |
-    Get-Process -Name SystemSettings -ErrorAction SilentlyContinue | Stop-Process -Force
-  changed_when: false
+    $p = Get-Process -Name SystemSettings -ErrorAction SilentlyContinue
+    if ($p) { $p | Stop-Process -Force; "CLOSED" } else { "NOT_RUNNING" }
+  register: settings_close
+  changed_when: "'CLOSED' in settings_close.stdout"
   when: current_theme.stdout | trim | lower is not search('dark.theme')
 
 - name: Verify dark theme is active

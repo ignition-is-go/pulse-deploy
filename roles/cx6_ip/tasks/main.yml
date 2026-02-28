@@ -24,22 +24,39 @@
     cx6_ifindex: "{{ cx6_discovery.stdout | trim }}"
   when: rivermax | default(false)
 
+- name: Check current IP on CX6
+  ansible.windows.win_shell: |
+    $ip = Get-NetIPAddress -InterfaceIndex {{ cx6_ifindex }} -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+      Where-Object { $_.IPAddress -notlike '169.*' }
+    if ($ip) { "CURRENT=$($ip.IPAddress)" } else { "NONE" }
+  register: cx6_current_ip
+  changed_when: false
+  when: rivermax | default(false)
+
 - name: Remove existing IP addresses on CX6
   ansible.windows.win_shell: |
-    Remove-NetIPAddress -InterfaceIndex {{ cx6_ifindex }} -Confirm:$false -ErrorAction SilentlyContinue
-  when: rivermax | default(false)
-  changed_when: false
+    Remove-NetIPAddress -InterfaceIndex {{ cx6_ifindex }} -Confirm:$false
+  when:
+    - rivermax | default(false)
+    - "'CURRENT=' in cx6_current_ip.stdout"
+    - "media_ip not in cx6_current_ip.stdout"
+  changed_when: true
 
 - name: Remove existing routes on CX6
   ansible.windows.win_shell: |
-    Remove-NetRoute -InterfaceIndex {{ cx6_ifindex }} -Confirm:$false -ErrorAction SilentlyContinue
-  when: rivermax | default(false)
-  changed_when: false
+    Remove-NetRoute -InterfaceIndex {{ cx6_ifindex }} -Confirm:$false
+  when:
+    - rivermax | default(false)
+    - "'CURRENT=' in cx6_current_ip.stdout"
+    - "media_ip not in cx6_current_ip.stdout"
+  changed_when: true
 
 - name: Assign media network IP
   ansible.windows.win_shell: |
     New-NetIPAddress -InterfaceIndex {{ cx6_ifindex }} -IPAddress {{ media_ip }} -PrefixLength 24
-  when: rivermax | default(false)
+  when:
+    - rivermax | default(false)
+    - "media_ip not in (cx6_current_ip.stdout | default(''))"
 
 - name: Disable DHCP on CX6
   ansible.windows.win_shell: |

@@ -59,3 +59,4 @@
   register: worker_status
   changed_when: "'started' in worker_status.stdout"
   failed_when: "'failed_to_start' in worker_status.stdout"
+  when: worker_binary_check.stat.exists

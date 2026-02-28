@@ -35,9 +35,9 @@
       $prop = Get-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword $kw
       if ([int]$prop.RegistryValue[0] -lt $prop.NumericParameterMaxValue) {
         Set-NetAdapterAdvancedProperty -Name "{{ cx6_adapter }}" -RegistryKeyword $kw -RegistryValue $prop.NumericParameterMaxValue
-        Write-Output "$kw: $($prop.RegistryValue) -> $($prop.NumericParameterMaxValue)"
+        Write-Output "${kw}: $($prop.RegistryValue) -> $($prop.NumericParameterMaxValue)"
       } else {
-        Write-Output "$kw: already at max ($($prop.RegistryValue))"
+        Write-Output "${kw}: already at max ($($prop.RegistryValue))"
       }
     }
   register: ring_result
