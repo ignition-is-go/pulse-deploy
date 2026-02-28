@@ -50,6 +50,12 @@ variable "memory_mb" {
   type        = number
 }
 
+variable "floating" {
+  description = "Minimum memory in MB for balloon (0 = ballooning disabled)"
+  type        = number
+  default     = 0
+}
+
 # --- Storage -----------------------------------------------------------------
 
 variable "disk_gb" {

@@ -97,14 +97,17 @@ variable "windows_admin_password" {
 variable "ue_content" {
   description = "UE nDisplay content render nodes (Windows + GPU)"
   type = map(object({
-    id        = number
-    ip        = string
-    node      = string # key into proxmox_hosts
-    cores     = number
-    memory_mb = number
-    disk_gb   = number
-    gpu_slots = list(number)     # indices into proxmox_hosts[node].gpus
-    cx6_slot  = optional(number) # index into proxmox_hosts[node].cx6_vfs
+    id                = number
+    ip                = string
+    media_ip          = string
+    ndisplay_node     = string          # nDisplay cluster node ID (e.g. "Node_1")
+    ndisplay_primary  = optional(bool)  # true for the primary node only
+    node              = string          # key into proxmox_hosts
+    cores             = number
+    memory_mb         = number
+    disk_gb           = number
+    gpu_slots         = list(number)     # indices into proxmox_hosts[node].gpus
+    cx6_slot          = optional(number) # index into proxmox_hosts[node].cx6_vfs
   }))
   default = {}
 }
@@ -114,6 +117,7 @@ variable "ue_previs" {
   type = map(object({
     id        = number
     ip        = string
+    media_ip  = string
     node      = string
     cores     = number
     memory_mb = number

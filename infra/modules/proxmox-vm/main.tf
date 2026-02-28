@@ -33,6 +33,7 @@ resource "proxmox_virtual_environment_vm" "this" {
 
   memory {
     dedicated = var.memory_mb
+    floating  = var.floating
   }
 
   # EFI disk — only when override_bios = "ovmf"

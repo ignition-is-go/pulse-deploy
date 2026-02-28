@@ -121,9 +121,14 @@ resource "ansible_host" "ue_content" {
   for_each = var.ue_content
   name     = each.key
   groups   = ["ue_content"]
-  variables = {
-    ansible_host = each.value.ip
-  }
+  variables = merge(
+    {
+      ansible_host  = each.value.ip
+      media_ip      = each.value.media_ip
+      ndisplay_node = each.value.ndisplay_node
+    },
+    each.value.ndisplay_primary == true ? { ndisplay_primary = "true" } : {}
+  )
 }
 
 resource "ansible_host" "ue_previs" {
@@ -132,6 +137,7 @@ resource "ansible_host" "ue_previs" {
   groups   = ["ue_previs"]
   variables = {
     ansible_host = each.value.ip
+    media_ip     = each.value.media_ip
   }
 }
 
