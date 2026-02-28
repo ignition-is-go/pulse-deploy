@@ -3,7 +3,7 @@
 #
 # Robocopy /MIR from the staging node's local Plastic workspace to the
 # deploy share on pulse-admin. Destination nodes pull from here via
-# mirror-nas-workspace.yml.
+# mirror-nas-cluster.yml.
 #
 # Usage:
 #   ansible-playbook playbooks/mirror-staging-nas.yml
@@ -14,11 +14,6 @@
   gather_facts: false
 
   tasks:
-    - name: Ensure log directory exists
-      ansible.windows.win_file:
-        path: C:\temp
-        state: directory
-
     - name: Verify source workspace exists
       ansible.windows.win_stat:
         path: "{{ plastic_workspace }}"
@@ -34,15 +29,26 @@
         robocopy "{{ plastic_workspace }}" "{{ staging_workspace_unc }}"
         /MIR /MT:16 /R:5 /W:10 /NP /NDL
         /XD .plastic4
-        /LOG:C:\temp\robocopy-to-nas.log
+        /LOG:C:\Windows\Temp\robocopy-to-nas.log
         {{ '/L' if (robocopy_dry_run | default(false) | bool) else '' }}
+      async: 7200
+      poll: 0
+      register: mirror_async
+      changed_when: false
+
+    - name: Wait for robocopy to NAS to complete
+      ansible.builtin.async_status:
+        jid: "{{ mirror_async.ansible_job_id }}"
       register: mirror_result
-      failed_when: mirror_result.rc >= 8
-      changed_when: mirror_result.rc in [1, 3, 5, 7]
+      until: mirror_result.finished
+      retries: 720
+      delay: 10
+      failed_when: mirror_result.rc | default(0) >= 8
+      changed_when: mirror_result.rc | default(0) in [1, 3, 5, 7]
 
     - name: Read robocopy summary
       ansible.windows.win_shell: |
-        Get-Content C:\temp\robocopy-to-nas.log -Tail 8 | Where-Object { $_ -match '\S' }
+        Get-Content C:\Windows\Temp\robocopy-to-nas.log -Tail 8 | Where-Object { $_ -match '\S' }
       register: mirror_summary
       changed_when: false
 

@@ -1,0 +1,17 @@
+---
+# Sync workspace: staging → NAS → content/previs/editing nodes
+#
+# Combines mirror-staging-nas.yml and mirror-nas-cluster.yml into a
+# single two-stage pipeline.
+#
+# Usage:
+#   ansible-playbook playbooks/sync-workspace.yml
+#   ansible-playbook playbooks/sync-workspace.yml --limit ue_content
+#   ansible-playbook playbooks/sync-workspace.yml -e "parallel_nodes=2"
+#   ansible-playbook playbooks/sync-workspace.yml -e "robocopy_dry_run=true"
+
+- name: Stage 1 — Mirror staging workspace to NAS
+  ansible.builtin.import_playbook: mirror-staging-nas.yml
+
+- name: Stage 2 — Mirror NAS workspace to destination nodes
+  ansible.builtin.import_playbook: mirror-nas-cluster.yml
