@@ -5,7 +5,6 @@
 # Project secrets
 .env
 .vault_pass
-**/vault.yml
 
 # License files
 *.lic
