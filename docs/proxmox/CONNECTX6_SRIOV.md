@@ -258,7 +258,7 @@ EOF
 Enable and start the service:
 
 systemctl enable bluefield-vfs.service
- systemctl start bluefield-vfs.service 
+systemctl start bluefield-vfs.service 
 
 Verify VFs created:
 

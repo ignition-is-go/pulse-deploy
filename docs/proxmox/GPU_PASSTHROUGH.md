@@ -26,9 +26,19 @@ Version: R02_F24
 
 Proxmox Host Setup
 
-Enable IOMMU in GRUB
+IOMMU Kernel Parameters (recommended, not strictly required)
 
-Edit the GRUB configuration:
+Modern Linux kernels (5.x+) auto-enable IOMMU when the BIOS has it turned on. The GRUB
+parameters below are NOT strictly required for GPU passthrough to work — confirmed working
+without them on nyc-dev-pve-03 (RTX A4000 passthrough, stock `quiet` GRUB config).
+
+However, they are still recommended:
+* `amd_iommu=on` — Forces IOMMU on even if BIOS auto-detection fails. Belt-and-suspenders.
+* `iommu=pt` — Sets default domain to passthrough for host devices, avoiding unnecessary
+  address translation overhead. This is a performance optimization for non-VFIO devices,
+  not a requirement for GPU passthrough itself.
+
+To apply them, edit the GRUB configuration:
 
 nano /etc/default/grub
 
@@ -58,7 +68,7 @@ Aug 13 17:17:15 nyc-prod-pve-01 kernel: pci 0000:74:01.0: Adding to iommu group 
 Claude is very impressed with our grouping:
 
 
-* Enterprise-level IOMMU grouping: You have 165+ IOMMU groups - this is exceptional! Most consumer boards have terrible grouping, but your server has nearly perfect isolation. 
+* Enterprise-level IOMMU grouping: You have 165+ IOMMU groups - this is exceptional! Most consumer boards have terrible grouping, but your server has nearly perfect isolation.
 
 
 Load VFIO Modules:
