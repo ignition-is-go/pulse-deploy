@@ -1,23 +1,23 @@
 # HRLV-DEV Network & IP Schema
 
-## Rack Topology (bottom to top)
+## Rack Topology
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Fortigate            192.168.1.1      gateway/router       │
 ├─────────────────────────────────────────────────────────────┤
-│  Netgear switch       192.168.1.149    OOB management       │
+│  Netgear switch       192.168.1.7      OOB management       │
 ├─────────────────────────────────────────────────────────────┤
-│  Symmetricom PTP      192.168.1.154    mgmt                 │
+│  Symmetricom PTP      192.168.1.6      mgmt                 │
 │                       10.0.0.100       media (PTP GM)       │
 ├─────────────────────────────────────────────────────────────┤
 │  Cisco switch         192.168.1.2      1G management        │
 ├─────────────────────────────────────────────────────────────┤
-│  Mellanox switch      192.168.1.156    100G media           │
+│  MikroTik ROSE        192.168.1.10     NAS/SMB              │
+├─────────────────────────────────────────────────────────────┤
+│  PoE injector                                              │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-├─────────────────────────────────────────────────────────────┤
-│  nyc-nas-01                            storage/NFS/SMB      │
 ├─────────────────────────────────────────────────────────────┤
 │  nyc-pbs-01                            Proxmox Backup       │
 ├─────────────────────────────────────────────────────────────┤
@@ -30,6 +30,8 @@
 │  nyc-dev-pve-03                                             │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
+├─────────────────────────────────────────────────────────────┤
+│  Mellanox switch      192.168.1.5      100G media            │
 ├─────────────────────────────────────────────────────────────┤
 │  nyc-prod-pve-01                                            │
 ├─────────────────────────────────────────────────────────────┤
@@ -67,12 +69,13 @@ nyc-dev-pve-01 is on a separate 192.168.8.x subnet (travel cluster) — not in t
 │  .2  │  Cisco switch           │  switch      │  1G management (trunked to Mellanox)     │
 │  .3  │  TP-Link AP             │  wireless    │  WiFi access point                       │
 │  .4  │  BAP (Unifi)            │  wireless    │  Basement access point                   │
-│  .5  │  Mellanox switch        │  switch      │  100G media / ConnectX-6   (curr .156)   │
-│  .6  │  Symmetricom PTP        │  clock       │  PTP GM mgmt interface     (curr .154)   │
-│  .7  │  Netgear switch         │  switch      │  OOB management            (curr .149)   │
+│  .5  │  Mellanox switch        │  switch      │  100G media / ConnectX-6                 │
+│  .6  │  Symmetricom PTP        │  clock       │  PTP GM mgmt interface                   │
+│  .7  │  Netgear switch         │  switch      │  OOB management                          │
 │  .8  │  UPS 1                  │  UPS         │  Active, web UI                          │
 │  .9  │  UPS 2                  │  UPS         │  Broken — future repair                  │
-│.10-19│  —                      │  reserved    │  Future infrastructure                   │
+│ .10  │  MikroTik ROSE          │  NAS         │  RouterOS SMB, expandable disk bays      │
+│.11-19│  —                      │  reserved    │  Future infrastructure                   │
 │      │                         │              │                                          │
 │      │  .20-.29 RSHIP MICROS   │              │  Off-rack edge devices                   │
 │      │                         │              │                                          │
@@ -84,13 +87,11 @@ nyc-dev-pve-01 is on a separate 192.168.8.x subnet (travel cluster) — not in t
 │  .26 │  kvm-micro-003          │  KVM-IP      │  If equipped                             │
 │.27-29│  —                      │  reserved    │  Future edge devices                     │
 │      │                         │              │                                          │
-│      │  .30-.39 INFRA SERVERS  │              │  PBS, NAS, KVM                           │
+│      │  .30-.39 INFRA SERVERS  │              │  PBS, KVM                                │
 │      │                         │              │                                          │
 │  .31 │  nyc-pbs-01             │  PBS         │  Proxmox Backup Server (new install)     │
-│  .32 │  nyc-nas-01             │  NAS         │  Storage / NFS / SMB (new install)       │
-│  .33 │  kvm-pbs-01             │  KVM-IP      │  If equipped                             │
-│  .34 │  kvm-nas-01             │  KVM-IP      │  If equipped                             │
-│.37-39│  —                      │  reserved    │                                          │
+│  .32 │  kvm-pbs-01             │  KVM-IP      │  If equipped                             │
+│.33-39│  —                      │  reserved    │                                          │
 │      │                         │              │                                          │
 │      │  .40-.49 DEV HYPERVISORS│              │                                          │
 │      │                         │              │                                          │
@@ -119,12 +120,11 @@ nyc-dev-pve-01 is on a separate 192.168.8.x subnet (travel cluster) — not in t
 │      │                         │              │  Leave BMCs on DHCP until then.          │
 │      │                         │              │                                          │
 │  .71 │  bmc-pbs-01             │  BMC         │  IPMI for nyc-pbs-01                     │
-│  .72 │  bmc-nas-01             │  BMC         │  IPMI for nyc-nas-01                     │
-│  .73 │  bmc-dev-pve-01         │  BMC         │  IPMI for nyc-dev-pve-01 (travel unit)   │
-│  .74 │  bmc-dev-pve-02         │  BMC         │  IPMI for nyc-dev-pve-02                 │
-│  .75 │  bmc-dev-pve-03         │  BMC         │  IPMI for nyc-dev-pve-03                 │
-│  .76 │  bmc-prod-pve-01        │  BMC         │  IPMI for nyc-prod-pve-01                │
-│  .77 │  bmc-prod-pve-02        │  BMC         │  IPMI for nyc-prod-pve-02                │
+│  .72 │  bmc-dev-pve-01         │  BMC         │  IPMI for nyc-dev-pve-01 (travel unit)   │
+│  .73 │  bmc-dev-pve-02         │  BMC         │  IPMI for nyc-dev-pve-02                 │
+│  .74 │  bmc-dev-pve-03         │  BMC         │  IPMI for nyc-dev-pve-03                 │
+│  .75 │  bmc-prod-pve-01        │  BMC         │  IPMI for nyc-prod-pve-01                │
+│  .76 │  bmc-prod-pve-02        │  BMC         │  IPMI for nyc-prod-pve-02                │
 │.78-79│  —                      │  reserved    │                                          │
 │      │                         │              │                                          │
 │.80-99│  —                      │  reserved    │  Future physical expansion               │
@@ -239,13 +239,14 @@ Last octet mirrors management IP for easy correlation.
 │  nyc-dev-pve-03               │  .43       │  .43       │  —                 │
 │  nyc-prod-pve-01              │  .51       │  .51       │  —                 │
 │  nyc-prod-pve-02              │  .61       │  .61       │  —                 │
+│  Mellanox switch              │  .5        │  .5        │  —                 │
+│  Netgear switch               │  .7        │  .7        │  —                 │
+│  Symmetricom PTP (mgmt)       │  .6        │  .6        │  —                 │
+│  MikroTik ROSE (NAS)          │  .10       │  .10       │  —                 │
 ├───────────────────────────────┼────────────┼────────────┼────────────────────┤
 │  MOVE — DHCP to static        │            │            │                    │
 ├───────────────────────────────┼────────────┼────────────┼────────────────────┤
-│  Netgear switch               │  .149      │  .7        │  Set static        │
-│  Mellanox switch              │  .156      │  .5        │  Set static        │
-│  Symmetricom PTP (mgmt)       │  .154      │  .6        │  Set static        │
-│  All 7 server BMCs            │  DHCP      │  .71-.77   │  Set static        │
+│  All 6 server BMCs            │  DHCP      │  .71-.76   │  Set static        │
 │  UPS 1                        │  DHCP      │  .8        │  Set static        │
 │  UPS 2                        │  DHCP      │  .9        │  Set static        │
 ├───────────────────────────────┼────────────┼────────────┼────────────────────┤
@@ -253,7 +254,6 @@ Last octet mirrors management IP for easy correlation.
 ├───────────────────────────────┼────────────┼────────────┼────────────────────┤
 │  nyc-dev-pve-02               │  —         │  .42       │  New OS install    │
 │  nyc-pbs-01                   │  —         │  .31       │  New OS install    │
-│  nyc-nas-01                   │  —         │  .32       │  New OS install    │
 ├───────────────────────────────┼────────────┼────────────┼────────────────────┤
 │  MOVE — guest IPs (terraform) │            │            │                    │
 ├───────────────────────────────┼────────────┼────────────┼────────────────────┤
