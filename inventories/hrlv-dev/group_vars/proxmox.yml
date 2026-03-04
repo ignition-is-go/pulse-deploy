@@ -1,0 +1,26 @@
+---
+# proxmox group_vars — shared settings for all Proxmox hypervisors
+#
+# Hardware data (sriov_cards, gpus) flows from terraform.tfvars via
+# JSON-encoded ansible_host variables. Decoded here into native lists.
+
+# Decode hardware data from Terraform
+sriov_cards: "{{ (sriov_cards_json | default('[]')) | from_json }}"
+gpus: "{{ (gpus_json | default('[]')) | from_json }}"
+
+# Derived — filter by card type
+cx6_cards: "{{ sriov_cards | selectattr('type', 'eq', 'cx6') | list }}"
+bf2_cards: "{{ sriov_cards | selectattr('type', 'eq', 'bf2') | list }}"
+has_cx6: "{{ cx6_cards | length > 0 }}"
+has_bf2: "{{ bf2_cards | length > 0 }}"
+
+# BF2 convenience vars (first BF2 card — current hosts have one)
+bf2_pci: "{{ bf2_cards[0].pci_slots[0] | default('') if bf2_cards | length > 0 else '' }}"
+bf2_iface: "{{ bf2_cards[0].bf2_iface | default('') if bf2_cards | length > 0 else '' }}"
+bf2_vf_count: "{{ bf2_cards[0].vf_count | default(8) if bf2_cards | length > 0 else 0 }}"
+
+# CX6 SR-IOV tuning (was in proxmox_cx6.yml)
+cx6_vf_count: 8
+cx6_ovs_mtu: 9000
+cx6_rep_ring_rx: 8192
+cx6_rep_ring_tx: 8192

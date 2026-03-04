@@ -13,9 +13,13 @@
 #   ansible-playbook playbooks/pve-validate-cx6.yml --limit nyc-prod-pve-01
 
 - name: Validate CX6 SR-IOV state on PVE hosts
-  hosts: proxmox_cx6
+  hosts: proxmox
   gather_facts: false
   tasks:
+
+    - name: Skip hosts without CX6 cards
+      ansible.builtin.meta: end_host
+      when: not (has_cx6 | bool)
 
     # --- Firmware (requires mft) ---
 
@@ -40,9 +44,11 @@
             label: "{{ item.bridge }}"
           register: val_firmware
           changed_when: false
+          no_log: true
 
         - name: Validate firmware settings per card
           ansible.builtin.assert:
+            quiet: true
             that:
               - "item.stdout is regex('SRIOV_EN\\s+True')"
               - "item.stdout is regex('NUM_OF_VFS\\s+' ~ (cx6_vf_count | string))"
@@ -71,6 +77,7 @@
 
     - name: Validate IOMMU enabled
       ansible.builtin.assert:
+        quiet: true
         that: "val_iommu.matched > 0"
         fail_msg: "No IOMMU groups found — enable in BIOS and kernel"
         success_msg: "{{ val_iommu.matched }} IOMMU groups"
@@ -83,6 +90,7 @@
 
     - name: Validate mlx5_core loaded
       ansible.builtin.assert:
+        quiet: true
         that: "'mlx5_core' in val_lsmod.stdout"
         fail_msg: "mlx5_core module not loaded"
         success_msg: "mlx5_core loaded"
@@ -105,6 +113,7 @@
 
     - name: Validate switchdev mode active
       ansible.builtin.assert:
+        quiet: true
         that: "'switchdev' in item.stdout"
         fail_msg: "{{ item.item.bridge }}: switchdev NOT active on pci/{{ item.item.pci_slots[0] }}"
         success_msg: "{{ item.item.bridge }}: switchdev active"
@@ -122,6 +131,7 @@
 
     - name: Validate VF count
       ansible.builtin.assert:
+        quiet: true
         that: "(item.content | b64decode | trim) | int == cx6_vf_count"
         fail_msg: "{{ item.item.bridge }}: {{ item.content | b64decode | trim }} VFs, expected {{ cx6_vf_count }}"
         success_msg: "{{ item.item.bridge }}: {{ cx6_vf_count }} VFs"
@@ -140,6 +150,7 @@
 
     - name: Validate OVS service running
       ansible.builtin.assert:
+        quiet: true
         that: "val_ovs_svc.stdout == 'active'"
         fail_msg: "openvswitch-switch not active"
         success_msg: "OVS service active"
@@ -152,6 +163,7 @@
 
     - name: Validate OVS global settings
       ansible.builtin.assert:
+        quiet: true
         that:
           - "'hw-offload=\"true\"' in val_ovs_cfg.stdout"
           - "'tc-policy=skip_sw' in val_ovs_cfg.stdout"
@@ -169,6 +181,7 @@
 
     - name: Validate bridges exist
       ansible.builtin.assert:
+        quiet: true
         that: "item.bridge in val_br_list.stdout_lines"
         fail_msg: "Bridge {{ item.bridge }} missing"
         success_msg: "{{ item.bridge }} present"
@@ -187,6 +200,7 @@
 
     - name: Validate bond has both PF uplinks
       ansible.builtin.assert:
+        quiet: true
         that:
           - "item.item.pf_ifaces[0] in item.stdout"
           - "item.item.pf_ifaces[1] in item.stdout"
@@ -206,6 +220,7 @@
 
     - name: Validate bridge MTU
       ansible.builtin.assert:
+        quiet: true
         that: "(item.content | b64decode | trim) | int == cx6_ovs_mtu"
         fail_msg: "{{ item.item.bridge }}: MTU {{ item.content | b64decode | trim }}, expected {{ cx6_ovs_mtu }}"
         success_msg: "{{ item.item.bridge }}: MTU {{ cx6_ovs_mtu }}"
@@ -226,6 +241,7 @@
 
     - name: Validate representor count per bridge
       ansible.builtin.assert:
+        quiet: true
         that: "(item.stdout_lines | select('match', '^' ~ item.item.rep_prefix ~ '\\d+$') | list | length) == cx6_vf_count"
         fail_msg: "{{ item.item.bridge }}: expected {{ cx6_vf_count }} representors ({{ item.item.rep_prefix }}*)"
         success_msg: "{{ item.item.bridge }}: {{ cx6_vf_count }} representors attached"
@@ -246,6 +262,7 @@
 
     - name: Validate ring buffer sizes
       ansible.builtin.assert:
+        quiet: true
         that:
           - "item.stdout is regex('Current hardware settings:[\\s\\S]*?RX:\\s+' ~ (cx6_rep_ring_rx | string))"
           - "item.stdout is regex('Current hardware settings:[\\s\\S]*?TX:\\s+' ~ (cx6_rep_ring_tx | string))"

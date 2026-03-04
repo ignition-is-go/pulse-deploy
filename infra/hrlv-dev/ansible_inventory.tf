@@ -33,12 +33,14 @@ resource "ansible_group" "ue" {
     "ue_staging",
     "ue_plugin_dev",
     "ue_runner",
+    "workstation",
   ]
 }
 
 resource "ansible_group" "linux" {
   name = "linux"
   children = [
+    "proxmox",
     "optik",
     "pixelfarm",
     "rship",
@@ -239,4 +241,52 @@ resource "ansible_host" "rustdesk" {
   variables = {
     ansible_host = each.value.ip
   }
+}
+
+# --- Proxmox hypervisor groups ------------------------------------------------
+
+resource "ansible_group" "proxmox" {
+  name     = "proxmox"
+  children = ["proxmox_prod", "proxmox_dev"]
+  variables = {
+    ansible_user = "root"
+  }
+}
+
+resource "ansible_group" "proxmox_prod" {
+  name = "proxmox_prod"
+}
+
+resource "ansible_group" "proxmox_dev" {
+  name = "proxmox_dev"
+}
+
+# --- Proxmox hosts (physical hypervisors) -------------------------------------
+
+resource "ansible_host" "proxmox_prod" {
+  for_each = {
+    for k, v in var.proxmox_hosts : k => v
+    if startswith(k, "nyc-prod-") && v.ip != "" && v.cores > 0
+  }
+  name   = each.key
+  groups = ["proxmox_prod"]
+  variables = merge(
+    { ansible_host = each.value.ip },
+    length(each.value.sriov_cards) > 0 ? { sriov_cards_json = jsonencode(each.value.sriov_cards) } : {},
+    length(each.value.gpus) > 0 ? { gpus_json = jsonencode(each.value.gpus) } : {},
+  )
+}
+
+resource "ansible_host" "proxmox_dev" {
+  for_each = {
+    for k, v in var.proxmox_hosts : k => v
+    if startswith(k, "nyc-dev-") && v.ip != "" && v.cores > 0
+  }
+  name   = each.key
+  groups = ["proxmox_dev"]
+  variables = merge(
+    { ansible_host = each.value.ip },
+    length(each.value.sriov_cards) > 0 ? { sriov_cards_json = jsonencode(each.value.sriov_cards) } : {},
+    length(each.value.gpus) > 0 ? { gpus_json = jsonencode(each.value.gpus) } : {},
+  )
 }

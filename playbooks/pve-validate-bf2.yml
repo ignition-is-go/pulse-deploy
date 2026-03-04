@@ -1,0 +1,116 @@
+---
+# pve-validate-bf2.yml — Validate BlueField-2 SR-IOV state on Proxmox hosts
+#
+# Checks: firmware (SRIOV_EN, VF_VPD_ENABLE), bluefield-vfs.service,
+# VF count, VFs visible via lspci.
+#
+# Firmware checks require mft installed on target (mst + mlxconfig).
+# Skipped automatically if mft is not present.
+#
+# Usage:
+#   ansible-playbook playbooks/pve-validate-bf2.yml
+#   ansible-playbook playbooks/pve-validate-bf2.yml --limit nyc-dev-pve-02
+
+- name: Validate BlueField-2 SR-IOV state on PVE hosts
+  hosts: proxmox
+  gather_facts: false
+  tasks:
+
+    - name: Skip hosts without BF2 cards
+      ansible.builtin.meta: end_host
+      when: not (has_bf2 | bool)
+
+    # --- Firmware (requires mft) ---
+
+    - name: Check if mlxconfig is available
+      ansible.builtin.stat:
+        path: /usr/bin/mlxconfig
+      register: val_has_mlxconfig
+
+    - name: Firmware validation via mlxconfig
+      when: val_has_mlxconfig.stat.exists
+      block:
+        - name: Start mst service for firmware queries
+          ansible.builtin.command:
+            argv: [mst, start]
+          changed_when: false
+
+        - name: Query firmware config for BF2
+          ansible.builtin.command:
+            argv: [mlxconfig, -d, "{{ bf2_pci }}", query]
+          register: val_firmware
+          changed_when: false
+          no_log: true
+
+        - name: Validate firmware settings
+          ansible.builtin.assert:
+            quiet: true
+            that:
+              - "val_firmware.stdout is regex('SRIOV_EN\\s+True')"
+              - "val_firmware.stdout is regex('VF_VPD_ENABLE\\s+True')"
+            fail_msg: "BF2 {{ bf2_pci }}: firmware config incorrect"
+            success_msg: "BF2 {{ bf2_pci }}: SRIOV_EN, VPD OK"
+
+    - name: Warn if mft not installed
+      ansible.builtin.debug:
+        msg: "mft not installed — skipping firmware validation"
+      when: not val_has_mlxconfig.stat.exists
+
+    # --- bluefield-vfs.service ---
+
+    - name: Check bluefield-vfs service status
+      ansible.builtin.command:
+        argv: [systemctl, is-enabled, bluefield-vfs.service]
+      register: val_bf2_svc_enabled
+      changed_when: false
+      failed_when: false
+
+    - name: Validate bluefield-vfs service enabled
+      ansible.builtin.assert:
+        quiet: true
+        that: "val_bf2_svc_enabled.stdout == 'enabled'"
+        fail_msg: "bluefield-vfs.service not enabled"
+        success_msg: "bluefield-vfs.service enabled"
+
+    - name: Check bluefield-vfs service active
+      ansible.builtin.command:
+        argv: [systemctl, is-active, bluefield-vfs.service]
+      register: val_bf2_svc_active
+      changed_when: false
+      failed_when: false
+
+    - name: Validate bluefield-vfs service active
+      ansible.builtin.assert:
+        quiet: true
+        that: "val_bf2_svc_active.stdout == 'active'"
+        fail_msg: "bluefield-vfs.service not active"
+        success_msg: "bluefield-vfs.service active"
+
+    # --- VF count ---
+
+    - name: Read sriov_numvfs
+      ansible.builtin.slurp:
+        src: "/sys/class/net/{{ bf2_iface }}/device/sriov_numvfs"
+      register: val_numvfs
+
+    - name: Validate VF count
+      ansible.builtin.assert:
+        quiet: true
+        that: "(val_numvfs.content | b64decode | trim) | int == bf2_vf_count"
+        fail_msg: "{{ bf2_iface }}: {{ val_numvfs.content | b64decode | trim }} VFs, expected {{ bf2_vf_count }}"
+        success_msg: "{{ bf2_iface }}: {{ bf2_vf_count }} VFs"
+
+    # --- VFs visible via lspci ---
+
+    - name: List PCI devices at BF2 address range
+      ansible.builtin.command:
+        argv: [lspci, -s, "{{ bf2_pci[: bf2_pci.index(':')] }}:", -nn]
+      register: val_lspci
+      changed_when: false
+
+    - name: Validate VFs visible in lspci
+      ansible.builtin.assert:
+        quiet: true
+        that: "(val_lspci.stdout_lines | select('search', 'Virtual Function') | list | length) >= bf2_vf_count"
+        fail_msg: "Expected {{ bf2_vf_count }} VFs in lspci, found fewer"
+        success_msg: "{{ bf2_vf_count }} VFs visible in lspci"

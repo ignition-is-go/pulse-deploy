@@ -25,12 +25,26 @@ variable "proxmox_password" {
 variable "proxmox_hosts" {
   description = "Physical Proxmox hosts and their hardware resources"
   type = map(object({
-    cores      = number       # total physical cores
-    memory_gb  = number       # total RAM in GB
-    storage_gb = number       # total usable storage in GB
-    storage_id = string       # Proxmox storage pool name (e.g. zfs-nvme-01)
-    gpus       = list(string) # GPU PCI addresses in slot order
-    cx6_vfs    = list(string) # CX6 SR-IOV VF PCI addresses in slot order
+    ip         = string        # management IP (ansible_host)
+    cores      = number        # total physical cores
+    memory_gb  = number        # total RAM in GB
+    storage_gb = number        # total usable storage in GB
+    storage_id = string        # Proxmox storage pool name (e.g. zfs-nvme-01)
+    gpus       = list(string)  # GPU PCI addresses in slot order
+    cx6_vfs    = list(string)  # CX6 SR-IOV VF PCI addresses in slot order
+
+    # SR-IOV card definitions (flows to Ansible for host config)
+    sriov_cards = optional(list(object({
+      type       = string                      # "cx6" or "bf2"
+      switchid   = optional(string, "")        # discovered: cat /sys/class/net/<pf>/phys_switch_id
+      pci_slots  = list(string)                # PCI addresses of physical functions
+      pf_ifaces  = optional(list(string), [])  # discovered: kernel-assigned PF interface names
+      rep_prefix = optional(string, "")        # discovered: representor name prefix (CX6 only)
+      bf2_iface  = optional(string, "")        # discovered: BF2 host interface name
+      vf_count   = optional(number, 8)         # VFs per card
+      bridge     = optional(string, "")        # OVS bridge name (CX6 only)
+      bond       = optional(string, "")        # OVS bond name (CX6 only)
+    })), [])
   }))
 }
 

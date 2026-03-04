@@ -2,6 +2,18 @@
 # Outputs — per-type for Ansible inventory mapping
 # =============================================================================
 
+# --- Proxmox hosts -----------------------------------------------------------
+
+output "proxmox_hosts" {
+  description = "Physical Proxmox hypervisors"
+  value = { for k, v in var.proxmox_hosts : k => {
+    ip   = v.ip
+    gpus = length(v.gpus)
+    vfs  = length(v.cx6_vfs)
+    sriov = [for c in v.sriov_cards : "${c.type} ${join(",", c.pci_slots)}"]
+  } if v.ip != "" && v.cores > 0 }
+}
+
 # --- Windows GPU VMs ---------------------------------------------------------
 
 output "ue_content" {

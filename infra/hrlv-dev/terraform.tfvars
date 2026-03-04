@@ -89,6 +89,7 @@ proxmox_hosts = {
   # zfs-nvme-01 ~6.7T
 
   "nyc-prod-pve-01" = {
+    ip         = "192.168.1.51"
     cores      = 128
     memory_gb  = 1133
     storage_gb = 6700
@@ -121,9 +122,30 @@ proxmox_hosts = {
       "0000:df:01.0",
       "0000:df:01.1",
     ]
+    sriov_cards = [
+      {
+        type       = "cx6"
+        switchid   = "5a03d20003a1420c"
+        pci_slots  = ["0000:5a:00.0", "0000:5a:00.1"]
+        pf_ifaces  = ["enp90s0f0np0", "enp90s0f1np1"]
+        rep_prefix = "enp90s0f0r"
+        bridge     = "vmbr1"
+        bond       = "bond1"
+      },
+      {
+        type       = "cx6"
+        switchid   = "8ab2a00003f6ceb8"
+        pci_slots  = ["0000:df:00.0", "0000:df:00.1"]
+        pf_ifaces  = ["enp223s0f0np0", "enp223s0f1np1"]
+        rep_prefix = "enp223s0f0r"
+        bridge     = "vmbr2"
+        bond       = "bond2"
+      },
+    ]
   }
 
   "nyc-prod-pve-02" = {
+    ip         = "192.168.1.61"
     cores      = 128
     memory_gb  = 1133
     storage_gb = 6700
@@ -148,50 +170,75 @@ proxmox_hosts = {
       "0000:df:01.0",
       "0000:df:01.1",
     ]
+    sriov_cards = [
+      {
+        type       = "cx6"
+        switchid   = "0639e70003d23fb8"
+        pci_slots  = ["0000:5a:00.0", "0000:5a:00.1"]
+        pf_ifaces  = ["enp90s0f0np0", "enp90s0f1np1"]
+        rep_prefix = "enp90s0f0r"
+        bridge     = "vmbr1"
+        bond       = "bond1"
+      },
+      {
+        type       = "cx6"
+        switchid   = "eab2a00003f6ceb8"
+        pci_slots  = ["0000:df:00.0", "0000:df:00.1"]
+        pf_ifaces  = ["enp223s0f0np0", "enp223s0f1np1"]
+        rep_prefix = "enp223s0f0r"
+        bridge     = "vmbr2"
+        bond       = "bond2"
+      },
+    ]
   }
 
   "nyc-prod-pve-03" = {
-    cores      = 0  # TBD — node offline
-    memory_gb  = 0  # TBD
-    storage_gb = 0  # TBD
-    storage_id = "" # TBD
-    gpus       = [] # TBD
-    cx6_vfs    = [] # TBD
+    ip         = "" # TBD — node offline
+    cores      = 0
+    memory_gb  = 0
+    storage_gb = 0
+    storage_id = ""
+    gpus       = []
+    cx6_vfs    = []
   }
 
   "nyc-prod-pve-04" = {
-    cores      = 0  # TBD — node offline
-    memory_gb  = 0  # TBD
-    storage_gb = 0  # TBD
-    storage_id = "" # TBD
-    gpus       = [] # TBD
-    cx6_vfs    = [] # TBD
+    ip         = "" # TBD — node offline
+    cores      = 0
+    memory_gb  = 0
+    storage_gb = 0
+    storage_id = ""
+    gpus       = []
+    cx6_vfs    = []
   }
 
   "nyc-prod-pve-05" = {
-    cores      = 0  # TBD — node offline
-    memory_gb  = 0  # TBD
-    storage_gb = 0  # TBD
-    storage_id = "" # TBD
-    gpus       = [] # TBD
-    cx6_vfs    = [] # TBD
+    ip         = "" # TBD — node offline
+    cores      = 0
+    memory_gb  = 0
+    storage_gb = 0
+    storage_id = ""
+    gpus       = []
+    cx6_vfs    = []
   }
 
   # --- Dev (3x) ---
 
   "nyc-dev-pve-01" = {
-    cores      = 0  # TBD
-    memory_gb  = 0  # TBD
-    storage_gb = 0  # TBD
-    storage_id = "" # TBD
-    gpus       = [] # TBD
-    cx6_vfs    = [] # TBD
+    ip         = "" # TBD
+    cores      = 0
+    memory_gb  = 0
+    storage_gb = 0
+    storage_id = ""
+    gpus       = []
+    cx6_vfs    = []
   }
 
   # 1x AMD EPYC 9474F 48-Core (1 socket, SMT on = 96 threads)
-  # 2x RTX 4090, 1x CX6 (VF PCI IDs TBD — run lspci on host)
+  # 2x RTX 4090, 1x BlueField-2 (BF2 PCI 41:00.0, iface nic3)
   # zfs-nvme-04
   "nyc-dev-pve-02" = {
+    ip         = "192.168.1.42"
     cores      = 96
     memory_gb  = 251
     storage_gb = 7020 # TODO: verify with `zpool list` on host
@@ -210,12 +257,20 @@ proxmox_hosts = {
       "0000:41:01.0",
       "0000:41:01.1",
     ]
+    sriov_cards = [
+      {
+        type      = "bf2"
+        pci_slots = ["0000:41:00.0"]
+        bf2_iface = "nic3"
+      },
+    ]
   }
 
   # 1x AMD EPYC 9474F 48-Core (1 socket, SMT on = 96 threads)
   # 6x RTX A4000, 1x BlueField-2 CX6 Dx (8 VFs on 81:00.x)
   # zfs-nvme-05 ~7T, local 94G (root only)
   "nyc-dev-pve-03" = {
+    ip         = "192.168.1.43"
     cores      = 96
     memory_gb  = 251
     storage_gb = 7020
@@ -237,6 +292,13 @@ proxmox_hosts = {
       "0000:81:00.7",
       "0000:81:01.0",
       "0000:81:01.1",
+    ]
+    sriov_cards = [
+      {
+        type      = "bf2"
+        pci_slots = ["0000:81:00.0"]
+        bf2_iface = "nic3"
+      },
     ]
   }
 }
