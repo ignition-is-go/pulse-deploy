@@ -11,7 +11,7 @@ Ansible config for a multi-OS render farm (Proxmox). Windows UE/nDisplay render 
 3. **Always use FQCN** (`ansible.windows.win_shell`, not `win_shell`). Never `ansible.builtin.*` on Windows or `ansible.windows.*` on Linux.
 4. **Prefer proper modules over `win_shell`/`shell`.** `win_package` for installers, `win_command` (with `argv:` list) for executables, `win_copy`/`win_file`/`win_stat` for file ops. Only `win_shell` for PowerShell features (pipes, cmdlets, control flow).
 5. **Secrets in vault only.** `vault_` prefix in `group_vars/all/vault.yml`. `no_log: true` on secret-handling tasks.
-6. **No new files unless necessary.** No `templates/` directory. Inline content via `win_copy content:` or `set_fact`.
+6. **No new files unless necessary.** For simple content use inline `copy content:`/`win_copy content:` or `set_fact`. Use `templates/` when configs have loops, conditionals, or complex Jinja2.
 7. **No variable defaults/overrides.** Set values explicitly in each group_vars file independently.
 8. **`ansible_user` is the connection credential, not a general username.** On pulse_admin it's root. Use dedicated vars (`smb_user`, etc.) for service accounts.
 9. **Never modify system accounts** (root, Administrator) with user-management modules. Add preflight `failed_when` checks.
@@ -29,10 +29,10 @@ Layered roles: OS base → Drivers → Shared infra → Applications. Node ident
 | Group | Roles |
 |---|---|
 | `ue_content`/`ue_previs` | win_base → nvidia_gpu_win → rivermax(cond) → unreal_engine → render_worker |
-| `ue_editing` | win_base → nvidia_gpu_win → unreal_engine |
-| `ue_staging` | win_base → nvidia_gpu_win → plastic_scm → unreal_engine |
-| `ue_plugin_dev` | win_base → nvidia_gpu_win → plastic_scm → git → vs_buildtools → unreal_engine |
-| `win_ue_runner` | win_base → git → vs_buildtools → unreal_engine |
+| `ue_staging` | win_base → plastic_scm → unreal_engine |
+| `ue_plugin_dev` | win_base → nvidia_gpu_win → plastic_scm → git → win_ue_build_deps → unreal_engine |
+| `ue_runner` | win_base → git → win_ue_build_deps → unreal_engine |
+| `workstation` | win_base → nvidia_gpu_win → chrome → unreal_engine |
 | `pulse_admin` | linux_base → samba_server |
 | `rship` | lxc_base → rship |
 
@@ -48,7 +48,7 @@ windows (WinRM NTLM :5985, become: runas):
     ue_editing:     windows-unreal-08
     ue_staging:     ue-staging-01          (terraform)
     ue_plugin_dev:  ue-plugindev-01, ue-plugindev-02
-    win_ue_runner:  ue-runner-01
+    ue_runner:  ue-runner-01
   touch:            windows-touch-01
 linux (SSH):
   optik:            optik-01

@@ -1,0 +1,256 @@
+---
+# pve-validate-cx6.yml — Validate CX6 SR-IOV state on Proxmox hosts
+#
+# Checks: firmware (SRIOV_EN, NUM_OF_VFS, LINK_TYPE, VF_VPD_ENABLE),
+# IOMMU, mlx5_core, switchdev mode, VF count, OVS service + global
+# settings, bridges, bonds, representors, ring buffers.
+#
+# Firmware checks require mft installed on target (mst + mlxconfig).
+# Skipped automatically if mft is not present.
+#
+# Usage:
+#   ansible-playbook playbooks/pve-validate-cx6.yml
+#   ansible-playbook playbooks/pve-validate-cx6.yml --limit nyc-prod-pve-01
+
+- name: Validate CX6 SR-IOV state on PVE hosts
+  hosts: proxmox_cx6
+  gather_facts: false
+  tasks:
+
+    # --- Firmware (requires mft) ---
+
+    - name: Check if mlxconfig is available
+      ansible.builtin.stat:
+        path: /usr/bin/mlxconfig
+      register: val_has_mlxconfig
+
+    - name: Firmware validation via mlxconfig
+      when: val_has_mlxconfig.stat.exists
+      block:
+        - name: Start mst service for firmware queries
+          ansible.builtin.command:
+            argv: [mst, start]
+          changed_when: false
+
+        - name: Query firmware config per card
+          ansible.builtin.command:
+            argv: [mlxconfig, -d, "{{ item.pci_slots[0] }}", query]
+          loop: "{{ cx6_cards }}"
+          loop_control:
+            label: "{{ item.bridge }}"
+          register: val_firmware
+          changed_when: false
+
+        - name: Validate firmware settings per card
+          ansible.builtin.assert:
+            that:
+              - "item.stdout is regex('SRIOV_EN\\s+True')"
+              - "item.stdout is regex('NUM_OF_VFS\\s+' ~ (cx6_vf_count | string))"
+              - "item.stdout is regex('LINK_TYPE_P1\\s+ETH')"
+              - "item.stdout is regex('LINK_TYPE_P2\\s+ETH')"
+              - "item.stdout is regex('VF_VPD_ENABLE\\s+True')"
+            fail_msg: "{{ item.item.bridge }}: firmware config incorrect"
+            success_msg: "{{ item.item.bridge }}: SRIOV_EN, NUM_OF_VFS={{ cx6_vf_count }}, ETH, VPD OK"
+          loop: "{{ val_firmware.results }}"
+          loop_control:
+            label: "{{ item.item.bridge }}"
+
+    - name: Warn if mft not installed
+      ansible.builtin.debug:
+        msg: "mft not installed — skipping firmware validation"
+      when: not val_has_mlxconfig.stat.exists
+
+    # --- Kernel / Driver ---
+
+    - name: Check for IOMMU groups
+      ansible.builtin.find:
+        paths: /sys/kernel/iommu_groups
+        file_type: directory
+        recurse: false
+      register: val_iommu
+
+    - name: Validate IOMMU enabled
+      ansible.builtin.assert:
+        that: "val_iommu.matched > 0"
+        fail_msg: "No IOMMU groups found — enable in BIOS and kernel"
+        success_msg: "{{ val_iommu.matched }} IOMMU groups"
+
+    - name: Read loaded kernel modules
+      ansible.builtin.command:
+        argv: [lsmod]
+      register: val_lsmod
+      changed_when: false
+
+    - name: Validate mlx5_core loaded
+      ansible.builtin.assert:
+        that: "'mlx5_core' in val_lsmod.stdout"
+        fail_msg: "mlx5_core module not loaded"
+        success_msg: "mlx5_core loaded"
+
+    # --- Per-card: Switchdev + VFs ---
+
+    - name: Check switchdev mode per card
+      ansible.builtin.command:
+        argv:
+          - devlink
+          - dev
+          - eswitch
+          - show
+          - "pci/{{ item.pci_slots[0] }}"
+      loop: "{{ cx6_cards }}"
+      loop_control:
+        label: "{{ item.bridge }}"
+      register: val_switchdev
+      changed_when: false
+
+    - name: Validate switchdev mode active
+      ansible.builtin.assert:
+        that: "'switchdev' in item.stdout"
+        fail_msg: "{{ item.item.bridge }}: switchdev NOT active on pci/{{ item.item.pci_slots[0] }}"
+        success_msg: "{{ item.item.bridge }}: switchdev active"
+      loop: "{{ val_switchdev.results }}"
+      loop_control:
+        label: "{{ item.item.bridge }}"
+
+    - name: Read sriov_numvfs per card
+      ansible.builtin.slurp:
+        src: "/sys/class/net/{{ item.pf_ifaces[0] }}/device/sriov_numvfs"
+      loop: "{{ cx6_cards }}"
+      loop_control:
+        label: "{{ item.bridge }}"
+      register: val_numvfs
+
+    - name: Validate VF count
+      ansible.builtin.assert:
+        that: "(item.content | b64decode | trim) | int == cx6_vf_count"
+        fail_msg: "{{ item.item.bridge }}: {{ item.content | b64decode | trim }} VFs, expected {{ cx6_vf_count }}"
+        success_msg: "{{ item.item.bridge }}: {{ cx6_vf_count }} VFs"
+      loop: "{{ val_numvfs.results }}"
+      loop_control:
+        label: "{{ item.item.bridge }}"
+
+    # --- OVS ---
+
+    - name: Check OVS service status
+      ansible.builtin.command:
+        argv: [systemctl, is-active, openvswitch-switch]
+      register: val_ovs_svc
+      changed_when: false
+      failed_when: false
+
+    - name: Validate OVS service running
+      ansible.builtin.assert:
+        that: "val_ovs_svc.stdout == 'active'"
+        fail_msg: "openvswitch-switch not active"
+        success_msg: "OVS service active"
+
+    - name: Read OVS other_config
+      ansible.builtin.command:
+        argv: [ovs-vsctl, get, Open_vSwitch, ., other_config]
+      register: val_ovs_cfg
+      changed_when: false
+
+    - name: Validate OVS global settings
+      ansible.builtin.assert:
+        that:
+          - "'hw-offload=\"true\"' in val_ovs_cfg.stdout"
+          - "'tc-policy=skip_sw' in val_ovs_cfg.stdout"
+          - "'lacp-fallback-ab=\"true\"' in val_ovs_cfg.stdout"
+        fail_msg: "OVS other_config incomplete: {{ val_ovs_cfg.stdout }}"
+        success_msg: "OVS hw-offload, tc-policy, lacp-fallback-ab set"
+
+    # --- Per-card: Bridges + Bonds ---
+
+    - name: Read OVS bridge list
+      ansible.builtin.command:
+        argv: [ovs-vsctl, list-br]
+      register: val_br_list
+      changed_when: false
+
+    - name: Validate bridges exist
+      ansible.builtin.assert:
+        that: "item.bridge in val_br_list.stdout_lines"
+        fail_msg: "Bridge {{ item.bridge }} missing"
+        success_msg: "{{ item.bridge }} present"
+      loop: "{{ cx6_cards }}"
+      loop_control:
+        label: "{{ item.bridge }}"
+
+    - name: Check bond members per card
+      ansible.builtin.command:
+        argv: [ovs-appctl, bond/show, "{{ item.bond }}"]
+      loop: "{{ cx6_cards }}"
+      loop_control:
+        label: "{{ item.bond }}"
+      register: val_bonds
+      changed_when: false
+
+    - name: Validate bond has both PF uplinks
+      ansible.builtin.assert:
+        that:
+          - "item.item.pf_ifaces[0] in item.stdout"
+          - "item.item.pf_ifaces[1] in item.stdout"
+        fail_msg: "{{ item.item.bond }}: missing PF uplinks"
+        success_msg: "{{ item.item.bond }}: {{ item.item.pf_ifaces | join(', ') }}"
+      loop: "{{ val_bonds.results }}"
+      loop_control:
+        label: "{{ item.item.bond }}"
+
+    - name: Read bridge MTU per card
+      ansible.builtin.slurp:
+        src: "/sys/class/net/{{ item.bridge }}/mtu"
+      loop: "{{ cx6_cards }}"
+      loop_control:
+        label: "{{ item.bridge }}"
+      register: val_mtu
+
+    - name: Validate bridge MTU
+      ansible.builtin.assert:
+        that: "(item.content | b64decode | trim) | int == cx6_ovs_mtu"
+        fail_msg: "{{ item.item.bridge }}: MTU {{ item.content | b64decode | trim }}, expected {{ cx6_ovs_mtu }}"
+        success_msg: "{{ item.item.bridge }}: MTU {{ cx6_ovs_mtu }}"
+      loop: "{{ val_mtu.results }}"
+      loop_control:
+        label: "{{ item.item.bridge }}"
+
+    # --- Per-card: Representors ---
+
+    - name: List interfaces per bridge
+      ansible.builtin.command:
+        argv: [ovs-vsctl, list-ifaces, "{{ item.bridge }}"]
+      loop: "{{ cx6_cards }}"
+      loop_control:
+        label: "{{ item.bridge }}"
+      register: val_br_ifaces
+      changed_when: false
+
+    - name: Validate representor count per bridge
+      ansible.builtin.assert:
+        that: "(item.stdout_lines | select('match', '^' ~ item.item.rep_prefix ~ '\\d+$') | list | length) == cx6_vf_count"
+        fail_msg: "{{ item.item.bridge }}: expected {{ cx6_vf_count }} representors ({{ item.item.rep_prefix }}*)"
+        success_msg: "{{ item.item.bridge }}: {{ cx6_vf_count }} representors attached"
+      loop: "{{ val_br_ifaces.results }}"
+      loop_control:
+        label: "{{ item.item.bridge }}"
+
+    # --- Ring buffer spot check (first representor per card) ---
+
+    - name: Check ring buffers on first representor per card
+      ansible.builtin.command:
+        argv: [ethtool, -g, "{{ item.rep_prefix }}0"]
+      loop: "{{ cx6_cards }}"
+      loop_control:
+        label: "{{ item.rep_prefix }}0"
+      register: val_rings
+      changed_when: false
+
+    - name: Validate ring buffer sizes
+      ansible.builtin.assert:
+        that:
+          - "item.stdout is regex('Current hardware settings:[\\s\\S]*?RX:\\s+' ~ (cx6_rep_ring_rx | string))"
+          - "item.stdout is regex('Current hardware settings:[\\s\\S]*?TX:\\s+' ~ (cx6_rep_ring_tx | string))"
+        fail_msg: "{{ item.item.rep_prefix }}0: ring buffers not at {{ cx6_rep_ring_rx }}/{{ cx6_rep_ring_tx }}"
+        success_msg: "{{ item.item.rep_prefix }}0: RX={{ cx6_rep_ring_rx }} TX={{ cx6_rep_ring_tx }}"
+      loop: "{{ val_rings.results }}"
+      loop_control:
+        label: "{{ item.item.rep_prefix }}0"

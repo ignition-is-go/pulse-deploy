@@ -41,7 +41,7 @@ locals {
     keys(var.arnold_fusion),
     keys(var.workstation),
     keys(var.ue_plugin_dev),
-    keys(var.win_ue_runner),
+    keys(var.ue_runner),
     keys(var.ue_staging),
     keys(var.optik),
     keys(var.rship),

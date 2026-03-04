@@ -1,20 +1,20 @@
 # -----------------------------------------------------------------------------
-# Windows VMs (no GPU) — ue_staging, win_ue_runner
+# Windows VMs (no GPU) — ue_staging, ue_runner
 # -----------------------------------------------------------------------------
 
 locals {
   windows_vms = merge(
-    var.win_ue_runner,
+    var.ue_runner,
     var.ue_staging,
   )
 
   windows_vm_tags = merge(
-    { for k, _ in var.win_ue_runner : k => ["windows", "ue", "win-ue-runner"] },
+    { for k, _ in var.ue_runner : k => ["windows", "ue", "ue-runner"] },
     { for k, _ in var.ue_staging : k => ["windows", "ue", "ue-staging"] },
   )
 
   windows_vm_descriptions = merge(
-    { for k, _ in var.win_ue_runner : k => "Headless UE automation runner" },
+    { for k, _ in var.ue_runner : k => "Headless UE automation runner" },
     { for k, _ in var.ue_staging : k => "Plastic sync + build distribution" },
   )
 }
@@ -35,6 +35,7 @@ module "windows_vm" {
   datastore_id   = var.proxmox_hosts[each.value.node].storage_id
   network_bridge = var.network_bridge
   os_type        = "win11"
+  started        = each.value.started
 
   # No GPU — only CX6 VF when specified
   pci_devices = each.value.cx6_slot != null ? [{

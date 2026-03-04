@@ -48,6 +48,7 @@ module "windows_gpu_vm" {
   network_bridge = var.network_bridge
   os_type        = "win11"
   vga_type       = "qxl"
+  started        = each.value.started
 
   pci_devices = concat(
     # GPUs — all functions, ROM-Bar on, PCIe on, no primary GPU

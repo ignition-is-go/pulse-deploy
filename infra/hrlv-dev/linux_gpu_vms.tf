@@ -32,6 +32,7 @@ module "linux_gpu_vm" {
   datastore_id   = var.proxmox_hosts[each.value.node].storage_id
   network_bridge = var.network_bridge
   os_type        = "l26"
+  started        = each.value.started
 
   pci_devices = concat(
     # GPUs — xvga only on the first GPU

@@ -1,5 +1,5 @@
 ---
-# vs_buildtools — Visual Studio Build Tools with C++ workload (if missing) and validation
+# win_ue_build_deps — VS Build Tools (C++ workload), .NET Framework 4.6.2, .NET 8.0 Runtime
 #
 # Installs from an offline layout on the NAS (created by create-layout.ps1).
 # No internet required on target nodes.

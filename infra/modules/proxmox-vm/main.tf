@@ -115,7 +115,7 @@ resource "proxmox_virtual_environment_vm" "this" {
 
   started              = var.started
   on_boot              = var.on_boot
-  reboot_after_update  = false
+  reboot_after_update  = true
   stop_on_destroy      = var.started
   protection           = var.protection
 

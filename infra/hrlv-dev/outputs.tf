@@ -58,9 +58,9 @@ output "ue_plugin_dev" {
   } }
 }
 
-output "win_ue_runner" {
+output "ue_runner" {
   description = "Headless UE automation runners"
-  value = { for k, v in var.win_ue_runner : k => {
+  value = { for k, v in var.ue_runner : k => {
     id = v.id
     ip = v.ip
   } }

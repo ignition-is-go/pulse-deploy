@@ -32,7 +32,7 @@ resource "ansible_group" "ue" {
     "ue_previs",
     "ue_staging",
     "ue_plugin_dev",
-    "win_ue_runner",
+    "ue_runner",
   ]
 }
 
@@ -68,8 +68,8 @@ resource "ansible_group" "ue_plugin_dev" {
   name = "ue_plugin_dev"
 }
 
-resource "ansible_group" "win_ue_runner" {
-  name = "win_ue_runner"
+resource "ansible_group" "ue_runner" {
+  name = "ue_runner"
 }
 
 resource "ansible_group" "touch" {
@@ -183,10 +183,10 @@ resource "ansible_host" "ue_plugin_dev" {
   }
 }
 
-resource "ansible_host" "win_ue_runner" {
-  for_each = var.win_ue_runner
+resource "ansible_host" "ue_runner" {
+  for_each = var.ue_runner
   name     = each.key
-  groups   = ["win_ue_runner"]
+  groups   = ["ue_runner"]
   variables = {
     ansible_host = each.value.ip
   }

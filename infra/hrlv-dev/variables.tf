@@ -108,6 +108,7 @@ variable "ue_content" {
     disk_gb           = number
     gpu_slots         = list(number)     # indices into proxmox_hosts[node].gpus
     cx6_slot          = optional(number) # index into proxmox_hosts[node].cx6_vfs
+    started           = optional(bool, true)
   }))
   default = {}
 }
@@ -124,6 +125,7 @@ variable "ue_previs" {
     disk_gb   = number
     gpu_slots = list(number)
     cx6_slot  = optional(number)
+    started   = optional(bool, true)
   }))
   default = {}
 }
@@ -139,6 +141,7 @@ variable "touch" {
     disk_gb   = number
     gpu_slots = list(number)
     cx6_slot  = optional(number)
+    started   = optional(bool, true)
   }))
   default = {}
 }
@@ -154,6 +157,7 @@ variable "arnold_fusion" {
     disk_gb   = number
     gpu_slots = list(number)
     cx6_slot  = optional(number)
+    started   = optional(bool, true)
   }))
   default = {}
 }
@@ -169,6 +173,7 @@ variable "workstation" {
     disk_gb   = number
     gpu_slots = list(number)
     cx6_slot  = optional(number)
+    started   = optional(bool, true)
   }))
   default = {}
 }
@@ -189,11 +194,12 @@ variable "ue_plugin_dev" {
     disk_gb   = number
     gpu_slots = list(number)
     cx6_slot  = optional(number)
+    started   = optional(bool, true)
   }))
   default = {}
 }
 
-variable "win_ue_runner" {
+variable "ue_runner" {
   description = "Headless UE automation runner nodes (Windows, no GPU)"
   type = map(object({
     id        = number
@@ -203,6 +209,7 @@ variable "win_ue_runner" {
     memory_mb = number
     disk_gb   = number
     cx6_slot  = optional(number)
+    started   = optional(bool, true)
   }))
   default = {}
 }
@@ -217,6 +224,7 @@ variable "ue_staging" {
     memory_mb = number
     disk_gb   = number
     cx6_slot  = optional(number)
+    started   = optional(bool, true)
   }))
   default = {}
 }
@@ -236,6 +244,7 @@ variable "optik" {
     disk_gb   = number
     gpu_slots = list(number)
     cx6_slot  = optional(number)
+    started   = optional(bool, true)
   }))
   default = {}
 }
