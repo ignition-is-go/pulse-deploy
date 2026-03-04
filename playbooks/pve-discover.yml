@@ -11,9 +11,12 @@
   connection: local
   gather_facts: false
 
+  vars:
+    pve_api_host: "{{ proxmox_api_url | regex_replace('https?://', '') | regex_replace(':\\d+$', '') }}"
+
   module_defaults:
     group/community.proxmox.proxmox:
-      api_host: "{{ proxmox_api_url | regex_replace('https?://', '') | regex_replace(':\\d+$', '') }}"
+      api_host: "{{ pve_api_host }}"
       api_user: "{{ proxmox_api_user }}"
       api_password: "{{ proxmox_api_password }}"
       validate_certs: false
@@ -54,5 +57,66 @@
             {% if iface.ovs_ports is defined %}  ports: {{ iface.ovs_ports }}{% endif %}
           {% endfor %}
       loop: "{{ pve_networks.results }}"
+      loop_control:
+        label: "{{ item.item.node }}"
+
+    # --- PCI device enumeration (no collection module — use PVE REST API directly) ---
+
+    - name: Get PVE API ticket
+      ansible.builtin.uri:
+        url: "{{ proxmox_api_url }}/api2/json/access/ticket"
+        method: POST
+        validate_certs: false
+        body_format: form-urlencoded
+        body:
+          username: "{{ proxmox_api_user }}"
+          password: "{{ proxmox_api_password }}"
+      register: pve_ticket
+      no_log: true
+
+    - name: Get PCI devices per online node
+      ansible.builtin.uri:
+        url: "{{ proxmox_api_url }}/api2/json/nodes/{{ item.node }}/hardware/pci?pci-class-blacklist=&verbose=1"
+        method: GET
+        validate_certs: false
+        headers:
+          Cookie: "PVEAuthCookie={{ pve_ticket.json.data.ticket }}"
+      register: pve_pci_raw
+      loop: "{{ pve_nodes.proxmox_nodes | selectattr('status', 'eq', 'online') }}"
+      loop_control:
+        label: "{{ item.node }}"
+
+    - name: Show GPUs per node
+      ansible.builtin.debug:
+        msg: |-
+          {% set gpus = item.json.data | selectattr('class', 'eq', '0x030000') | rejectattr('device_name', 'search', 'ASPEED') | list %}
+          {{ item.item.node }}: {{ gpus | length }} GPUs
+          {% for dev in gpus %}
+            [{{ dev.id }}] {{ dev.device_name }} (iommu {{ dev.iommugroup }})
+          {% endfor %}
+      loop: "{{ pve_pci_raw.results }}"
+      loop_control:
+        label: "{{ item.item.node }}"
+
+    - name: Show Mellanox NICs per node
+      ansible.builtin.debug:
+        msg: |-
+          {% set mlx = item.json.data | selectattr('vendor', 'eq', '0x15b3') | list %}
+          {% set pfs = mlx | rejectattr('device_name', 'search', 'Virtual Function|Management') | list %}
+          {% set vfs = mlx | selectattr('device_name', 'search', 'Virtual Function') | list %}
+          {{ item.item.node }}: {{ pfs | length }} PF(s), {{ vfs | length }} VF(s)
+          {% for dev in pfs %}
+            PF [{{ dev.id }}] {{ dev.device_name }} (iommu {{ dev.iommugroup }})
+          {% endfor %}
+      loop: "{{ pve_pci_raw.results }}"
+      loop_control:
+        label: "{{ item.item.node }}"
+
+    - name: Show IOMMU status per node
+      ansible.builtin.debug:
+        msg: |-
+          {% set groups = item.json.data | map(attribute='iommugroup') | select('ne', -1) | unique | list %}
+          {{ item.item.node }}: {{ groups | length }} IOMMU groups — {{ 'ENABLED' if groups | length > 0 else 'DISABLED' }}
+      loop: "{{ pve_pci_raw.results }}"
       loop_control:
         label: "{{ item.item.node }}"

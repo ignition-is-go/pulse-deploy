@@ -12,7 +12,6 @@
 #   Workstation           Windows VM   yes     Content creation, RDP
 #   UE plugin dev         Windows VM   yes     UE editor for plugin development
 #   UE runner             Windows VM   no      Headless UE automation runner
-#   UE build              Windows VM   no      Headless UE cook/package
 #   UE staging            Windows VM   no      Plastic sync, build distribution
 #   Optik                 Linux VM     yes     Computer vision (DeepStream)
 #   rship                 LXC          no      Real-time data worker
@@ -21,8 +20,7 @@
 #   rustdesk              LXC          no      Remote desktop server
 #
 # Content pipeline:
-#   Artists (workstations) → Plastic SCM → ┬─ Staging (sync + robocopy)  → editor launch  = rehearsal
-#                                          └─ Build (cook/package)       → packaged build = production
+#   Artists (workstations) → Plastic SCM → Staging (sync + robocopy) → editor launch = rehearsal
 #
 # Hostname scheme: {type}-{NN}  (max 15 chars — Windows NetBIOS limit)
 #
@@ -33,7 +31,6 @@
 #   workstation-01..NN     Artist workstations                 (14)
 #   ue-plugindev-01..NN   UE plugin development               (15)
 #   ue-runner-01..NN       Headless UE automation              (12)
-#   ue-build-01..NN        UE cook/package                     (11)
 #   ue-staging-01..NN      Plastic sync + distribution         (13)
 #   optik-01..NN           Computer vision                     ( 8)
 #   rship-01..NN           rship workers (LXC)                 ( 8)
@@ -50,22 +47,23 @@
 # IP Plan (192.168.1.0/24) — see docs/network-ip-schema.md for full detail
 #
 #   .1-.99      PHYSICAL      everything with a chassis
-#   .100-.149   DEV GUESTS    VMs/LXCs on nyc-dev-pve-*
-#   .150-.199   PROD GUESTS   VMs/LXCs on nyc-prod-pve-*
+#   .100-.159   DEV GUESTS    VMs/LXCs on nyc-dev-pve-*
+#   .160-.199   PROD GUESTS   VMs/LXCs on nyc-prod-pve-*
 #   .200-.254   DHCP          temporary / unmanaged
 #
 # VM ID = 1000 + last octet
 #
-# Dev guests (.100-.149):
+# Dev guests (.100-.159):
 #   .101        pulse-admin-dev
 #   .111-.114   ue-staging
 #   .121-.124   ue-editing
 #   .126-.129   workstation
 #   .131-.134   ue-plugindev
 #   .141-.144   ue-runner
+#   .150-.159   arnold/fusion
 #
-# Prod guests (.150-.199):
-#   .151        pulse-admin
+# Prod guests (.160-.199):
+#   .160        pulse-admin
 #   .161-.176   ue-content
 #   .181-.184   ue-previs
 #   .185-.189   touch
@@ -273,7 +271,7 @@ ssh_public_key = "ssh-ed25519 AAAA... user@control-plane"
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# pulse_admin (LXC)                                                    .151
+# pulse_admin (LXC)                                                    .160
 # -----------------------------------------------------------------------------
 
 pulse_admin = {}
@@ -291,16 +289,11 @@ pixelfarm = {}
 rustdesk = {}
 
 # -----------------------------------------------------------------------------
-# arnold_fusion (Windows + GPU)                                        .xxx
+# arnold_fusion (Windows + GPU)                                        .151-.159
 # -----------------------------------------------------------------------------
 
 arnold_fusion = {}
 
-# -----------------------------------------------------------------------------
-# ue_build (Windows, no GPU)                                           .xxx
-# -----------------------------------------------------------------------------
-
-ue_build = {}
 
 # -----------------------------------------------------------------------------
 # ue_plugin_dev (Windows + GPU)                                        .131-.134

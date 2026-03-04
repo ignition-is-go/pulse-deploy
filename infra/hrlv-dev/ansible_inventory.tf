@@ -31,7 +31,6 @@ resource "ansible_group" "ue" {
     "ue_content",
     "ue_previs",
     "ue_staging",
-    "ue_build",
     "ue_plugin_dev",
     "win_ue_runner",
   ]
@@ -63,10 +62,6 @@ resource "ansible_group" "ue_previs" {
 
 resource "ansible_group" "ue_staging" {
   name = "ue_staging"
-}
-
-resource "ansible_group" "ue_build" {
-  name = "ue_build"
 }
 
 resource "ansible_group" "ue_plugin_dev" {
@@ -174,15 +169,6 @@ resource "ansible_host" "ue_staging" {
   for_each = var.ue_staging
   name     = each.key
   groups   = ["ue_staging"]
-  variables = {
-    ansible_host = each.value.ip
-  }
-}
-
-resource "ansible_host" "ue_build" {
-  for_each = var.ue_build
-  name     = each.key
-  groups   = ["ue_build"]
   variables = {
     ansible_host = each.value.ip
   }

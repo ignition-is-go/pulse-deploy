@@ -49,12 +49,12 @@
 
 ## IP Allocation — 192.168.1.0/24
 
-Two numbers to remember: **100, 200.**
+Three numbers to remember: **100, 160, 200.**
 
 ```
 .1   - .99      PHYSICAL    everything with a chassis
-.100 - .149     DEV         dev cluster guests (nyc-dev-pve-*)
-.150 - .199     PROD        prod cluster guests (nyc-prod-pve-*)
+.100 - .159     DEV         dev cluster guests (nyc-dev-pve-*)
+.160 - .199     PROD        prod cluster guests (nyc-prod-pve-*)
 .200 - .254     DHCP        temporary / unmanaged
 ```
 
@@ -134,7 +134,7 @@ nyc-dev-pve-01 is on a separate 192.168.8.x subnet (travel cluster) — not in t
 │      │                         │              │                                          │
 ╞══════╪═════════════════════════╪══════════════╪══════════════════════════════════════════╡
 │      │                         │              │                                          │
-│      │  .100-.149 DEV GUESTS   │              │  VMs/LXCs on nyc-dev-pve-*               │
+│      │  .100-.159 DEV GUESTS   │              │  VMs/LXCs on nyc-dev-pve-*               │
 │      │                         │              │  VM ID = 1000 + last octet               │
 │      │                         │              │                                          │
 │ .100 │  —                      │  reserved    │  Range base                              │
@@ -157,16 +157,16 @@ nyc-dev-pve-01 is on a separate 192.168.8.x subnet (travel cluster) — not in t
 │ .140 │  —                      │  reserved    │  Range base                              │
 │ .141 │  ue-runner-01           │  VM (1141)   │  UE CI/build runner                      │
 │.142-9│  —                      │  reserved    │  Runner expansion                        │
+│ .150 │  —                      │  reserved    │  Range base                              │
+│ .151 │  arnold-01              │  VM (1151)   │  Arnold/Fusion offline render             │
+│.152-9│  —                      │  reserved    │  Arnold/Fusion expansion                 │
 │      │                         │              │                                          │
 ╞══════╪═════════════════════════╪══════════════╪══════════════════════════════════════════╡
 │      │                         │              │                                          │
-│      │  .150-.199 PROD GUESTS  │              │  VMs/LXCs on nyc-prod-pve-*              │
+│      │  .160-.199 PROD GUESTS  │              │  VMs/LXCs on nyc-prod-pve-*              │
 │      │                         │              │  VM ID = 1000 + last octet               │
 │      │                         │              │                                          │
-│ .150 │  —                      │  reserved    │  Range base                              │
-│ .151 │  pulse-admin            │  LXC (1151)  │  Ansible control node, Samba NAS         │
-│.152-9│  —                      │  reserved    │  Prod Linux services                     │
-│ .160 │  —                      │  reserved    │  Range base                              │
+│ .160 │  pulse-admin            │  LXC (1160)  │  Ansible control node, Samba NAS         │
 │ .161 │  ue-content-01          │  VM (1161)   │  nDisplay (primary)         media .161   │
 │ .162 │  ue-content-02          │  VM (1162)   │  nDisplay                   media .162   │
 │ .163 │  ue-content-03          │  VM (1163)   │  nDisplay                   media .163   │
@@ -264,7 +264,7 @@ Last octet mirrors management IP for easy correlation.
 ├───────────────────────────────┼────────────┼────────────┼────────────────────┤
 │  MOVE — guest IPs (terraform) │            │            │                    │
 ├───────────────────────────────┼────────────┼────────────┼────────────────────┤
-│  pulse-admin                  │  .70       │  .151      │  Move              │
+│  pulse-admin                  │  .70       │  .160      │  Move              │
 │  ue-staging-01                │  .14       │  .111      │  Update terraform  │
 │  touch-01                     │  .76       │  .185      │  Move + rename     │
 │  ue-editing-01                │  .153      │  .121      │  Move + rename     │

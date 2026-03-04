@@ -1,22 +1,19 @@
 # -----------------------------------------------------------------------------
-# Windows VMs (no GPU) — ue_build, ue_staging
+# Windows VMs (no GPU) — ue_staging, win_ue_runner
 # -----------------------------------------------------------------------------
 
 locals {
   windows_vms = merge(
-    var.ue_build,
     var.win_ue_runner,
     var.ue_staging,
   )
 
   windows_vm_tags = merge(
-    { for k, _ in var.ue_build : k => ["windows", "ue", "ue-build"] },
     { for k, _ in var.win_ue_runner : k => ["windows", "ue", "win-ue-runner"] },
     { for k, _ in var.ue_staging : k => ["windows", "ue", "ue-staging"] },
   )
 
   windows_vm_descriptions = merge(
-    { for k, _ in var.ue_build : k => "UE cook/package build node" },
     { for k, _ in var.win_ue_runner : k => "Headless UE automation runner" },
     { for k, _ in var.ue_staging : k => "Plastic sync + build distribution" },
   )

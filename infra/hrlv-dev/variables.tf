@@ -177,19 +177,6 @@ variable "workstation" {
 # Windows VMs (no GPU)
 # =============================================================================
 
-variable "ue_build" {
-  description = "UE cook/package build nodes (Windows, headless)"
-  type = map(object({
-    id        = number
-    ip        = string
-    node      = string
-    cores     = number
-    memory_mb = number
-    disk_gb   = number
-    cx6_slot  = optional(number)
-  }))
-  default = {}
-}
 
 variable "ue_plugin_dev" {
   description = "UE plugin development nodes (Windows + GPU)"

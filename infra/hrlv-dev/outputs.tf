@@ -50,14 +50,6 @@ output "workstation" {
 
 # --- Windows VMs (no GPU) ---------------------------------------------------
 
-output "ue_build" {
-  description = "UE build nodes"
-  value = { for k, v in var.ue_build : k => {
-    id = v.id
-    ip = v.ip
-  } }
-}
-
 output "ue_plugin_dev" {
   description = "UE plugin development nodes"
   value = { for k, v in var.ue_plugin_dev : k => {
