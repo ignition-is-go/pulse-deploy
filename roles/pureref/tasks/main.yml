@@ -1,0 +1,44 @@
+---
+# pureref -- PureRef reference image viewer (Windows)
+#
+# Installs PureRef silently via NSIS installer.
+#
+# Requires (group_vars):
+#   pureref_installer_source: UNC path to PureRef exe on NAS
+#   pureref_version: version string (e.g. "2.1.0")
+
+- name: Check if PureRef installed
+  ansible.windows.win_stat:
+    path: C:\Program Files\PureRef\PureRef.exe
+  register: pureref_check
+
+- name: Copy PureRef installer from NAS
+  ansible.windows.win_copy:
+    src: "{{ pureref_installer_source }}"
+    dest: C:\Windows\Temp\PureRefSetup.exe
+    remote_src: true
+  when: not pureref_check.stat.exists
+
+- name: Install PureRef (silent)
+  ansible.windows.win_command:
+    argv:
+      - C:\Windows\Temp\PureRefSetup.exe
+      - /S
+  when: not pureref_check.stat.exists
+  register: pureref_install
+
+- name: Verify PureRef installation
+  ansible.windows.win_stat:
+    path: C:\Program Files\PureRef\PureRef.exe
+  register: pureref_verify
+  failed_when: not pureref_verify.stat.exists
+
+- name: Create PureRef desktop shortcut
+  community.windows.win_shortcut:
+    src: C:\Program Files\PureRef\PureRef.exe
+    dest: C:\Users\Public\Desktop\PureRef.lnk
+
+- name: Clean up PureRef installer
+  ansible.windows.win_file:
+    path: C:\Windows\Temp\PureRefSetup.exe
+    state: absent

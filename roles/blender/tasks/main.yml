@@ -1,0 +1,51 @@
+---
+# blender -- Blender 3D installation (Windows)
+#
+# Installs Blender from MSI on the deploy share via silent install.
+#
+# Requires (group_vars):
+#   blender_installer_source: UNC path to Blender MSI on NAS
+#   blender_version: full version string (e.g. "5.0.1")
+
+- name: Set Blender install directory
+  ansible.builtin.set_fact:
+    blender_install_dir: >-
+      C:\Program Files\Blender Foundation\Blender {{ blender_version.split('.')[:2] | join('.') }}
+
+- name: Check if Blender installed
+  ansible.windows.win_stat:
+    path: "{{ blender_install_dir }}\\blender.exe"
+  register: blender_check
+
+- name: Copy Blender MSI from NAS
+  ansible.windows.win_copy:
+    src: "{{ blender_installer_source }}"
+    dest: C:\Windows\Temp\blender.msi
+    remote_src: true
+  when: not blender_check.stat.exists
+
+- name: Install Blender (silent)
+  ansible.windows.win_package:
+    path: C:\Windows\Temp\blender.msi
+    arguments: ALLUSERS=1
+    state: present
+  when: not blender_check.stat.exists
+  register: blender_install
+
+- name: Verify Blender installation
+  ansible.windows.win_command:
+    argv:
+      - "{{ blender_install_dir }}\\blender.exe"
+      - --version
+  register: blender_verify
+  changed_when: false
+  failed_when: blender_version not in blender_verify.stdout
+
+- name: Display Blender version
+  ansible.builtin.debug:
+    msg: "{{ blender_verify.stdout | trim }}"
+
+- name: Clean up Blender MSI
+  ansible.windows.win_file:
+    path: C:\Windows\Temp\blender.msi
+    state: absent

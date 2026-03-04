@@ -1,0 +1,64 @@
+---
+# adobe_creative_cloud -- Adobe Creative Cloud desktop app (Windows)
+#
+# Copies the CC installer and launches it in the interactive desktop session.
+# The installer requires manual sign-in — it cannot be fully automated.
+# After sign-in completes, re-run site.yml to verify installation.
+#
+# Requires (group_vars):
+#   adobe_cc_installer_source: UNC path to Creative Cloud Set-Up exe on NAS
+
+- name: Check if Creative Cloud installed
+  ansible.windows.win_stat:
+    path: C:\Program Files\Adobe\Adobe Creative Cloud\ACC\Creative Cloud.exe
+  register: adobe_cc_check
+
+- name: Copy Creative Cloud installer from NAS
+  ansible.windows.win_copy:
+    src: "{{ adobe_cc_installer_source }}"
+    dest: C:\Windows\Temp\CreativeCloudSetup.exe
+    remote_src: true
+  when: not adobe_cc_check.stat.exists
+
+- name: Create CC installer scheduled task
+  community.windows.win_scheduled_task:
+    name: ansible-cc-install
+    actions:
+      - path: C:\Windows\Temp\CreativeCloudSetup.exe
+        arguments: --silent
+    username: Administrator
+    password: "{{ ansible_password }}"
+    logon_type: interactive_token
+    run_level: highest
+    state: present
+    enabled: true
+  when: not adobe_cc_check.stat.exists
+
+- name: Launch CC installer in interactive session
+  ansible.windows.win_command:
+    argv:
+      - schtasks.exe
+      - /Run
+      - /TN
+      - ansible-cc-install
+  when: not adobe_cc_check.stat.exists
+
+- name: Prompt — Creative Cloud requires manual sign-in
+  ansible.builtin.debug:
+    msg: >-
+      Adobe Creative Cloud installer launched on {{ inventory_hostname }}.
+      Sign in via RustDesk/console to complete installation.
+      Re-run site.yml afterward to verify.
+  when: not adobe_cc_check.stat.exists
+
+- name: Remove CC installer scheduled task
+  community.windows.win_scheduled_task:
+    name: ansible-cc-install
+    state: absent
+  when: adobe_cc_check.stat.exists
+
+- name: Clean up Creative Cloud installer
+  ansible.windows.win_file:
+    path: C:\Windows\Temp\CreativeCloudSetup.exe
+    state: absent
+  when: adobe_cc_check.stat.exists

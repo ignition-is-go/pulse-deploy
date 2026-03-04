@@ -1,0 +1,42 @@
+---
+# dropbox -- Dropbox desktop app (Windows)
+#
+# Installs Dropbox via enterprise MSI installer. Users sign in on first launch.
+#
+# Requires (group_vars):
+#   dropbox_installer_source: UNC path to Dropbox enterprise MSI on NAS
+
+- name: Check if Dropbox installed
+  ansible.windows.win_stat:
+    path: C:\Program Files (x86)\Dropbox\Client\Dropbox.exe
+  register: dropbox_check
+
+- name: Copy Dropbox MSI from NAS
+  ansible.windows.win_copy:
+    src: "{{ dropbox_installer_source }}"
+    dest: C:\Windows\Temp\DropboxEnterprise.msi
+    remote_src: true
+  when: not dropbox_check.stat.exists
+
+- name: Install Dropbox (silent)
+  ansible.windows.win_package:
+    path: C:\Windows\Temp\DropboxEnterprise.msi
+    state: present
+  when: not dropbox_check.stat.exists
+  register: dropbox_install
+
+- name: Verify Dropbox installation
+  ansible.windows.win_stat:
+    path: C:\Program Files (x86)\Dropbox\Client\Dropbox.exe
+  register: dropbox_verify
+  failed_when: not dropbox_verify.stat.exists
+
+- name: Create Dropbox desktop shortcut
+  community.windows.win_shortcut:
+    src: C:\Program Files (x86)\Dropbox\Client\Dropbox.exe
+    dest: C:\Users\Public\Desktop\Dropbox.lnk
+
+- name: Clean up Dropbox MSI
+  ansible.windows.win_file:
+    path: C:\Windows\Temp\DropboxEnterprise.msi
+    state: absent

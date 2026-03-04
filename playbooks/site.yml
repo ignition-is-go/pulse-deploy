@@ -45,7 +45,7 @@
       when: rivermax | default(false)
 
 - name: Plastic SCM — staging and plugin dev nodes
-  hosts: ue_staging:ue_plugin_dev
+  hosts: ue_staging:ue_plugin_dev:workstation
   gather_facts: false
   roles:
     - plastic_scm
@@ -77,7 +77,7 @@
     - win_remove_edge
     - win_install_chrome
     - git
-    - vs_buildtools
+    - win_ue_build_deps
     - vscode
     - visual_studio
     - unreal_engine
@@ -89,12 +89,24 @@
       when: git_repos is defined
 
 - name: UE automation runners
-  hosts: win_ue_runner
+  hosts: ue_runner
   gather_facts: false
   roles:
     - git
-    - vs_buildtools
+    - win_ue_build_deps
     - unreal_engine
+
+- name: Workstation nodes
+  hosts: workstation
+  gather_facts: false
+  roles:
+    - win_remove_edge
+    - win_install_chrome
+    - unreal_engine
+    - blender
+    # TODO: adobe_creative_cloud (needs Admin Console deployment package)
+    - pureref
+    - dropbox
 
 - name: Touch nodes
   hosts: touch
@@ -114,6 +126,13 @@
   gather_facts: true
   roles:
     - linux_base
+
+- name: CX6 SR-IOV — Proxmox hosts with ConnectX-6 cards
+  hosts: proxmox
+  gather_facts: true
+  roles:
+    - role: cx6_sriov
+      when: has_cx6 | bool
 
 - name: Pulse admin — deploy share
   hosts: pulse_admin
