@@ -1,0 +1,58 @@
+---
+# Discover Proxmox cluster nodes via the PVE API
+#
+# Runs from localhost (pulse-admin) — no SSH to PVE hosts required.
+# Uses community.proxmox collection modules.
+#
+# Usage: ansible-playbook playbooks/pve-discover.yml
+
+- name: Discover PVE cluster nodes
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  module_defaults:
+    group/community.proxmox.proxmox:
+      api_host: "{{ proxmox_api_url | regex_replace('https?://', '') | regex_replace(':\\d+$', '') }}"
+      api_user: "{{ proxmox_api_user }}"
+      api_password: "{{ proxmox_api_password }}"
+      validate_certs: false
+
+  tasks:
+    - name: Get cluster node list
+      community.proxmox.proxmox_node_info:
+      register: pve_nodes
+
+    - name: Show cluster nodes
+      ansible.builtin.debug:
+        msg: >-
+          {{ item.node }} — {{ item.status }}
+          {% if item.status == 'online' %}
+          | {{ item.maxcpu }} CPUs
+          | {{ (item.maxmem / 1073741824) | round(0) | int }}GB RAM
+          | uptime {{ (item.uptime / 3600) | round(1) }}h
+          {% endif %}
+      loop: "{{ pve_nodes.proxmox_nodes }}"
+      loop_control:
+        label: "{{ item.node }}"
+
+    - name: Get network interfaces per online node
+      community.proxmox.proxmox_node_network_info:
+        node: "{{ item.node }}"
+      register: pve_networks
+      loop: "{{ pve_nodes.proxmox_nodes | selectattr('status', 'eq', 'online') }}"
+      loop_control:
+        label: "{{ item.node }}"
+
+    - name: Show bridges per node
+      ansible.builtin.debug:
+        msg: |-
+          {{ item.item.node }}:
+          {% for iface in item.proxmox_node_networks | selectattr('type', 'defined') | selectattr('type', 'search', 'bridge|OVS') %}
+            {{ iface.iface }} ({{ iface.type }}){% if iface.address is defined %} — {{ iface.address }}/{{ iface.netmask | default('') }}{% endif %}
+            {% if iface.bridge_ports is defined %}  ports: {{ iface.bridge_ports }}{% endif %}
+            {% if iface.ovs_ports is defined %}  ports: {{ iface.ovs_ports }}{% endif %}
+          {% endfor %}
+      loop: "{{ pve_networks.results }}"
+      loop_control:
+        label: "{{ item.item.node }}"
