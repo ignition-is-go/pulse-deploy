@@ -15,6 +15,8 @@
 ├─────────────────────────────────────────────────────────────┤
 │  MikroTik ROSE        192.168.1.10     NAS/SMB              │
 ├─────────────────────────────────────────────────────────────┤
+│  MikroTik CRS518      192.168.1.11     25G/100G switch      │
+├─────────────────────────────────────────────────────────────┤
 │  PoE injector                                              │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
@@ -75,7 +77,8 @@ nyc-dev-pve-01 is on a separate 192.168.8.x subnet (travel cluster) — not in t
 │  .8  │  UPS 1                  │  UPS         │  Active, web UI                          │
 │  .9  │  UPS 2                  │  UPS         │  Broken — future repair                  │
 │ .10  │  MikroTik ROSE          │  NAS         │  RouterOS SMB, expandable disk bays      │
-│.11-19│  —                      │  reserved    │  Future infrastructure                   │
+│ .11  │  MikroTik CRS518       │  switch      │  CRS518-16XS-2XQ, 16x 25G + 2x 100G    │
+│.12-19│  —                      │  reserved    │  Future infrastructure                   │
 │      │                         │              │                                          │
 │      │  .20-.29 RSHIP MICROS   │              │  Off-rack edge devices                   │
 │      │                         │              │                                          │
@@ -143,7 +146,10 @@ nyc-dev-pve-01 is on a separate 192.168.8.x subnet (travel cluster) — not in t
 │.113-9│  —                      │  reserved    │  Staging expansion                       │
 │ .120 │  —                      │  reserved    │  Range base                              │
 │ .121 │  ue-editing-01          │  VM (1121)   │  Concert multi-user server + editing     │
-│.122-9│  —                      │  reserved    │  Editing expansion                       │
+│.122-4│  —                      │  reserved    │  Editing expansion                       │
+│ .125 │  —                      │  reserved    │  Range base                              │
+│ .126 │  workstation-01         │  VM (1126)   │  Artist workstation (RDP)                │
+│.127-9│  —                      │  reserved    │  Workstation expansion                   │
 │ .130 │  —                      │  reserved    │  Range base                              │
 │ .131 │  ue-plugindev-01        │  VM (1131)   │  UE plugin development                   │
 │ .132 │  ue-plugindev-02        │  VM (1132)   │  UE plugin development                   │
@@ -243,6 +249,7 @@ Last octet mirrors management IP for easy correlation.
 │  Netgear switch               │  .7        │  .7        │  —                 │
 │  Symmetricom PTP (mgmt)       │  .6        │  .6        │  —                 │
 │  MikroTik ROSE (NAS)          │  .10       │  .10       │  —                 │
+│  MikroTik CRS518 (switch)     │  .11       │  .11       │  —                 │
 ├───────────────────────────────┼────────────┼────────────┼────────────────────┤
 │  MOVE — DHCP to static        │            │            │                    │
 ├───────────────────────────────┼────────────┼────────────┼────────────────────┤

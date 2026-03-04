@@ -20,3 +20,8 @@ git_deploy_key: "{{ vault_git_deploy_key }}"
 netbird_management_url: "https://net.rship.io"
 netbird_admin_url: "https://net.rship.io"
 netbird_setup_key: "{{ vault_netbird_setup_key }}"
+
+# Proxmox VE API
+proxmox_api_url: "{{ vault_proxmox_api_url }}"
+proxmox_api_user: "{{ vault_proxmox_api_user }}"
+proxmox_api_password: "{{ vault_proxmox_api_password }}"
