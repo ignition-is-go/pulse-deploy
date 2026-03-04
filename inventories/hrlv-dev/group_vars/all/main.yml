@@ -10,9 +10,6 @@ deploy_share: "\\\\192.168.1.70\\deploy"
 # NVIDIA RTX Enterprise driver (covers RTX A4000, RTX 6000 Ada, etc.)
 nvidia_driver_source: "{{ deploy_share }}\\installers\\nvidia-driver\\582.16\\582.16-nvidia-rtx-winserv-2022-2025-64bit-international-dch-whql.exe"
 
-# Visual C++ Redistributable (required by UE shader compiler)
-vcredist_installer_source: "{{ deploy_share }}\\installers\\vcredist\\latest\\vc_redist.x64.exe"
-
 # Google Chrome (offline standalone installer)
 chrome_installer_source: "{{ deploy_share }}\\installers\\chrome\\latest\\ChromeSetup.exe"
 

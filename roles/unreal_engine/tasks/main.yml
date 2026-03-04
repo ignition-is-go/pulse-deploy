@@ -5,43 +5,10 @@
 #   unreal_engine_dir: Install location (e.g. C:/Epic Games/UE_5.7)
 #   unreal_exe: Path to UnrealEditor.exe (derived from unreal_engine_dir)
 #   ue_installer_source: UNC path to directory containing MSI + Components/ on NAS
-#   vcredist_installer_source: UNC path to vc_redist.x64.exe on NAS
 #   unreal_project: Path to .uproject file (can be empty string)
 #
 # Epic offline installer docs:
 #   https://dev.epicgames.com/documentation/en-us/unreal-engine/offline-installer-of-unreal-engine
-
-- name: Check if VC++ Redistributable installed
-  ansible.windows.win_stat:
-    path: C:\Windows\System32\vcruntime140.dll
-  register: vcredist_check
-
-- name: Copy VC++ Redistributable from NAS
-  ansible.windows.win_copy:
-    src: "{{ vcredist_installer_source }}"
-    dest: C:\Windows\Temp\vc_redist.x64.exe
-    remote_src: true
-  when: not vcredist_check.stat.exists
-
-- name: Install VC++ Redistributable (silent)
-  ansible.windows.win_command:
-    argv:
-      - C:\Windows\Temp\vc_redist.x64.exe
-      - /install
-      - /quiet
-      - /norestart
-  when: not vcredist_check.stat.exists
-
-- name: Verify VC++ Redistributable installed
-  ansible.windows.win_stat:
-    path: C:\Windows\System32\vcruntime140.dll
-  register: vcredist_verify
-  failed_when: not vcredist_verify.stat.exists
-
-- name: Clean up VC++ Redistributable installer
-  ansible.windows.win_file:
-    path: C:\Windows\Temp\vc_redist.x64.exe
-    state: absent
 
 - name: Check if Unreal Engine installed
   ansible.windows.win_stat:
@@ -103,6 +70,17 @@
     path: "{{ unreal_exe }}"
   register: ue_post_check
   failed_when: not ue_post_check.stat.exists
+
+- name: Install UE-bundled VC++ Redistributable
+  ansible.windows.win_command:
+    argv:
+      - "{{ unreal_engine_dir }}/Engine/Extras/Redist/en-us/vc_redist.x64.exe"
+      - /install
+      - /quiet
+      - /norestart
+  register: vcredist_install
+  changed_when: vcredist_install.rc == 0
+  failed_when: vcredist_install.rc not in [0, 1638, 3010]
 
 - name: Associate .uproject extension with Unreal.ProjectFile class
   ansible.windows.win_regedit:

@@ -33,8 +33,9 @@ Layered roles: OS base → Drivers → Shared infra → Applications. Node ident
 | `ue_plugin_dev` | win_base → nvidia_gpu_win → plastic_scm → git → win_ue_build_deps → unreal_engine |
 | `ue_runner` | win_base → git → win_ue_build_deps → unreal_engine |
 | `workstation` | win_base → nvidia_gpu_win → chrome → unreal_engine |
-| `pulse_admin` | linux_base → samba_server |
-| `rship` | lxc_base → rship |
+| `pulse_admin` | linux_common → samba_server |
+| `proxmox` | linux_common → cx6_sriov(cond) |
+| `rship` | linux_common → rship |
 
 ## Inventory
 
@@ -51,6 +52,9 @@ windows (WinRM NTLM :5985, become: runas):
     ue_runner:  ue-runner-01
   touch:            windows-touch-01
 linux (SSH):
+  proxmox:
+    proxmox_prod:   nyc-prod-pve-01, -02   (terraform)
+    proxmox_dev:    nyc-dev-pve-02, -03     (terraform)
   optik:            optik-01
   pulse_admin:      pulse-admin            (local, root!)
   rship:            rship-01, rship-02, rship-03
@@ -108,7 +112,7 @@ ansible-vault edit inventories/hrlv-dev/group_vars/all/vault.yml            # ed
 
 ## Environment
 
-- UE 5.7 at `F:/Epic Games/UE_5.7/`
+- UE 5.7 at `C:/Program Files/Epic Games/5.7/`
 - Windows Server 2025 Datacenter Evaluation (build 26100)
 - Control node: LXC, locale `en_US.UTF-8`
 - PTP: Symmetricom at 10.0.0.100, domain 0, UDP E2E

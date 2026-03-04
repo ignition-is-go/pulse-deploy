@@ -1,0 +1,10 @@
+---
+# linux_common defaults
+
+linux_common_packages:
+  - curl
+  - wget
+  - htop
+  - vim
+  - git
+  - python3

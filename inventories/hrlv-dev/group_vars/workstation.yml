@@ -13,6 +13,9 @@ unreal_exe: "{{ unreal_engine_dir }}/Engine/Binaries/Win64/UnrealEditor.exe"
 ue_installer_source: "{{ deploy_share }}\\installers\\unreal-engine\\5.7"
 unreal_project: ""
 
+# NDI Tools
+ndi_tools_installer_source: "{{ deploy_share }}\\installers\\ndi-tools\\6\\NDI 6 Tools.exe"
+
 # Blender
 blender_version: "5.0.1"
 blender_installer_source: "{{ deploy_share }}\\installers\\blender\\5.0.1\\blender-5.0.1-windows-x64.msi"

@@ -40,12 +40,10 @@
   async: 1800
   poll: 30
 
-- name: Reboot after VS Build Tools install if required
+- name: Reboot after VS Build Tools install
   ansible.builtin.include_role:
     name: win_reboot
-  when:
-    - vs_install is not skipped
-    - vs_install.rc in [3010, 8005]
+  when: vs_install is changed
 
 - name: Verify MSBuild is callable
   ansible.windows.win_command:

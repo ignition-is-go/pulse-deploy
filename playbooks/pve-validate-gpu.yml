@@ -1,0 +1,238 @@
+---
+# pve-validate-gpu.yml — Validate GPU passthrough on Proxmox hosts
+#
+# Config layer (persistent):
+#   - GRUB cmdline (amd_iommu=on iommu=pt)
+#   - /etc/modules-load.d/vfio.conf (vfio, vfio_iommu_type1, vfio_pci)
+#   - /etc/modprobe.d/vfio.conf (vfio-pci device IDs)
+#   - /etc/modprobe.d/ nvidia/nouveau blacklist
+#
+# Runtime layer (proves config is effective):
+#   - VFIO modules actually loaded (lsmod)
+#   - IOMMU groups present (BIOS + kernel)
+#   - Each GPU visible at expected PCI address
+#   - Each GPU bound to vfio-pci (not nouveau/nvidia)
+#   - Each GPU has its own IOMMU group
+#
+# All checks run to completion — failures collected and reported at the end.
+#
+# GPU PCI addresses come from Terraform (proxmox_hosts.gpus → gpus_json).
+#
+# Usage:
+#   ansible-playbook playbooks/pve-validate-gpu.yml
+#   ansible-playbook playbooks/pve-validate-gpu.yml --limit nyc-dev-pve-03
+
+- name: Validate GPU passthrough config on PVE hosts
+  hosts: proxmox
+  gather_facts: false
+  tasks:
+
+    - name: Skip hosts without GPUs
+      ansible.builtin.meta: end_host
+      when: gpus | length == 0
+
+    # --- GRUB cmdline ---
+
+    - name: Read GRUB config
+      ansible.builtin.slurp:
+        src: /etc/default/grub
+      register: val_grub
+
+    - name: Validate GRUB IOMMU parameters
+      ansible.builtin.assert:
+        quiet: true
+        that:
+          - "val_grub.content | b64decode is search('amd_iommu=on')"
+          - "val_grub.content | b64decode is search('iommu=pt')"
+        fail_msg: >-
+          /etc/default/grub missing amd_iommu=on or iommu=pt
+        success_msg: "GRUB: amd_iommu=on iommu=pt"
+      register: chk_grub
+      failed_when: false
+
+    # --- VFIO modules-load ---
+
+    - name: Read /etc/modules-load.d/vfio.conf
+      ansible.builtin.slurp:
+        src: /etc/modules-load.d/vfio.conf
+      register: val_vfio_conf
+      failed_when: false
+
+    - name: Validate VFIO modules-load config
+      ansible.builtin.assert:
+        quiet: true
+        that:
+          - "val_vfio_conf is not failed"
+          - "'vfio\n' in (val_vfio_conf.content | default('') | b64decode)"
+          - "'vfio_iommu_type1' in (val_vfio_conf.content | default('') | b64decode)"
+          - "'vfio_pci' in (val_vfio_conf.content | default('') | b64decode)"
+        fail_msg: >-
+          /etc/modules-load.d/vfio.conf missing or incomplete
+        success_msg: "vfio.conf: vfio, vfio_iommu_type1, vfio_pci"
+      register: chk_vfio_conf
+      failed_when: false
+
+    # --- vfio-pci device IDs ---
+
+    - name: Read /etc/modprobe.d/vfio.conf
+      ansible.builtin.slurp:
+        src: /etc/modprobe.d/vfio.conf
+      register: val_vfio_modprobe
+      failed_when: false
+
+    - name: Validate vfio-pci device ID config
+      ansible.builtin.assert:
+        quiet: true
+        that:
+          - "val_vfio_modprobe is not failed"
+          - "'options vfio-pci ids=' in (val_vfio_modprobe.content | default('') | b64decode)"
+        fail_msg: >-
+          /etc/modprobe.d/vfio.conf missing or no vfio-pci ids= line
+        success_msg: >-
+          vfio-pci ids={{ (val_vfio_modprobe.content | default('') | b64decode)
+          | regex_search('ids=(.+)', '\1') | default(['?'], true) | first }}
+      register: chk_vfio_ids
+      failed_when: false
+
+    # --- NVIDIA blacklist ---
+
+    - name: Check NVIDIA driver blacklist
+      ansible.builtin.command:
+        argv: [grep, -r, "blacklist nouveau", /etc/modprobe.d/]
+      register: val_blacklist
+      changed_when: false
+      failed_when: false
+
+    - name: Validate NVIDIA drivers blacklisted
+      ansible.builtin.assert:
+        quiet: true
+        that: "val_blacklist.rc == 0"
+        fail_msg: "nouveau not blacklisted in /etc/modprobe.d/"
+        success_msg: "nouveau blacklisted"
+      register: chk_blacklist
+      failed_when: false
+
+    # =================================================================
+    # Runtime layer — proves the config above is actually effective
+    # =================================================================
+
+    # --- VFIO modules loaded ---
+
+    - name: Read loaded kernel modules
+      ansible.builtin.command:
+        argv: [lsmod]
+      register: val_lsmod
+      changed_when: false
+
+    - name: Validate VFIO modules loaded
+      ansible.builtin.assert:
+        quiet: true
+        that:
+          - "'vfio_pci' in val_lsmod.stdout"
+          - "'vfio_iommu_type1' in val_lsmod.stdout"
+        fail_msg: >-
+          VFIO modules not loaded at runtime — config exists but
+          initramfs may need updating (update-initramfs -u + reboot)
+        success_msg: "vfio_pci, vfio_iommu_type1 loaded"
+      register: chk_vfio_runtime
+      failed_when: false
+
+    # --- IOMMU groups (BIOS + kernel) ---
+
+    - name: Check for IOMMU groups
+      ansible.builtin.find:
+        paths: /sys/kernel/iommu_groups
+        file_type: directory
+        recurse: false
+      register: val_iommu
+
+    - name: Validate IOMMU enabled
+      ansible.builtin.assert:
+        quiet: true
+        that: "val_iommu.matched > 0"
+        fail_msg: "No IOMMU groups found — enable in BIOS and kernel"
+        success_msg: "{{ val_iommu.matched }} IOMMU groups"
+      register: chk_iommu
+      failed_when: false
+
+    # --- Per-GPU: visible + driver binding + IOMMU group ---
+
+    - name: Check each GPU via lspci
+      ansible.builtin.command:
+        argv: [lspci, -ks, "{{ item }}"]
+      loop: "{{ gpus }}"
+      register: val_gpu_lspci
+      changed_when: false
+      failed_when: false
+
+    - name: Validate each GPU visible
+      ansible.builtin.assert:
+        quiet: true
+        that: "item.rc == 0 and item.stdout | length > 0"
+        fail_msg: "GPU {{ item.item }}: not found via lspci"
+        success_msg: "GPU {{ item.item }}: {{ item.stdout_lines[0] | default('visible') }}"
+      loop: "{{ val_gpu_lspci.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      register: chk_gpu_visible
+      failed_when: false
+
+    - name: Validate each GPU bound to vfio-pci
+      ansible.builtin.assert:
+        quiet: true
+        that: "'Kernel driver in use: vfio-pci' in item.stdout"
+        fail_msg: >-
+          GPU {{ item.item }}: not bound to vfio-pci
+          ({{ item.stdout | regex_search('Kernel driver in use: (\S+)', '\1')
+              | default(['no driver'], true) | first }})
+        success_msg: "GPU {{ item.item }}: vfio-pci"
+      loop: "{{ val_gpu_lspci.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      register: chk_vfio_binding
+      failed_when: false
+
+    - name: Read IOMMU group for each GPU
+      ansible.builtin.stat:
+        path: "/sys/bus/pci/devices/{{ item }}/iommu_group"
+      loop: "{{ gpus }}"
+      register: val_iommu_groups
+
+    - name: Validate each GPU has an IOMMU group
+      ansible.builtin.assert:
+        quiet: true
+        that: "item.stat.exists"
+        fail_msg: "GPU {{ item.item }}: no IOMMU group assigned"
+        success_msg: >-
+          GPU {{ item.item }}: IOMMU group {{ item.stat.lnk_target | basename }}
+      loop: "{{ val_iommu_groups.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      register: chk_iommu_groups
+      failed_when: false
+
+    # --- Summary ---
+
+    - name: Collect validation failures
+      ansible.builtin.set_fact:
+        val_failures: >-
+          {{
+            (chk_grub is failed) | ternary([chk_grub.msg], []) +
+            (chk_vfio_conf is failed) | ternary([chk_vfio_conf.msg], []) +
+            (chk_vfio_ids is failed) | ternary([chk_vfio_ids.msg], []) +
+            (chk_blacklist is failed) | ternary([chk_blacklist.msg], []) +
+            (chk_vfio_runtime is failed) | ternary([chk_vfio_runtime.msg], []) +
+            (chk_iommu is failed) | ternary([chk_iommu.msg], []) +
+            chk_gpu_visible.results | selectattr('failed') | map(attribute='msg') | list +
+            chk_vfio_binding.results | selectattr('failed') | map(attribute='msg') | list +
+            chk_iommu_groups.results | selectattr('failed') | map(attribute='msg') | list
+          }}
+      changed_when: false
+
+    - name: GPU passthrough validation summary
+      ansible.builtin.assert:
+        quiet: true
+        that: "val_failures | length == 0"
+        fail_msg: "{{ val_failures | join('\n') }}"
+        success_msg: >-
+          All GPU passthrough checks passed ({{ gpus | length }} GPUs)

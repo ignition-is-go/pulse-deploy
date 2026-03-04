@@ -78,6 +78,13 @@
     data: 1
     type: dword
 
+- name: Close Server Manager window if open
+  ansible.windows.win_shell: |
+    $proc = Get-Process -Name ServerManager -ErrorAction SilentlyContinue
+    if ($proc) { $proc | Stop-Process -Force; 'CLOSED' } else { 'NOT_RUNNING' }
+  register: servermanager_close
+  changed_when: servermanager_close.stdout_lines[0] == 'CLOSED'
+
 - name: Disable Shutdown Event Tracker
   ansible.windows.win_regedit:
     path: HKLM:\SOFTWARE\Policies\Microsoft\Windows NT\Reliability

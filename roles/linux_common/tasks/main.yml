@@ -1,6 +1,8 @@
 ---
-# lxc_base — Layer 0: LXC container base configuration
-# Lighter than linux_base — no systemd in some cases, no kernel modules
+# linux_common — Layer 0: base config safe for all Linux targets
+# (hypervisors, VMs, LXC containers)
+#
+# Apt cache, base packages, SSH. No firewall — that's tier-specific.
 
 - name: Update apt cache
   ansible.builtin.apt:
@@ -9,7 +11,7 @@
 
 - name: Install base packages
   ansible.builtin.apt:
-    name: "{{ lxc_base_packages }}"
+    name: "{{ linux_common_packages }}"
     state: present
 
 - name: Ensure SSH is running

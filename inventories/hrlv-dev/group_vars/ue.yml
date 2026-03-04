@@ -6,6 +6,9 @@ unreal_engine_dir: "C:/Program Files/Epic Games/5.7"
 unreal_exe: "{{ unreal_engine_dir }}/Engine/Binaries/Win64/UnrealEditor.exe"
 ue_installer_source: "{{ deploy_share }}\\installers\\unreal-engine\\5.7"
 
+# NDI Tools
+ndi_tools_installer_source: "{{ deploy_share }}\\installers\\ndi-tools\\6\\NDI 6 Tools.exe"
+
 # Plastic SCM
 plastic_exe: "C:/Program Files/PlasticSCM5/client/cm.exe"
 plastic_workspace: "C:/P-0616-HRLV"

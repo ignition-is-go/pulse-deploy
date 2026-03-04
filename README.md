@@ -65,7 +65,7 @@ pulse-deploy/
 Manages the full render farm fleet via composable role layers:
 
 ```
-Layer 0: OS base       → win_base, linux_base, lxc_base
+Layer 0: OS base       → win_base, linux_common, linux_vm
 Layer 1: Drivers       → nvidia_gpu_win, nvidia_gpu_linux, rivermax
 Layer 2: Shared infra  → smb_share, linux_storage, plastic_scm
 Layer 3: Applications  → unreal_engine, render_worker, arnold, optik, rship
