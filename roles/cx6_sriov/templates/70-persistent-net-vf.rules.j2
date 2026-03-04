@@ -1,0 +1,10 @@
+# Managed by Ansible — cx6_sriov role
+# ConnectX-6 switchdev mode + VF creation
+{% for card in cx6_cards %}
+
+# {{ card.bridge }} — CX6 ({{ card.pci_slots | join(', ') }})
+{% for pci in card.pci_slots %}
+KERNELS=="{{ pci }}", DRIVERS=="mlx5_core", SUBSYSTEMS=="pci", ACTION=="add", ATTR{sriov_totalvfs}=="?*", RUN+="/usr/sbin/devlink dev eswitch set pci/{{ pci }} mode switchdev", ATTR{sriov_numvfs}="0"
+{% endfor %}
+SUBSYSTEM=="net", ACTION=="add", ATTR{phys_switch_id}=="{{ card.switchid }}", ATTR{phys_port_name}=="p0", ATTR{device/sriov_totalvfs}=="?*", ATTR{device/sriov_numvfs}=="0", ATTR{device/sriov_numvfs}="{{ cx6_vf_count }}"
+{% endfor %}

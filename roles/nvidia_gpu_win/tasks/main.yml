@@ -39,8 +39,14 @@
     -ArgumentList "-s -noreboot -noeula"
     -Wait -PassThru
   when: not nvsmi_check.stat.exists
+  register: nvidia_install
   async: 600
   poll: 15
+
+- name: Reboot after NVIDIA driver install
+  ansible.builtin.include_role:
+    name: win_reboot
+  when: nvidia_install is changed
 
 - name: Query GPU via nvidia-smi
   ansible.windows.win_command:

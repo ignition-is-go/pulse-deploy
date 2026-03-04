@@ -60,6 +60,11 @@
   register: plasticfs_result
   changed_when: "'CHANGED' in plasticfs_result.stdout"
 
+- name: Create Plastic SCM desktop shortcut
+  community.windows.win_shortcut:
+    src: C:\Program Files\PlasticSCM5\client\plastic.exe
+    dest: C:\Users\Public\Desktop\Plastic SCM.lnk
+
 - name: Stop and disable Plastic Server service
   ansible.windows.win_service:
     name: Plastic Server 6

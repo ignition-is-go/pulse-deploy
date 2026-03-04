@@ -86,7 +86,8 @@
   when: "watermark_check.stdout | trim == 'NOT_INSTALLED' or watermark_check.stdout | trim == 'NO_KEY'"
 
 - name: Reboot to load proxy DLL into explorer
-  ansible.windows.win_reboot:
+  ansible.builtin.include_role:
+    name: win_reboot
   when: "watermark_check.stdout | trim == 'NOT_INSTALLED' or watermark_check.stdout | trim == 'NO_KEY'"
 
 - name: Verify watermark disabler installed

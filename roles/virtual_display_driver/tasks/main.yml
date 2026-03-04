@@ -82,8 +82,8 @@
   changed_when: false
 
 - name: Reboot to activate auto-logon desktop session
-  ansible.windows.win_reboot:
-    post_reboot_delay: 30
+  ansible.builtin.include_role:
+    name: win_reboot
   when: "'NONE' in desktop_session.stdout"
 
 - name: Write VDD display configuration script

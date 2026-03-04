@@ -67,7 +67,8 @@
   register: autologon_result
 
 - name: Reboot to start interactive desktop session
-  ansible.windows.win_reboot:
+  ansible.builtin.include_role:
+    name: win_reboot
   when: autologon_result is changed
 
 - name: Disable Server Manager at logon

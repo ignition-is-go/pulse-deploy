@@ -11,7 +11,6 @@ dotnet_runtime_installer_source: "{{ deploy_share }}\\installers\\dotnet\\8.0\\w
 netfx_devpack_installer_source: "{{ deploy_share }}\\installers\\dotnet-framework\\4.6.2\\NDP462-DevPack-KB3151934-ENU.exe"
 vscode_installer_source: "{{ deploy_share }}\\installers\\vscode\\1.109.5\\VSCodeUserSetup-x64-1.109.5.exe"
 vs_community_installer_source: "{{ deploy_share }}\\installers\\visual-studio\\VisualStudioSetup.exe"
-chrome_installer_source: "{{ deploy_share }}\\installers\\chrome\\latest\\ChromeSetup.exe"
 git_repos:
   - repo: "git@github.com:ignition-is-go/pulse-unreal.git"
     dest: "C:/pulse-unreal"

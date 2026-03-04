@@ -29,20 +29,23 @@
   when: not msbuild_check.stat.exists
 
 - name: Install VS Build Tools from offline layout (silent)
-  ansible.windows.win_shell: >-
-    Start-Process -FilePath "C:\Windows\Temp\vs_BuildTools\vs_BuildTools.exe"
-    -ArgumentList "--noWeb --wait --quiet --norestart
-    --add Microsoft.VisualStudio.Workload.VCTools
-    --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64
-    --add Microsoft.VisualStudio.Component.Windows11SDK.26100
-    --add Microsoft.VisualStudio.Component.VC.ASAN
-    --add Microsoft.VisualStudio.Component.VC.Llvm.Clang
-    --add Microsoft.NetCore.Component.Runtime.8.0
-    --includeRecommended"
-    -Wait -PassThru
+  ansible.windows.win_shell: |
+    $p = Start-Process -FilePath "C:\Windows\Temp\vs_BuildTools\vs_BuildTools.exe" `
+      -ArgumentList "--noWeb --wait --quiet --norestart --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows11SDK.26100 --add Microsoft.VisualStudio.Component.VC.ASAN --add Microsoft.VisualStudio.Component.VC.Llvm.Clang --add Microsoft.NetCore.Component.Runtime.8.0 --includeRecommended" `
+      -Wait -PassThru
+    exit $p.ExitCode
   when: not msbuild_check.stat.exists
+  register: vs_install
+  failed_when: vs_install.rc not in [0, 3010, 8005]
   async: 1800
   poll: 30
+
+- name: Reboot after VS Build Tools install if required
+  ansible.builtin.include_role:
+    name: win_reboot
+  when:
+    - vs_install is not skipped
+    - vs_install.rc in [3010, 8005]
 
 - name: Verify MSBuild is callable
   ansible.windows.win_command:

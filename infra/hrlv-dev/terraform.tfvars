@@ -463,6 +463,15 @@ workstation = {
     disk_gb   = 300
     gpu_slots = [0]
   }
+  "workstation-02" = {
+    id        = 1127
+    ip        = "192.168.1.127"
+    node      = "nyc-dev-pve-02"
+    cores     = 16
+    memory_mb = 98304
+    disk_gb   = 300
+    gpu_slots = [1]
+  }
 }
 
 # -----------------------------------------------------------------------------

@@ -40,8 +40,8 @@
   when: winof2_check.stdout | trim != rivermax_winof2_version
 
 - name: Reboot after WinOF-2 install
-  ansible.windows.win_reboot:
-    reboot_timeout: 600
+  ansible.builtin.include_role:
+    name: win_reboot
   when:
     - winof2_check.stdout | trim != rivermax_winof2_version
     - winof2_install is changed

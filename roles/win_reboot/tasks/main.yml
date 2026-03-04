@@ -1,0 +1,19 @@
+---
+# win_reboot — Reboot a Windows host and wait for stable WinRM
+#
+# Usage from any role:
+#   - name: Reboot after <reason>
+#     ansible.builtin.include_role:
+#       name: win_reboot
+#     when: <condition>
+
+- name: Reboot host
+  ansible.windows.win_reboot:
+    reboot_timeout: 300
+
+- name: Wait for WinRM to stabilize
+  ansible.windows.win_ping:
+  retries: 12
+  delay: 10
+  register: winrm_stable
+  until: winrm_stable is success
