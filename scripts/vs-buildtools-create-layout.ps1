@@ -47,7 +47,8 @@ $proc = Start-Process -FilePath $bootstrapper -ArgumentList @(
     "--add", "Microsoft.VisualStudio.Component.VC.ASAN",
     "--add", "Microsoft.VisualStudio.Component.VC.Llvm.Clang",
     "--add", "Microsoft.NetCore.Component.Runtime.8.0",
-    "--includeRecommended", "--lang", "en-US", "--passive"
+    "--add", "Microsoft.Net.4.6.2.TargetingPack",
+    "--lang", "en-US", "--passive"
 ) -PassThru
 
 Write-Host "Bootstrapper PID: $($proc.Id). Waiting for layout tool to start..."

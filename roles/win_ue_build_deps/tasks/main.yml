@@ -31,7 +31,7 @@
 - name: Install VS Build Tools from offline layout (silent)
   ansible.windows.win_shell: |
     $p = Start-Process -FilePath "C:\Windows\Temp\vs_BuildTools\vs_BuildTools.exe" `
-      -ArgumentList "--noWeb --wait --quiet --norestart --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows11SDK.26100 --add Microsoft.VisualStudio.Component.VC.ASAN --add Microsoft.VisualStudio.Component.VC.Llvm.Clang --add Microsoft.NetCore.Component.Runtime.8.0 --includeRecommended" `
+      -ArgumentList "--noWeb --wait --quiet --norestart --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows11SDK.26100 --add Microsoft.VisualStudio.Component.VC.ASAN --add Microsoft.VisualStudio.Component.VC.Llvm.Clang --add Microsoft.NetCore.Component.Runtime.8.0 --add Microsoft.Net.4.6.2.TargetingPack" `
       -Wait -PassThru
     exit $p.ExitCode
   when: not msbuild_check.stat.exists

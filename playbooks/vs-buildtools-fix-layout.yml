@@ -1,0 +1,57 @@
+---
+# vs-buildtools-fix-layout.yml — Download missing packages into VS Build Tools layout
+#
+# Reads Catalog.json from the NAS layout, finds specified packages whose payload
+# directories are missing, and downloads them directly from Microsoft.
+# Run on any Windows VM with internet access.
+#
+# Usage:
+#   ansible-playbook playbooks/vs-buildtools-fix-layout.yml --limit ue-plugindev-01
+#
+# To fix specific packages (default fixes .NET 4.6.2 targeting pack):
+#   ansible-playbook playbooks/vs-buildtools-fix-layout.yml --limit ue-plugindev-01 \
+#     -e 'fix_packages=["Microsoft.Net.4.6.2.TargetingPack","Microsoft.Net.4.6.2.TargetingPack.Resources"]'
+
+- name: Fix VS Build Tools offline layout
+  hosts: windows
+  gather_facts: false
+  vars:
+    layout_nas: "{{ deploy_share }}\\installers\\vs-buildtools\\17.14"
+    fix_packages:
+      - Microsoft.Net.4.6.2.TargetingPack
+      - Microsoft.Net.4.6.2.TargetingPack.Resources
+
+  tasks:
+    - name: Download missing packages to layout
+      ansible.windows.win_shell: |
+        $catalog = Get-Content "{{ layout_nas }}\Catalog.json" -Raw | ConvertFrom-Json
+        $ids = @({{ fix_packages | map('regex_replace', '^(.*)$', '"\1"') | join(',') }})
+        $downloaded = 0
+        $errors = @()
+        foreach ($pkg in $catalog.packages) {
+          if ($pkg.id -notin $ids) { continue }
+          if (-not $pkg.payloads) { continue }
+          $dir = "{{ layout_nas }}\$($pkg.id),version=$($pkg.version)"
+          if ($pkg.language) { $dir += ",language=$($pkg.language)" }
+          if ($pkg.chip) { $dir += ",chip=$($pkg.chip)" }
+          if ($pkg.productArch) { $dir += ",productarch=$($pkg.productArch)" }
+          foreach ($p in $pkg.payloads) {
+            $dest = "$dir\$($p.fileName)"
+            if (Test-Path $dest) { continue }
+            if (-not (Test-Path $dir)) { New-Item -ItemType Directory -Path $dir -Force | Out-Null }
+            try {
+              Invoke-WebRequest -Uri $p.url -OutFile $dest -UseBasicParsing
+              $downloaded++
+            } catch {
+              $errors += "FAILED: $($pkg.id)/$($p.fileName) - $($_.Exception.Message)"
+            }
+          }
+        }
+        if ($errors.Count -gt 0) { throw ($errors -join "`n") }
+        if ($downloaded -eq 0) { "All packages already present" } else { "Downloaded $downloaded files" }
+      register: fix_result
+      changed_when: "'Downloaded' in fix_result.stdout"
+
+    - name: Show result
+      ansible.builtin.debug:
+        msg: "{{ fix_result.stdout | trim }}"

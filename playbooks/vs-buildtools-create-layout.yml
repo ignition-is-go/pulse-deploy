@@ -1,8 +1,9 @@
 ---
-# vs-buildtools-create-layout.yml -- Create VS Build Tools offline layout on NAS
+# vs-buildtools-create-layout.yml -- Create/update VS Build Tools offline layout on NAS
 #
 # Downloads VS 2022 Build Tools layout to a local directory on the target VM,
-# then robocopy to the NAS. Run on any Windows VM with internet access.
+# then robocopy to the NAS. Safe to re-run — the layout command downloads only
+# missing/updated packages, and robocopy /MIR syncs changes to the NAS.
 #
 # Components match UE 5.7 requirements per Epic docs.
 #
@@ -22,51 +23,36 @@
     bootstrapper_url: "https://aka.ms/vs/17/release/vs_buildtools.exe"
 
   tasks:
-    - name: Check if layout already exists on NAS
-      ansible.windows.win_stat:
-        path: "{{ layout_nas }}\\Catalog.json"
-      register: nas_layout_check
+    - name: Sync existing layout from NAS to local
+      ansible.windows.win_command: >-
+        robocopy "{{ layout_nas }}" "{{ layout_local }}" /MIR /NDL /R:5 /W:10
+      register: layout_sync
+      failed_when: layout_sync.rc >= 8
+      changed_when: layout_sync.rc in [1, 3, 5, 7]
+      async: 1800
+      poll: 30
 
-    - name: Check if layout already exists locally
-      ansible.windows.win_stat:
-        path: "{{ layout_local }}\\Catalog.json"
-      register: local_layout_check
-
-    - name: Create local layout directory
-      ansible.windows.win_file:
-        path: "{{ layout_local }}"
-        state: directory
-      when: not local_layout_check.stat.exists
-
-    - name: Download bootstrapper
+    - name: Download bootstrapper if not in layout
       ansible.windows.win_get_url:
         url: "{{ bootstrapper_url }}"
         dest: "{{ layout_local }}\\vs_BuildTools.exe"
-      when: not local_layout_check.stat.exists
+        force: false
 
-    - name: Create offline layout
+    - name: Update offline layout
       ansible.windows.win_shell: |
-        $proc = Start-Process -FilePath "{{ layout_local }}\vs_BuildTools.exe" -ArgumentList @(
+        $p = Start-Process -FilePath "{{ layout_local }}\vs_BuildTools.exe" -ArgumentList @(
           "--layout", "{{ layout_local }}",
+          "--wait",
           "--add", "Microsoft.VisualStudio.Workload.VCTools",
           "--add", "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
           "--add", "Microsoft.VisualStudio.Component.Windows11SDK.26100",
           "--add", "Microsoft.VisualStudio.Component.VC.ASAN",
           "--add", "Microsoft.VisualStudio.Component.VC.Llvm.Clang",
           "--add", "Microsoft.NetCore.Component.Runtime.8.0",
-          "--includeRecommended", "--lang", "en-US", "--quiet"
-        ) -PassThru
-        Start-Sleep -Seconds 10
-        do {
-          $running = Get-Process -Name "vs_setup_bootstrapper", "vs_BuildTools", "Setup" -ErrorAction SilentlyContinue |
-            Where-Object { $_.Id -ne $PID }
-          if ($running) { Start-Sleep -Seconds 30 }
-        } while ($running)
-        if (!(Test-Path "{{ layout_local }}\Catalog.json")) {
-          throw "Layout failed -- Catalog.json not found"
-        }
-        Write-Host "DONE"
-      when: not local_layout_check.stat.exists
+          "--add", "Microsoft.Net.4.6.2.TargetingPack",
+          "--lang", "en-US", "--quiet"
+        ) -Wait -PassThru
+        exit $p.ExitCode
       async: 3600
       poll: 30
 
