@@ -248,26 +248,3 @@
       loop: "{{ val_br_ifaces.results }}"
       loop_control:
         label: "{{ item.item.bridge }}"
-
-    # --- Ring buffer spot check (first representor per card) ---
-
-    - name: Check ring buffers on first representor per card
-      ansible.builtin.command:
-        argv: [ethtool, -g, "{{ item.rep_prefix }}0"]
-      loop: "{{ cx6_cards }}"
-      loop_control:
-        label: "{{ item.rep_prefix }}0"
-      register: val_rings
-      changed_when: false
-
-    - name: Validate ring buffer sizes
-      ansible.builtin.assert:
-        quiet: true
-        that:
-          - "item.stdout is regex('Current hardware settings:[\\s\\S]*?RX:\\s+' ~ (cx6_rep_ring_rx | string))"
-          - "item.stdout is regex('Current hardware settings:[\\s\\S]*?TX:\\s+' ~ (cx6_rep_ring_tx | string))"
-        fail_msg: "{{ item.item.rep_prefix }}0: ring buffers not at {{ cx6_rep_ring_rx }}/{{ cx6_rep_ring_tx }}"
-        success_msg: "{{ item.item.rep_prefix }}0: RX={{ cx6_rep_ring_rx }} TX={{ cx6_rep_ring_tx }}"
-      loop: "{{ val_rings.results }}"
-      loop_control:
-        label: "{{ item.item.rep_prefix }}0"

@@ -96,7 +96,7 @@
     - name: Validate VF count
       ansible.builtin.assert:
         quiet: true
-        that: "(val_numvfs.content | b64decode | trim) | int == bf2_vf_count"
+        that: "(val_numvfs.content | b64decode | trim) | int == bf2_vf_count | int"
         fail_msg: "{{ bf2_iface }}: {{ val_numvfs.content | b64decode | trim }} VFs, expected {{ bf2_vf_count }}"
         success_msg: "{{ bf2_iface }}: {{ bf2_vf_count }} VFs"
 
@@ -104,13 +104,13 @@
 
     - name: List PCI devices at BF2 address range
       ansible.builtin.command:
-        argv: [lspci, -s, "{{ bf2_pci[: bf2_pci.index(':')] }}:", -nn]
+        argv: [lspci, -s, "{{ bf2_pci.split(':')[1] }}:", -nn]
       register: val_lspci
       changed_when: false
 
     - name: Validate VFs visible in lspci
       ansible.builtin.assert:
         quiet: true
-        that: "(val_lspci.stdout_lines | select('search', 'Virtual Function') | list | length) >= bf2_vf_count"
+        that: "(val_lspci.stdout_lines | select('search', 'Virtual Function') | list | length) >= bf2_vf_count | int"
         fail_msg: "Expected {{ bf2_vf_count }} VFs in lspci, found fewer"
         success_msg: "{{ bf2_vf_count }} VFs visible in lspci"
