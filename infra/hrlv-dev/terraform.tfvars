@@ -125,7 +125,7 @@ proxmox_hosts = {
     sriov_cards = [
       {
         type       = "cx6"
-        switchid   = "5a03d20003a1420c"
+        switchid   = "8ab2a00003f6ceb8"
         pci_slots  = ["0000:5a:00.0", "0000:5a:00.1"]
         pf_ifaces  = ["enp90s0f0np0", "enp90s0f1np1"]
         rep_prefix = "enp90s0f0r"
@@ -134,7 +134,7 @@ proxmox_hosts = {
       },
       {
         type       = "cx6"
-        switchid   = "8ab2a00003f6ceb8"
+        switchid   = "5a03d20003a1420c"
         pci_slots  = ["0000:df:00.0", "0000:df:00.1"]
         pf_ifaces  = ["enp223s0f0np0", "enp223s0f1np1"]
         rep_prefix = "enp223s0f0r"
