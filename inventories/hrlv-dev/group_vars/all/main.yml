@@ -25,3 +25,6 @@ netbird_setup_key: "{{ vault_netbird_setup_key }}"
 proxmox_api_url: "{{ vault_proxmox_api_url }}"
 proxmox_api_user: "{{ vault_proxmox_api_user }}"
 proxmox_api_password: "{{ vault_proxmox_api_password }}"
+
+# RustDesk (PulseRemoteDesktopVM) — encrypted config string from desk.rship.io
+rustdesk_config: "{{ vault_rustdesk_config }}"

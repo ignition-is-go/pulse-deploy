@@ -142,6 +142,51 @@
   register: rustdesk_post_check
   failed_when: not rustdesk_post_check.stat.exists
 
+- name: Apply RustDesk config from relay server
+  ansible.windows.win_command:
+    argv:
+      - C:\Program Files\PulseRemoteDesktopVM\PulseRemoteDesktopVM.exe
+      - --config
+      - "{{ rustdesk_config }}"
+  changed_when: false
+  no_log: true
+
+- name: Check current RustDesk ID
+  ansible.windows.win_command:
+    argv:
+      - C:\Program Files\PulseRemoteDesktopVM\PulseRemoteDesktopVM.exe
+      - --get-id
+  register: rustdesk_current_id
+  changed_when: false
+
+- name: Stop RustDesk service to set ID
+  ansible.windows.win_service:
+    name: PulseRemoteDesktopVM
+    state: stopped
+    force_dependent_services: true
+  when: rustdesk_current_id.stdout | trim != inventory_hostname
+
+- name: Set RustDesk ID to inventory hostname
+  community.windows.win_lineinfile:
+    path: C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\PulseRemoteDesktopVM\config\PulseRemoteDesktopVM.toml
+    regexp: ^id =
+    insertbefore: ^enc_id =
+    line: "id = '{{ inventory_hostname }}'"
+  when: rustdesk_current_id.stdout | trim != inventory_hostname
+
+- name: Clear enc_id to force ID re-registration
+  community.windows.win_lineinfile:
+    path: C:\Windows\ServiceProfiles\LocalService\AppData\Roaming\PulseRemoteDesktopVM\config\PulseRemoteDesktopVM.toml
+    regexp: ^enc_id =
+    line: "enc_id = ''"
+  when: rustdesk_current_id.stdout | trim != inventory_hostname
+
+- name: Start RustDesk service after ID change
+  ansible.windows.win_service:
+    name: PulseRemoteDesktopVM
+    state: started
+  when: rustdesk_current_id.stdout | trim != inventory_hostname
+
 - name: Check if PowerToys is installed
   ansible.windows.win_stat:
     path: C:\Program Files\PowerToys
