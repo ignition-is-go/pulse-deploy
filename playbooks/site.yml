@@ -140,12 +140,6 @@
       ansible.builtin.wait_for_connection:
         timeout: 30
 
-- name: Pulse admin — control node
-  hosts: pulse_admin
-  gather_facts: false
-  roles:
-    - linux_smb_client
-
 - name: PBS — deploy share
   hosts: pbs
   gather_facts: false

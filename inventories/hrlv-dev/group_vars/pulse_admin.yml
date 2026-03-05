@@ -1,7 +1,2 @@
 ---
 # pulse-admin — Ansible control node
-
-# SMB client mount (NAS deploy share)
-smb_server: "192.168.1.31"
-smb_share_name: "share"
-smb_mount_path: "/mnt/deploy"
