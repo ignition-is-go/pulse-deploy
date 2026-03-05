@@ -428,7 +428,7 @@ ue_staging = {
     cores     = 16
     memory_mb = 32768
     disk_gb   = 300
-    started   = false
+    started   = true
   }
 }
 
