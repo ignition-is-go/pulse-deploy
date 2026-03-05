@@ -23,7 +23,7 @@ file server.
 | windows-unreal-render-05    | 192.168.1.75    | 10.0.0.5   | Previs render node         | ue_previs    |
 | windows-touch-01            | 192.168.1.76    | 10.0.0.6   | Touch Designer node        | touch     |
 | ue-control-plane-01         | 192.168.1.168   | --         | Ansible control plane      | manager         |
-| pulse-admin (LXC)           | 192.168.1.70    | --         | Deploy share / Samba       | (Proxmox LXC)  |
+| pulse-admin (LXC)           | 192.168.1.31    | --         | Deploy share / Samba       | (Proxmox LXC)  |
 
 ### Networks
 
@@ -41,40 +41,37 @@ file server.
 
 ## 2. SMB Deploy Share
 
-Installers and license files are served from an SMB share on the pulse-admin LXC
-container. This avoids copying large binaries through the Ansible control connection.
+Installers and license files are served from an SMB share on the PBS host
+(nyc-pbs-01). This avoids copying large binaries through the Ansible control connection.
 
 ### Host
 
-- **Container**: pulse-admin LXC on Proxmox host `nyc-dev-pve-03`
-- **IP**: 192.168.1.70
+- **Host**: nyc-pbs-01 (Proxmox Backup Server)
+- **IP**: 192.168.1.31
 
 ### Storage
 
-- **ZFS dataset**: `zfs-nvme-05/deploy` on the Proxmox host
-- **Bind mount into LXC**:
-  ```bash
-  pct set <CTID> -mp0 /zfs-nvme-05/deploy,mp=/mnt/deploy
-  ```
+- **ZFS dataset**: `tank/share` mounted at `/mnt/datastore/tank/share`
 
 ### Samba configuration
 
-The Samba share is configured for guest access (no authentication required from
-the render nodes):
+The Samba share uses authenticated access (credentials match Windows ansible_user):
 
-Global section (already present in default smb.conf):
+Global section:
 ```ini
-   map to guest = bad user
+   map to guest = never
+   server min protocol = SMB2_02
 ```
 
-Share definition (appended to smb.conf):
+Share definition:
 ```ini
-[deploy]
-   path = /mnt/deploy
+[share]
+   path = /mnt/datastore/tank/share
    browseable = yes
    read only = no
-   guest ok = yes
-   force user = nobody
+   guest ok = no
+   valid users = <smb_user>
+   force user = <smb_user>
    create mask = 0664
    directory mask = 0775
 ```
@@ -82,20 +79,20 @@ Share definition (appended to smb.conf):
 ### UNC path
 
 ```
-\\192.168.1.70\deploy
+\\192.168.1.31\share
 ```
 
 Referenced in Ansible as the `deploy_share` variable, defined in
 `inventories/hrlv-dev/group_vars/all/main.yml`:
 
 ```yaml
-deploy_share: "\\\\192.168.1.70\\deploy"
+deploy_share: "\\\\192.168.1.31\\share"
 ```
 
 ### Contents (rivermax subfolder)
 
 ```
-\\192.168.1.70\deploy\rivermax\
+\\192.168.1.31\share\rivermax\
     MLNX_WinOF2-24_10_50010_All_x64.exe     # WinOF-2 driver installer
     Rivermax_Windows_1.71.30.zip             # Rivermax SDK archive
     Rivermax-12022026-qty3-1a7da843cfd1.lic  # Rivermax license (3 seats)
@@ -425,8 +422,8 @@ Summary of infrastructure changes made during this setup session.
 - **Added `ndisplay_node` and `ndisplay_primary` host vars** to content nodes.
 
 ### Group vars
-- **`inventories/hrlv-dev/group_vars/all/main.yml`**: added `deploy_share` variable
-  pointing to `\\192.168.1.70\deploy`.
+- **`inventories/hrlv-dev/group_vars/all/main.yml`**: `deploy_share` variable
+  points to `\\192.168.1.31\share`.
 - **`inventories/hrlv-dev/group_vars/windows.yml`**: added Rivermax installer paths
   referencing the deploy share.
 - **`inventories/hrlv-dev/group_vars/ue.yml`**: removed old render SMB share

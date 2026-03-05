@@ -3,7 +3,7 @@
 #
 # Prerequisites:
 #   1. Place the new installer on the deploy share at:
-#      \\192.168.1.70\deploy\plastic\<installer-filename>.exe
+#      \\192.168.1.31\share\plastic\<installer-filename>.exe
 #   2. Set plastic_installer to the new filename (in group_vars or via -e)
 #
 # Usage: ansible-playbook playbooks/plastic-upgrade.yml --limit ue_staging

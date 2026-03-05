@@ -2,8 +2,8 @@
 # Windows group vars — applied to all Windows VMs
 # WinRM connection vars are set in inventory/hosts.yml under windows.vars
 
-ansible_user: "{{ vault_ansible_user }}"
-ansible_password: "{{ vault_ansible_password }}"
+ansible_user: "{{ vault_win_user }}"
+ansible_password: "{{ vault_win_password }}"
 
 # PTP (applied when rivermax: true)
 ptp_masters: "10.0.0.100"

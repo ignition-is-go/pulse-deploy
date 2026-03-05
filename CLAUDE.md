@@ -20,7 +20,7 @@ Ansible config for a multi-OS render farm (Proxmox). Windows UE/nDisplay render 
 12. **Never delete Plastic SCM `plastic4` config** on nodes with existing workspaces — it deregisters all workspaces.
 13. **Never hardcode external dynamic data.** Fetch at runtime (`ssh-keyscan` + `register`), never paste static strings.
 14. **Never modify `hosts.yml` group hierarchy** without being asked.
-15. **pulse-admin IS the Samba/NAS server.** The deploy share is locally mounted at `/mnt/deploy`. NEVER attempt to mount CIFS shares, use `net use`, or treat NAS paths as remote — just use `/mnt/deploy` directly. Installer convention: `/mnt/deploy/installers/<tool>/<version>/<filename>`.
+15. **nyc-pbs-01 (192.168.1.31) is the NAS/Samba server.** The deploy share is `\\192.168.1.31\share` backed by ZFS at `/mnt/datastore/tank/share`. pulse-admin is the Ansible control node only. Installer convention: `share/installers/<tool>/<version>/<filename>`.
 
 ## Architecture
 

@@ -4,10 +4,11 @@
 #
 # vault.yml is gitignored — secrets never touch the repo.
 
-vault_ansible_user: Administrator
-vault_ansible_password: "CHANGEME"
+vault_win_user: Administrator
+vault_win_password: "CHANGEME"
+vault_linux_user: root
+vault_linux_password: "CHANGEME"
 vault_plastic_api_key: "CHANGEME"
 vault_plastic_cloud_user: "user@email.com"
 vault_plastic_cloud_org: "OrgName"
 vault_render_server_url: "ws://192.168.1.158:3000/api/ws"
-vault_linux_ssh_user: "root"
