@@ -1,10 +1,4 @@
 ---
-- name: Restart openvswitch-switch
-  ansible.builtin.service:
-    name: openvswitch-switch
-    state: restarted
-
 - name: Reboot to apply CX6 SR-IOV changes
-  ansible.builtin.reboot:
-    reboot_timeout: 300
-    msg: "Rebooting to apply CX6 SR-IOV / OVS switchdev changes"
+  ansible.builtin.debug:
+    msg: "REBOOT REQUIRED — CX6 SR-IOV config changed, reboot host to apply"

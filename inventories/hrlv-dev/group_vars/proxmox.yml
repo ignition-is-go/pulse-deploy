@@ -22,5 +22,3 @@ bf2_vf_count: "{{ bf2_cards[0].vf_count | default(8) if bf2_cards | length > 0 e
 # CX6 SR-IOV tuning (was in proxmox_cx6.yml)
 cx6_vf_count: 8
 cx6_ovs_mtu: 9000
-cx6_rep_ring_rx: 8192
-cx6_rep_ring_tx: 8192

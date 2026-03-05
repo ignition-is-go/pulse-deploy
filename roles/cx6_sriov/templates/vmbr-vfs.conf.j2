@@ -7,5 +7,4 @@ iface {{ item.rep_prefix }}{{ i }} inet manual
     ovs_type OVSPort
     ovs_bridge {{ item.bridge }}
     ovs_mtu {{ cx6_ovs_mtu }}
-    post-up ethtool -G {{ item.rep_prefix }}{{ i }} rx {{ cx6_rep_ring_rx }} tx {{ cx6_rep_ring_tx }}
 {% endfor %}

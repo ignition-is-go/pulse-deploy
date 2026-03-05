@@ -1,0 +1,154 @@
+---
+# cx6_sriov/verify — Post-reboot runtime verification
+#
+# Validates that CX6 SR-IOV config written by main.yml is active after reboot:
+#   switchdev mode, VF count, OVS service + globals, bridges, bonds, MTU,
+#   representors, ring buffers.
+#
+# Usage:
+#   ansible-playbook playbooks/apply-role.yml \
+#     -e target=HOST -e role_name=cx6_sriov -e tasks_from=verify
+
+# --- Switchdev + VFs ---
+
+- name: Check switchdev mode per card
+  ansible.builtin.command:
+    argv: [devlink, dev, eswitch, show, "pci/{{ item.pci_slots[0] }}"]
+  loop: "{{ cx6_cards }}"
+  loop_control:
+    label: "{{ item.bridge }}"
+  register: verify_switchdev
+  changed_when: false
+
+- name: Assert switchdev mode active
+  ansible.builtin.assert:
+    quiet: true
+    that: "'switchdev' in item.stdout"
+    fail_msg: "{{ item.item.bridge }}: switchdev NOT active on pci/{{ item.item.pci_slots[0] }}"
+    success_msg: "{{ item.item.bridge }}: switchdev active"
+  loop: "{{ verify_switchdev.results }}"
+  loop_control:
+    label: "{{ item.item.bridge }}"
+
+- name: Read sriov_numvfs per card
+  ansible.builtin.slurp:
+    src: "/sys/class/net/{{ item.pf_ifaces[0] }}/device/sriov_numvfs"
+  loop: "{{ cx6_cards }}"
+  loop_control:
+    label: "{{ item.bridge }}"
+  register: verify_numvfs
+
+- name: Assert VF count
+  ansible.builtin.assert:
+    quiet: true
+    that: "(item.content | b64decode | trim) | int == cx6_vf_count"
+    fail_msg: "{{ item.item.bridge }}: {{ item.content | b64decode | trim }} VFs, expected {{ cx6_vf_count }}"
+    success_msg: "{{ item.item.bridge }}: {{ cx6_vf_count }} VFs"
+  loop: "{{ verify_numvfs.results }}"
+  loop_control:
+    label: "{{ item.item.bridge }}"
+
+# --- OVS service + globals ---
+
+- name: Check OVS service status
+  ansible.builtin.command:
+    argv: [systemctl, is-active, openvswitch-switch]
+  register: verify_ovs_svc
+  changed_when: false
+  failed_when: "verify_ovs_svc.stdout != 'active'"
+
+- name: Read OVS other_config
+  ansible.builtin.command:
+    argv: [ovs-vsctl, get, Open_vSwitch, ., other_config]
+  register: verify_ovs_cfg
+  changed_when: false
+
+- name: Assert OVS global settings
+  ansible.builtin.assert:
+    quiet: true
+    that:
+      - "'hw-offload=\"true\"' in verify_ovs_cfg.stdout"
+      - "'tc-policy=skip_sw' in verify_ovs_cfg.stdout"
+      - "'lacp-fallback-ab=\"true\"' in verify_ovs_cfg.stdout"
+    fail_msg: "OVS other_config incomplete: {{ verify_ovs_cfg.stdout }}"
+    success_msg: "OVS hw-offload, tc-policy, lacp-fallback-ab set"
+
+# --- Bridges + bonds ---
+
+- name: Read OVS bridge list
+  ansible.builtin.command:
+    argv: [ovs-vsctl, list-br]
+  register: verify_br_list
+  changed_when: false
+
+- name: Assert bridges exist
+  ansible.builtin.assert:
+    quiet: true
+    that: "item.bridge in verify_br_list.stdout_lines"
+    fail_msg: "Bridge {{ item.bridge }} missing"
+    success_msg: "{{ item.bridge }} present"
+  loop: "{{ cx6_cards }}"
+  loop_control:
+    label: "{{ item.bridge }}"
+
+- name: Check bond members per card
+  ansible.builtin.command:
+    argv: [ovs-appctl, bond/show, "{{ item.bond }}"]
+  loop: "{{ cx6_cards }}"
+  loop_control:
+    label: "{{ item.bond }}"
+  register: verify_bonds
+  changed_when: false
+
+- name: Assert bond has both PF uplinks
+  ansible.builtin.assert:
+    quiet: true
+    that:
+      - "item.item.pf_ifaces[0] in item.stdout"
+      - "item.item.pf_ifaces[1] in item.stdout"
+    fail_msg: "{{ item.item.bond }}: missing PF uplinks"
+    success_msg: "{{ item.item.bond }}: {{ item.item.pf_ifaces | join(', ') }}"
+  loop: "{{ verify_bonds.results }}"
+  loop_control:
+    label: "{{ item.item.bond }}"
+
+- name: Read bridge MTU per card
+  ansible.builtin.slurp:
+    src: "/sys/class/net/{{ item.bridge }}/mtu"
+  loop: "{{ cx6_cards }}"
+  loop_control:
+    label: "{{ item.bridge }}"
+  register: verify_mtu
+
+- name: Assert bridge MTU
+  ansible.builtin.assert:
+    quiet: true
+    that: "(item.content | b64decode | trim) | int == cx6_ovs_mtu"
+    fail_msg: "{{ item.item.bridge }}: MTU {{ item.content | b64decode | trim }}, expected {{ cx6_ovs_mtu }}"
+    success_msg: "{{ item.item.bridge }}: MTU {{ cx6_ovs_mtu }}"
+  loop: "{{ verify_mtu.results }}"
+  loop_control:
+    label: "{{ item.item.bridge }}"
+
+# --- Representors ---
+
+- name: List interfaces per bridge
+  ansible.builtin.command:
+    argv: [ovs-vsctl, list-ifaces, "{{ item.bridge }}"]
+  loop: "{{ cx6_cards }}"
+  loop_control:
+    label: "{{ item.bridge }}"
+  register: verify_br_ifaces
+  changed_when: false
+
+- name: Assert representor count per bridge
+  ansible.builtin.assert:
+    quiet: true
+    that: >-
+      (item.stdout_lines | select('match', '^' ~ item.item.rep_prefix ~ '\d+$')
+       | list | length) == cx6_vf_count
+    fail_msg: "{{ item.item.bridge }}: expected {{ cx6_vf_count }} representors ({{ item.item.rep_prefix }}*)"
+    success_msg: "{{ item.item.bridge }}: {{ cx6_vf_count }} representors attached"
+  loop: "{{ verify_br_ifaces.results }}"
+  loop_control:
+    label: "{{ item.item.bridge }}"

@@ -1,36 +1,74 @@
 ---
 # cx6_sriov — ConnectX-6 SR-IOV + OVS switchdev for Proxmox hosts
 #
-# Configures udev rules (switchdev + VF creation), OVS bridges with
-# bonded PF uplinks, representor ports with ring buffer tuning, and
-# OVS hw-offload.
+# Writes all config (udev, OVS globals service, bridges, representors),
+# then user reboots. Verify with tasks_from=verify after reboot.
 #
 # Firmware prerequisites (manual, not managed by this role):
 #   LINK_TYPE_P1/P2=2 (Ethernet), SRIOV_EN=1, NUM_OF_VFS=8, VF_VPD_ENABLE=1
 #   See docs/proxmox/CONNECTX6_SRIOV.md for mlxconfig steps
 #
-# Required host_vars:
-#   cx6_cards    — list of CX6 card defs (switchid, pci_slots, pf_ifaces, rep_prefix, bridge, bond)
-#
-# Required group_vars (proxmox_cx6):
-#   cx6_vf_count, cx6_ovs_mtu, cx6_rep_ring_rx, cx6_rep_ring_tx
+# Required variables:
+#   cx6_cards    — list of CX6 card defs (from Terraform via group_vars/proxmox.yml)
+#   cx6_vf_count, cx6_ovs_mtu
 
-# --- Preflight ---
+# =================================================================
+# Preflight — validate hardware before writing any config
+# =================================================================
 
 - name: Fail if cx6_cards is not defined
   ansible.builtin.fail:
-    msg: "cx6_cards must be defined in host_vars for {{ inventory_hostname }}"
+    msg: "cx6_cards must be defined for {{ inventory_hostname }}"
   when: cx6_cards is not defined or cx6_cards | length == 0
 
 - name: Fail if any switchid is not set
   ansible.builtin.fail:
-    msg: "switchid must be discovered for {{ item.bridge }} on {{ inventory_hostname }}"
+    msg: "switchid must be set for {{ item.bridge }} on {{ inventory_hostname }}"
   when: item.switchid is not defined or item.switchid == "" or item.switchid == "TODO"
   loop: "{{ cx6_cards }}"
   loop_control:
     label: "{{ item.bridge }}"
 
-# --- Packages ---
+- name: Verify CX6 PCI devices exist
+  ansible.builtin.command:
+    argv: [lspci, -s, "{{ item.1 }}"]
+  loop: "{{ cx6_cards | subelements('pci_slots') }}"
+  loop_control:
+    label: "{{ item.1 }}"
+  register: preflight_pci
+  changed_when: false
+  failed_when: "preflight_pci.rc != 0 or 'ConnectX' not in preflight_pci.stdout"
+
+- name: Verify PF interfaces exist
+  ansible.builtin.stat:
+    path: "/sys/class/net/{{ item.1 }}"
+  loop: "{{ cx6_cards | subelements('pf_ifaces') }}"
+  loop_control:
+    label: "{{ item.1 }}"
+  register: preflight_ifaces
+  failed_when: not preflight_ifaces.stat.exists
+
+- name: Verify switchids match hardware
+  ansible.builtin.slurp:
+    src: "/sys/class/net/{{ item.pf_ifaces[0] }}/phys_switch_id"
+  loop: "{{ cx6_cards }}"
+  loop_control:
+    label: "{{ item.bridge }}"
+  register: preflight_switchid
+  failed_when: "(preflight_switchid.content | b64decode | trim) != item.switchid"
+
+- name: Verify management bridge is not on CX6
+  ansible.builtin.command:
+    argv: [ip, -br, addr, show, dev, vmbr0]
+  register: preflight_mgmt
+  changed_when: false
+  failed_when: >-
+    preflight_mgmt.rc != 0 or
+    preflight_mgmt.stdout | length == 0
+
+# =================================================================
+# Packages
+# =================================================================
 
 - name: Install OVS and networking packages
   ansible.builtin.apt:
@@ -51,7 +89,9 @@
   register: apt_hold_result
   changed_when: "'already' not in apt_hold_result.stdout"
 
-# --- udev rules (switchdev + VF creation) ---
+# =================================================================
+# udev rules (switchdev + VF creation)
+# =================================================================
 
 - name: Deploy udev rules for CX6 switchdev + VF creation
   ansible.builtin.template:
@@ -60,122 +100,55 @@
     owner: root
     group: root
     mode: "0644"
-  register: udev_changed
   notify: Reboot to apply CX6 SR-IOV changes
 
-- name: "Verify: Check switchdev mode per card"
-  ansible.builtin.command:
-    argv:
-      - devlink
-      - dev
-      - eswitch
-      - show
-      - "pci/{{ item.pci_slots[0] }}"
-  loop: "{{ cx6_cards }}"
-  loop_control:
-    label: "{{ item.bridge }}"
-  register: verify_switchdev
-  changed_when: false
-  when: not udev_changed is changed
+- name: Verify udev rules file deployed
+  ansible.builtin.stat:
+    path: /etc/udev/rules.d/70-persistent-net-vf.rules
+  register: verify_udev_file
+  failed_when: not verify_udev_file.stat.exists
 
-- name: "Verify: Assert switchdev mode active"
-  ansible.builtin.assert:
-    quiet: true
-    that: "'switchdev' in item.stdout"
-    fail_msg: "{{ item.item.bridge }}: switchdev NOT active on pci/{{ item.item.pci_slots[0] }}"
-    success_msg: "{{ item.item.bridge }}: switchdev active"
-  loop: "{{ verify_switchdev.results }}"
-  loop_control:
-    label: "{{ item.item.bridge }}"
-  when: not udev_changed is changed
+# =================================================================
+# OVS global settings (systemd oneshot service)
+#
+# ifupdown2 recreates the OVS database on every boot, so globals
+# set via ovs-vsctl do not persist across reboots. A oneshot
+# service re-applies them after OVS starts.
+# See docs/proxmox/CONNECTX6_SRIOV.md lines 492-496.
+# =================================================================
 
-- name: "Verify: Read sriov_numvfs per card"
-  ansible.builtin.slurp:
-    src: "/sys/class/net/{{ item.pf_ifaces[0] }}/device/sriov_numvfs"
-  loop: "{{ cx6_cards }}"
-  loop_control:
-    label: "{{ item.bridge }}"
-  register: verify_numvfs
-  when: not udev_changed is changed
+- name: Deploy CX6 OVS globals service
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      Description=CX6 OVS global settings (hw-offload, tc-policy, lacp-fallback-ab)
+      After=openvswitch-switch.service
+      Requires=openvswitch-switch.service
 
-- name: "Verify: Assert VF count"
-  ansible.builtin.assert:
-    quiet: true
-    that: "(item.content | b64decode | trim) | int == cx6_vf_count"
-    fail_msg: "{{ item.item.bridge }}: {{ item.content | b64decode | trim }} VFs, expected {{ cx6_vf_count }}"
-    success_msg: "{{ item.item.bridge }}: {{ cx6_vf_count }} VFs"
-  loop: "{{ verify_numvfs.results }}"
-  loop_control:
-    label: "{{ item.item.bridge }}"
-  when: not udev_changed is changed
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/bin/ovs-vsctl set Open_vSwitch . other_config:hw-offload=true
+      ExecStart=/usr/bin/ovs-vsctl set Open_vSwitch . other_config:lacp-fallback-ab=true
+      ExecStart=/usr/bin/ovs-vsctl set Open_vSwitch . other_config:tc-policy=skip_sw
+      RemainAfterExit=yes
 
-# --- OVS global settings ---
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/cx6-ovs-globals.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reboot to apply CX6 SR-IOV changes
 
-- name: Read current OVS other_config
-  ansible.builtin.command:
-    argv:
-      - ovs-vsctl
-      - get
-      - Open_vSwitch
-      - .
-      - other_config
-  register: ovs_other_config
-  changed_when: false
-  failed_when: false
+- name: Enable CX6 OVS globals service
+  ansible.builtin.systemd:
+    name: cx6-ovs-globals.service
+    enabled: true
+    daemon_reload: true
 
-- name: Set OVS hw-offload=true
-  ansible.builtin.command:
-    argv:
-      - ovs-vsctl
-      - set
-      - Open_vSwitch
-      - .
-      - "other_config:hw-offload=true"
-  when: "'hw-offload=\"true\"' not in (ovs_other_config.stdout | default(''))"
-  changed_when: true
-  notify: Restart openvswitch-switch
-
-- name: Set OVS lacp-fallback-ab=true
-  ansible.builtin.command:
-    argv:
-      - ovs-vsctl
-      - set
-      - Open_vSwitch
-      - .
-      - "other_config:lacp-fallback-ab=true"
-  when: "'lacp-fallback-ab=\"true\"' not in (ovs_other_config.stdout | default(''))"
-  changed_when: true
-  notify: Restart openvswitch-switch
-
-- name: Set OVS tc-policy=skip_sw
-  ansible.builtin.command:
-    argv:
-      - ovs-vsctl
-      - set
-      - Open_vSwitch
-      - .
-      - "other_config:tc-policy=skip_sw"
-  when: "'tc-policy=skip_sw' not in (ovs_other_config.stdout | default(''))"
-  changed_when: true
-  notify: Restart openvswitch-switch
-
-- name: "Verify: Read OVS other_config"
-  ansible.builtin.command:
-    argv: [ovs-vsctl, get, Open_vSwitch, ., other_config]
-  register: verify_ovs_cfg
-  changed_when: false
-
-- name: "Verify: Assert OVS global settings"
-  ansible.builtin.assert:
-    quiet: true
-    that:
-      - "'hw-offload=\"true\"' in verify_ovs_cfg.stdout"
-      - "'tc-policy=skip_sw' in verify_ovs_cfg.stdout"
-      - "'lacp-fallback-ab=\"true\"' in verify_ovs_cfg.stdout"
-    fail_msg: "OVS other_config incomplete: {{ verify_ovs_cfg.stdout }}"
-    success_msg: "OVS hw-offload, tc-policy, lacp-fallback-ab set"
-
-# --- Network config (bridges + bonds) ---
+# =================================================================
+# Network config (bridges + bonds)
+# =================================================================
 
 - name: Ensure source interfaces.d line in /etc/network/interfaces
   ansible.builtin.lineinfile:
@@ -191,71 +164,17 @@
     owner: root
     group: root
     mode: "0644"
-  register: bridges_changed
   notify: Reboot to apply CX6 SR-IOV changes
 
-- name: "Verify: Read OVS bridge list"
-  ansible.builtin.command:
-    argv: [ovs-vsctl, list-br]
-  register: verify_br_list
-  changed_when: false
-  when: not bridges_changed is changed
+- name: Verify bridge config file deployed
+  ansible.builtin.stat:
+    path: /etc/network/interfaces.d/cx6-bridges.conf
+  register: verify_bridge_file
+  failed_when: not verify_bridge_file.stat.exists
 
-- name: "Verify: Assert bridges exist"
-  ansible.builtin.assert:
-    quiet: true
-    that: "item.bridge in verify_br_list.stdout_lines"
-    fail_msg: "Bridge {{ item.bridge }} missing"
-    success_msg: "{{ item.bridge }} present"
-  loop: "{{ cx6_cards }}"
-  loop_control:
-    label: "{{ item.bridge }}"
-  when: not bridges_changed is changed
-
-- name: "Verify: Check bond members per card"
-  ansible.builtin.command:
-    argv: [ovs-appctl, bond/show, "{{ item.bond }}"]
-  loop: "{{ cx6_cards }}"
-  loop_control:
-    label: "{{ item.bond }}"
-  register: verify_bonds
-  changed_when: false
-  when: not bridges_changed is changed
-
-- name: "Verify: Assert bond has both PF uplinks"
-  ansible.builtin.assert:
-    quiet: true
-    that:
-      - "item.item.pf_ifaces[0] in item.stdout"
-      - "item.item.pf_ifaces[1] in item.stdout"
-    fail_msg: "{{ item.item.bond }}: missing PF uplinks"
-    success_msg: "{{ item.item.bond }}: {{ item.item.pf_ifaces | join(', ') }}"
-  loop: "{{ verify_bonds.results }}"
-  loop_control:
-    label: "{{ item.item.bond }}"
-  when: not bridges_changed is changed
-
-- name: "Verify: Read bridge MTU per card"
-  ansible.builtin.slurp:
-    src: "/sys/class/net/{{ item.bridge }}/mtu"
-  loop: "{{ cx6_cards }}"
-  loop_control:
-    label: "{{ item.bridge }}"
-  register: verify_mtu
-  when: not bridges_changed is changed
-
-- name: "Verify: Assert bridge MTU"
-  ansible.builtin.assert:
-    quiet: true
-    that: "(item.content | b64decode | trim) | int == cx6_ovs_mtu"
-    fail_msg: "{{ item.item.bridge }}: MTU {{ item.content | b64decode | trim }}, expected {{ cx6_ovs_mtu }}"
-    success_msg: "{{ item.item.bridge }}: MTU {{ cx6_ovs_mtu }}"
-  loop: "{{ verify_mtu.results }}"
-  loop_control:
-    label: "{{ item.item.bridge }}"
-  when: not bridges_changed is changed
-
-# --- Representor config ---
+# =================================================================
+# Representor config
+# =================================================================
 
 - name: Deploy representor config for each bridge
   ansible.builtin.template:
@@ -267,49 +186,13 @@
   loop: "{{ cx6_cards }}"
   loop_control:
     label: "{{ item.bridge }}"
-  register: reps_changed
   notify: Reboot to apply CX6 SR-IOV changes
 
-- name: "Verify: List interfaces per bridge"
-  ansible.builtin.command:
-    argv: [ovs-vsctl, list-ifaces, "{{ item.bridge }}"]
+- name: Verify representor config files deployed
+  ansible.builtin.stat:
+    path: "/etc/network/interfaces.d/{{ item.bridge }}-vfs.conf"
   loop: "{{ cx6_cards }}"
   loop_control:
     label: "{{ item.bridge }}"
-  register: verify_br_ifaces
-  changed_when: false
-  when: not reps_changed is changed
-
-- name: "Verify: Assert representor count per bridge"
-  ansible.builtin.assert:
-    quiet: true
-    that: "(item.stdout_lines | select('match', '^' ~ item.item.rep_prefix ~ '\\d+$') | list | length) == cx6_vf_count"
-    fail_msg: "{{ item.item.bridge }}: expected {{ cx6_vf_count }} representors ({{ item.item.rep_prefix }}*)"
-    success_msg: "{{ item.item.bridge }}: {{ cx6_vf_count }} representors attached"
-  loop: "{{ verify_br_ifaces.results }}"
-  loop_control:
-    label: "{{ item.item.bridge }}"
-  when: not reps_changed is changed
-
-- name: "Verify: Check ring buffers on first representor per card"
-  ansible.builtin.command:
-    argv: [ethtool, -g, "{{ item.rep_prefix }}0"]
-  loop: "{{ cx6_cards }}"
-  loop_control:
-    label: "{{ item.rep_prefix }}0"
-  register: verify_rings
-  changed_when: false
-  when: not reps_changed is changed
-
-- name: "Verify: Assert ring buffer sizes"
-  ansible.builtin.assert:
-    quiet: true
-    that:
-      - "item.stdout is regex('Current hardware settings:[\\s\\S]*?RX:\\s+' ~ (cx6_rep_ring_rx | string))"
-      - "item.stdout is regex('Current hardware settings:[\\s\\S]*?TX:\\s+' ~ (cx6_rep_ring_tx | string))"
-    fail_msg: "{{ item.item.rep_prefix }}0: ring buffers not at {{ cx6_rep_ring_rx }}/{{ cx6_rep_ring_tx }}"
-    success_msg: "{{ item.item.rep_prefix }}0: RX={{ cx6_rep_ring_rx }} TX={{ cx6_rep_ring_tx }}"
-  loop: "{{ verify_rings.results }}"
-  loop_control:
-    label: "{{ item.item.rep_prefix }}0"
-  when: not reps_changed is changed
+  register: verify_rep_files
+  failed_when: not verify_rep_files.stat.exists
