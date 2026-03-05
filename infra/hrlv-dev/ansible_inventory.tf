@@ -42,6 +42,7 @@ resource "ansible_group" "linux" {
   children = [
     "proxmox",
     "optik",
+    "pbs",
     "pixelfarm",
     "rship",
     "rustdesk",
@@ -102,6 +103,10 @@ resource "ansible_group" "rship" {
 
 resource "ansible_group" "rustdesk" {
   name = "rustdesk"
+}
+
+resource "ansible_group" "pbs" {
+  name = "pbs"
 }
 
 resource "ansible_group" "pulse_admin" {
@@ -211,6 +216,15 @@ resource "ansible_host" "rship" {
   for_each = var.rship
   name     = each.key
   groups   = ["rship"]
+  variables = {
+    ansible_host = each.value.ip
+  }
+}
+
+resource "ansible_host" "pbs" {
+  for_each = var.pbs
+  name     = each.key
+  groups   = ["pbs"]
   variables = {
     ansible_host = each.value.ip
   }

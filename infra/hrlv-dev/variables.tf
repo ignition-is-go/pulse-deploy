@@ -318,3 +318,15 @@ variable "rustdesk" {
   }))
   default = {}
 }
+
+# =============================================================================
+# Physical hosts (not provisioned by Terraform, inventory only)
+# =============================================================================
+
+variable "pbs" {
+  description = "Proxmox Backup Server — NAS / deploy share (physical)"
+  type = map(object({
+    ip = string
+  }))
+  default = {}
+}
