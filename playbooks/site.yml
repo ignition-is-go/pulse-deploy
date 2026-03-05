@@ -127,18 +127,6 @@
 
 # === Linux ===
 
-- name: Common config — all Linux
-  hosts: linux
-  gather_facts: true
-  roles:
-    - linux_common
-
-- name: Firewall — Linux VMs
-  hosts: optik
-  gather_facts: false
-  roles:
-    - linux_vm
-
 - name: Proxmox hypervisors
   hosts: proxmox
   serial: 1
@@ -152,8 +140,8 @@
       ansible.builtin.wait_for_connection:
         timeout: 30
 
-- name: Pulse admin — deploy share
-  hosts: pulse_admin
+- name: PBS — deploy share
+  hosts: pbs
   gather_facts: false
   roles:
     - samba_server
@@ -178,3 +166,4 @@
   gather_facts: true
   roles:
     - netbird
+

@@ -9,8 +9,8 @@ plastic_api_key: ""
 skip_plastic: false
 
 # --- Deploy share (installer source) ---
-deploy_share_host: "192.168.1.70"
-deploy_share_name: "deploy"
+deploy_share_host: "192.168.1.31"
+deploy_share_name: "share"
 
 # --- Windows ---
 plastic_exe: "C:/Program Files/PlasticSCM5/client/cm.exe"

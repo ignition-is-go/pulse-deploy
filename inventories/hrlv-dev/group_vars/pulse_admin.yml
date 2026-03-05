@@ -1,5 +1,2 @@
 ---
-# Samba deploy share — authenticated SMB access for Windows VMs
-# Credentials must match Windows ansible_user/ansible_password for transparent NTLM auth
-smb_user: "{{ vault_ansible_user }}"
-smb_password: "{{ vault_ansible_password }}"
+# pulse-admin — Ansible control node (no roles applied via site.yml)

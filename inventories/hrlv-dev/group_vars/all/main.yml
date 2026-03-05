@@ -4,8 +4,8 @@
 # Render server
 render_server_url: "{{ vault_render_server_url }}"
 
-# Deploy share (SMB on pulse-admin)
-deploy_share: "\\\\192.168.1.70\\deploy"
+# Deploy share (SMB on nyc-pbs-01)
+deploy_share: "\\\\192.168.1.31\\share"
 
 # NVIDIA RTX Enterprise driver (covers RTX A4000, RTX 6000 Ada, etc.)
 nvidia_driver_source: "{{ deploy_share }}\\installers\\nvidia-driver\\582.16\\582.16-nvidia-rtx-winserv-2022-2025-64bit-international-dch-whql.exe"
