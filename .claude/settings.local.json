@@ -22,7 +22,11 @@
       "WebFetch(domain:developer.nvidia.com)",
       "WebFetch(domain:developer.hashicorp.com)",
       "WebFetch(domain:nvidia.custhelp.com)",
-      "Bash(ansible-doc:*)"
+      "Bash(ansible-doc:*)",
+      "WebFetch(domain:forum.proxmox.com)",
+      "WebFetch(domain:docs.ndi.video)",
+      "WebFetch(domain:docs.nvidia.com)",
+      "WebFetch(domain:rustdesk.com)"
     ]
   }
 }
