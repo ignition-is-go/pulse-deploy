@@ -1,15 +1,14 @@
 ---
-# samba_server — Layer 2: Samba deploy share on pulse-admin
+# samba_server — Samba file share
 #
-# Manages the authenticated SMB share that Windows VMs use to access
-# installers, workspaces, and deployment files on the NAS.
-#
-# The Samba user matches the Windows VM credentials so NTLM auth
-# is transparent — no net use or credential mapping needed.
+# Manages an authenticated SMB share with multiple auth users.
+# Each entry in smb_users gets a Linux passwd entry + Samba passdb entry.
 #
 # Requires (group_vars):
-#   smb_user: Samba username (must match Windows ansible_user)
-#   smb_password: Samba password (must match Windows ansible_password)
+#   smb_users:      List of {name, password} dicts — clients that can authenticate
+#   smb_share_name: SMB share name (becomes [section] in smb.conf)
+#   smb_share_path: Local filesystem path to share
+#   smb_force_user: Linux user for all file I/O (must own the data on disk)
 #
 # Sources:
 #   https://wiki.samba.org/index.php/Setting_up_Samba_as_a_Standalone_Server
@@ -20,48 +19,54 @@
     name: samba
     state: present
 
-- name: Create SMB service account
+- name: Ensure auth users exist in system passwd
   ansible.builtin.user:
-    name: "{{ smb_user }}"
+    name: "{{ item.name }}"
     system: true
     create_home: false
     shell: /usr/sbin/nologin
+  loop: "{{ smb_users }}"
+  when: item.name != 'root'
+  no_log: true
 
-- name: Check if user exists in Samba passdb
+- name: Check if auth users exist in Samba passdb
   ansible.builtin.command:
     argv:
       - pdbedit
       - -L
-      - "{{ smb_user }}"
-  register: pdbedit_check
+      - "{{ item.name }}"
+  loop: "{{ smb_users }}"
+  register: pdbedit_checks
   changed_when: false
   failed_when: false
   no_log: true
 
-- name: Add user to Samba passdb
+- name: Add missing auth users to Samba passdb
   ansible.builtin.command:
     argv:
       - smbpasswd
       - -a
       - -s
-      - "{{ smb_user }}"
+      - "{{ item.item.name }}"
     stdin: |-
-      {{ smb_password }}
-      {{ smb_password }}
-  when: pdbedit_check.rc != 0
+      {{ item.item.password }}
+      {{ item.item.password }}
+  loop: "{{ pdbedit_checks.results }}"
+  when: item.rc != 0
   changed_when: true
   no_log: true
 
-- name: Update Samba password
+- name: Update Samba passwords for existing auth users
   ansible.builtin.command:
     argv:
       - smbpasswd
       - -s
-      - "{{ smb_user }}"
+      - "{{ item.item.name }}"
     stdin: |-
-      {{ smb_password }}
-      {{ smb_password }}
-  when: pdbedit_check.rc == 0
+      {{ item.item.password }}
+      {{ item.item.password }}
+  loop: "{{ pdbedit_checks.results }}"
+  when: item.rc == 0
   no_log: true
   changed_when: false
 
@@ -77,20 +82,20 @@
     - { option: server min protocol, value: SMB2_02 }
   notify: Reload smbd
 
-- name: Configure deploy share
+- name: Configure SMB share
   community.general.ini_file:
     path: /etc/samba/smb.conf
-    section: deploy
+    section: "{{ smb_share_name }}"
     option: "{{ item.option }}"
     value: "{{ item.value }}"
     mode: "0644"
   loop:
-    - { option: path, value: /mnt/deploy }
+    - { option: path, value: "{{ smb_share_path }}" }
     - { option: browseable, value: "yes" }
     - { option: read only, value: "no" }
     - { option: guest ok, value: "no" }
-    - { option: valid users, value: "{{ smb_user }}" }
-    - { option: force user, value: "{{ smb_user }}" }
+    - { option: valid users, value: "{{ smb_users | map(attribute='name') | join(' ') }}" }
+    - { option: force user, value: "{{ smb_force_user }}" }
     - { option: create mask, value: "0664" }
     - { option: directory mask, value: "0775" }
   notify: Reload smbd

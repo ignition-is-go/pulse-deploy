@@ -1,0 +1,10 @@
+---
+# Samba share on PBS — serves installers and workspaces to Windows and Linux clients
+smb_users:
+  - name: "{{ vault_win_user }}"
+    password: "{{ vault_win_password }}"
+  - name: "{{ vault_linux_user }}"
+    password: "{{ vault_linux_password }}"
+smb_force_user: root
+smb_share_name: share
+smb_share_path: /mnt/datastore/tank/share
