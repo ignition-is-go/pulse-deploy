@@ -10,10 +10,15 @@
 - name: Reboot host
   ansible.windows.win_reboot:
     reboot_timeout: 300
+    post_reboot_delay: 15
 
 - name: Wait for WinRM to stabilize
-  ansible.windows.win_ping:
+  ansible.windows.win_shell: |
+    $uptime = (Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+    if ($uptime.TotalSeconds -lt 30) { throw "OS still initializing ($([int]$uptime.TotalSeconds)s uptime)" }
+    "ready"
   retries: 12
   delay: 10
   register: winrm_stable
   until: winrm_stable is success
+  changed_when: false
