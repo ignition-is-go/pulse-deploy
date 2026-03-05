@@ -1,0 +1,57 @@
+---
+# linux_smb_client — Mount SMB share on Linux via CIFS
+#
+# Requires (group_vars):
+#   smb_server:     Hostname or IP of the SMB server
+#   smb_share_name: Share name on the server
+#   smb_mount_path: Local mount point (e.g. /mnt/deploy)
+#
+# Requires (vault):
+#   vault_win_user:     SMB auth username
+#   vault_win_password: SMB auth password
+
+- name: Install cifs-utils
+  ansible.builtin.apt:
+    name: cifs-utils
+    state: present
+
+- name: Create SMB credentials file
+  ansible.builtin.copy:
+    content: |
+      username={{ vault_win_user }}
+      password={{ vault_win_password }}
+    dest: /root/.smbcredentials
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Check for non-CIFS mount at target path
+  ansible.builtin.shell:
+    cmd: "findmnt -n -o FSTYPE {{ smb_mount_path }}"
+  register: existing_mount
+  changed_when: false
+  failed_when: false
+
+- name: Fail if path has a non-CIFS mount
+  ansible.builtin.fail:
+    msg: "{{ smb_mount_path }} has an existing {{ existing_mount.stdout | trim }} mount. Unmount manually before running this role."
+  when:
+    - existing_mount.rc == 0
+    - existing_mount.stdout | trim != 'cifs'
+
+- name: Mount SMB share
+  ansible.posix.mount:
+    src: "//{{ smb_server }}/{{ smb_share_name }}"
+    path: "{{ smb_mount_path }}"
+    fstype: cifs
+    opts: "credentials=/root/.smbcredentials,_netdev,uid=0,gid=0"
+    state: mounted
+
+- name: Verify SMB mount is accessible
+  ansible.builtin.command:
+    argv:
+      - mountpoint
+      - -q
+      - "{{ smb_mount_path }}"
+  changed_when: false

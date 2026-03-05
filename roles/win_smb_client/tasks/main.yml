@@ -1,6 +1,10 @@
 ---
-# smb_share — Layer 2: Mount ZFS NAS via SMB (Windows)
-# Replaces setup-smb.yml playbook.
+# win_smb_client — Mount SMB share on Windows (drive letter mapping)
+#
+# Requires (group_vars):
+#   smb_server:       Hostname or IP of the SMB server
+#   smb_share:        Share name on the server
+#   smb_drive_letter: Drive letter to map (default Z:)
 
 - name: Check if SMB share is already mounted
   ansible.windows.win_shell: |
