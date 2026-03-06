@@ -9,16 +9,18 @@
   changed_when: false
 
 - name: Copy Netbird installer from NAS
-  ansible.windows.win_copy:
-    src: "{{ netbird_installer_source }}"
-    dest: C:\Windows\Temp\netbird-installer.exe
-    remote_src: true
+  ansible.builtin.include_role:
+    name: win_robocopy_from_nas
+  vars:
+    win_robocopy_from_nas_src: "{{ netbird_installer_dir }}"
+    win_robocopy_from_nas_file: "{{ netbird_installer_file }}"
+    win_robocopy_from_nas_dest: C:\Windows\Temp
   when: "'NOT_INSTALLED' in netbird_check.stdout"
 
 - name: Install Netbird (silent)
   ansible.windows.win_command:
     argv:
-      - C:\Windows\Temp\netbird-installer.exe
+      - "C:\\Windows\\Temp\\{{ netbird_installer_file }}"
       - /S
   when: "'NOT_INSTALLED' in netbird_check.stdout"
 
@@ -32,5 +34,5 @@
 
 - name: Clean up Netbird installer
   ansible.windows.win_file:
-    path: C:\Windows\Temp\netbird-installer.exe
+    path: "C:\\Windows\\Temp\\{{ netbird_installer_file }}"
     state: absent

@@ -7,7 +7,8 @@
 # Modify uses the local setup.exe (already present after initial install).
 #
 # Requires (group_vars):
-#   vs_community_installer_source: UNC path to VisualStudioSetup.exe on NAS
+#   vs_community_installer_dir:  NAS directory containing VisualStudioSetup.exe
+#   vs_community_installer_file: bootstrapper filename
 #   vs_community_workloads: list of workload IDs to install
 #   vs_community_install_path: install path (default below)
 
@@ -19,15 +20,17 @@
 # --- Fresh install ---
 
 - name: Copy VS Community bootstrapper from NAS
-  ansible.windows.win_copy:
-    src: "{{ vs_community_installer_source }}"
-    dest: C:\Windows\Temp\VisualStudioSetup.exe
-    remote_src: true
+  ansible.builtin.include_role:
+    name: win_robocopy_from_nas
+  vars:
+    win_robocopy_from_nas_src: "{{ vs_community_installer_dir }}"
+    win_robocopy_from_nas_file: "{{ vs_community_installer_file }}"
+    win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not vs_community_check.stat.exists
 
 - name: Install Visual Studio Community (fresh install)
   ansible.windows.win_shell: |
-    $p = Start-Process -FilePath 'C:\Windows\Temp\VisualStudioSetup.exe' `
+    $p = Start-Process -FilePath 'C:\Windows\Temp\{{ vs_community_installer_file }}' `
       -ArgumentList "--wait --quiet --norestart --nocache {{ vs_community_workloads | map('regex_replace', '^', '--add ') | join(' ') }} --includeRecommended" `
       -Wait -PassThru
     exit $p.ExitCode
@@ -39,7 +42,7 @@
 
 - name: Clean up VS Community bootstrapper
   ansible.windows.win_file:
-    path: C:\Windows\Temp\VisualStudioSetup.exe
+    path: "C:\\Windows\\Temp\\{{ vs_community_installer_file }}"
     state: absent
   when: not vs_community_check.stat.exists
 

@@ -30,10 +30,12 @@
   changed_when: false
 
 - name: Copy installer to temp
-  ansible.windows.win_copy:
-    src: "\\\\{{ deploy_share_host }}\\{{ deploy_share_name }}\\plastic\\{{ plastic_installer }}"
-    dest: "C:\\Windows\\Temp\\{{ plastic_installer }}"
-    remote_src: true
+  ansible.builtin.include_role:
+    name: win_robocopy_from_nas
+  vars:
+    win_robocopy_from_nas_src: "\\\\{{ deploy_share_host }}\\{{ deploy_share_name }}\\plastic"
+    win_robocopy_from_nas_file: "{{ plastic_installer }}"
+    win_robocopy_from_nas_dest: C:\Windows\Temp
 
 - name: Run Plastic SCM installer (silent upgrade)
   ansible.windows.win_shell: |

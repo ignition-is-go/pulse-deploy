@@ -122,10 +122,12 @@
   register: rustdesk_check
 
 - name: Copy RustDesk installer from NAS
-  ansible.windows.win_copy:
-    src: "{{ deploy_share }}\\installers\\rustdesk\\1.4.3\\pulseremotedesktopvm.msi"
-    dest: C:\Windows\Temp\pulseremotedesktopvm.msi
-    remote_src: true
+  ansible.builtin.include_role:
+    name: win_robocopy_from_nas
+  vars:
+    win_robocopy_from_nas_src: "{{ deploy_share }}\\installers\\rustdesk\\1.4.3"
+    win_robocopy_from_nas_file: pulseremotedesktopvm.msi
+    win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not rustdesk_check.stat.exists
 
 - name: Install RustDesk (silent)
@@ -193,10 +195,12 @@
   register: powertoys_check
 
 - name: Copy PowerToys installer from NAS
-  ansible.windows.win_copy:
-    src: "{{ deploy_share }}\\installers\\powertoys\\0.97.2\\PowerToysSetup-0.97.2-x64.exe"
-    dest: C:\Windows\Temp\PowerToysSetup-0.97.2-x64.exe
-    remote_src: true
+  ansible.builtin.include_role:
+    name: win_robocopy_from_nas
+  vars:
+    win_robocopy_from_nas_src: "{{ deploy_share }}\\installers\\powertoys\\0.97.2"
+    win_robocopy_from_nas_file: PowerToysSetup-0.97.2-x64.exe
+    win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not powertoys_check.stat.exists
 
 - name: Install PowerToys (silent)

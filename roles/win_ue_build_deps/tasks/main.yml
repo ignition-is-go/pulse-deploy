@@ -6,8 +6,10 @@
 #
 # Requires (group_vars):
 #   vs_buildtools_layout_source: UNC path to offline layout directory on NAS
-#   dotnet_runtime_installer_source: UNC path to windowsdesktop-runtime exe on NAS
-#   netfx_devpack_installer_source: UNC path to NDP462 Developer Pack exe on NAS
+#   dotnet_runtime_installer_dir:  NAS directory for .NET 8.0 runtime installer
+#   dotnet_runtime_installer_file: .NET 8.0 runtime installer filename
+#   netfx_devpack_installer_dir:   NAS directory for .NET Framework 4.6.2 Dev Pack
+#   netfx_devpack_installer_file:  .NET Framework 4.6.2 Dev Pack filename
 #
 # Sources:
 #   https://dev.epicgames.com/documentation/en-us/unreal-engine/setting-up-visual-studio-development-environment-for-cplusplus-projects-in-unreal-engine
@@ -63,16 +65,18 @@
   register: netfx_targeting_check
 
 - name: Copy .NET Framework 4.6.2 Developer Pack from NAS
-  ansible.windows.win_copy:
-    src: "{{ netfx_devpack_installer_source }}"
-    dest: C:\Windows\Temp\NDP462-DevPack.exe
-    remote_src: true
+  ansible.builtin.include_role:
+    name: win_robocopy_from_nas
+  vars:
+    win_robocopy_from_nas_src: "{{ netfx_devpack_installer_dir }}"
+    win_robocopy_from_nas_file: "{{ netfx_devpack_installer_file }}"
+    win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not netfx_targeting_check.stat.exists
 
 - name: Install .NET Framework 4.6.2 Developer Pack (silent)
   ansible.windows.win_command:
     argv:
-      - C:\Windows\Temp\NDP462-DevPack.exe
+      - "C:\\Windows\\Temp\\{{ netfx_devpack_installer_file }}"
       - /q
       - /norestart
   when: not netfx_targeting_check.stat.exists
@@ -85,7 +89,7 @@
 
 - name: Clean up .NET Framework Developer Pack installer
   ansible.windows.win_file:
-    path: C:\Windows\Temp\NDP462-DevPack.exe
+    path: "C:\\Windows\\Temp\\{{ netfx_devpack_installer_file }}"
     state: absent
 
 - name: Check if .NET 8.0 runtime host installed
@@ -94,16 +98,18 @@
   register: dotnet_host_check
 
 - name: Copy .NET 8.0 Desktop Runtime installer from NAS
-  ansible.windows.win_copy:
-    src: "{{ dotnet_runtime_installer_source }}"
-    dest: C:\Windows\Temp\windowsdesktop-runtime-8.0-win-x64.exe
-    remote_src: true
+  ansible.builtin.include_role:
+    name: win_robocopy_from_nas
+  vars:
+    win_robocopy_from_nas_src: "{{ dotnet_runtime_installer_dir }}"
+    win_robocopy_from_nas_file: "{{ dotnet_runtime_installer_file }}"
+    win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not dotnet_host_check.stat.exists
 
 - name: Install .NET 8.0 Desktop Runtime (silent)
   ansible.windows.win_command:
     argv:
-      - C:\Windows\Temp\windowsdesktop-runtime-8.0-win-x64.exe
+      - "C:\\Windows\\Temp\\{{ dotnet_runtime_installer_file }}"
       - /install
       - /quiet
       - /norestart
@@ -117,5 +123,5 @@
 
 - name: Clean up .NET runtime installer
   ansible.windows.win_file:
-    path: C:\Windows\Temp\windowsdesktop-runtime-8.0-win-x64.exe
+    path: "C:\\Windows\\Temp\\{{ dotnet_runtime_installer_file }}"
     state: absent

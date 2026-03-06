@@ -4,7 +4,8 @@
 # Installs TouchDesigner from EXE on the deploy share via silent install.
 #
 # Requires (group_vars):
-#   touchdesigner_installer_source: UNC path to installer EXE on NAS
+#   touchdesigner_installer_dir:  NAS directory containing installer
+#   touchdesigner_installer_file: installer filename
 #   touchdesigner_version: version string (e.g. "2025.32280")
 #   touchdesigner_install_dir: install directory (check after first install)
 
@@ -14,28 +15,18 @@
   register: touch_check
 
 - name: Copy TouchDesigner installer from NAS
-  ansible.windows.win_copy:
-    src: "{{ touchdesigner_installer_source }}"
-    dest: C:\Windows\Temp\TouchDesigner.exe
-    remote_src: true
-  async: 1800
-  poll: 0
-  register: touch_copy_job
-  when: not touch_check.stat.exists
-
-- name: Wait for TouchDesigner installer copy
-  ansible.builtin.async_status:
-    jid: "{{ touch_copy_job.ansible_job_id }}"
-  register: touch_copy_result
-  until: touch_copy_result.finished
-  retries: 120
-  delay: 15
+  ansible.builtin.include_role:
+    name: win_robocopy_from_nas
+  vars:
+    win_robocopy_from_nas_src: "{{ touchdesigner_installer_dir }}"
+    win_robocopy_from_nas_file: "{{ touchdesigner_installer_file }}"
+    win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not touch_check.stat.exists
 
 - name: Install TouchDesigner (silent)
   ansible.windows.win_command:
     argv:
-      - C:\Windows\Temp\TouchDesigner.exe
+      - "C:\\Windows\\Temp\\{{ touchdesigner_installer_file }}"
       - /VERYSILENT
       - /NORESTART
   async: 1800
@@ -60,5 +51,5 @@
 
 - name: Clean up TouchDesigner installer
   ansible.windows.win_file:
-    path: C:\Windows\Temp\TouchDesigner.exe
+    path: "C:\\Windows\\Temp\\{{ touchdesigner_installer_file }}"
     state: absent

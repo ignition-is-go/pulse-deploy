@@ -9,4 +9,5 @@ vdd_height: 1440
 
 touchdesigner_version: "2025.32280"
 touchdesigner_install_dir: "C:\\Program Files\\Derivative\\TouchDesigner"
-touchdesigner_installer_source: "\\\\192.168.1.31\\share\\installers\\touchdesigner\\{{ touchdesigner_version }}\\TouchDesigner.{{ touchdesigner_version }}.exe"
+touchdesigner_installer_dir: "\\\\192.168.1.31\\share\\installers\\touchdesigner\\{{ touchdesigner_version }}"
+touchdesigner_installer_file: "TouchDesigner.{{ touchdesigner_version }}.exe"

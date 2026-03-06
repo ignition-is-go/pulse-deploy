@@ -4,7 +4,8 @@
 # Installs PureRef silently via NSIS installer.
 #
 # Requires (group_vars):
-#   pureref_installer_source: UNC path to PureRef exe on NAS
+#   pureref_installer_dir:  NAS directory containing PureRef installer
+#   pureref_installer_file: PureRef installer filename
 #   pureref_version: version string (e.g. "2.1.0")
 
 - name: Check if PureRef installed
@@ -13,16 +14,18 @@
   register: pureref_check
 
 - name: Copy PureRef installer from NAS
-  ansible.windows.win_copy:
-    src: "{{ pureref_installer_source }}"
-    dest: C:\Windows\Temp\PureRefSetup.exe
-    remote_src: true
+  ansible.builtin.include_role:
+    name: win_robocopy_from_nas
+  vars:
+    win_robocopy_from_nas_src: "{{ pureref_installer_dir }}"
+    win_robocopy_from_nas_file: "{{ pureref_installer_file }}"
+    win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not pureref_check.stat.exists
 
 - name: Install PureRef (silent)
   ansible.windows.win_command:
     argv:
-      - C:\Windows\Temp\PureRefSetup.exe
+      - "C:\\Windows\\Temp\\{{ pureref_installer_file }}"
       - /S
   when: not pureref_check.stat.exists
   register: pureref_install
@@ -40,5 +43,5 @@
 
 - name: Clean up PureRef installer
   ansible.windows.win_file:
-    path: C:\Windows\Temp\PureRefSetup.exe
+    path: "C:\\Windows\\Temp\\{{ pureref_installer_file }}"
     state: absent

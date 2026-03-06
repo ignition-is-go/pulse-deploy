@@ -5,7 +5,8 @@
 # Sets NDI_RUNTIME_DIR_V5 environment variable for UE NDI plugin.
 #
 # Requires (group_vars):
-#   ndi_tools_installer_source: UNC path to NDI 6 Tools exe on NAS
+#   ndi_tools_installer_dir:  NAS directory containing NDI Tools installer
+#   ndi_tools_installer_file: NDI Tools installer filename
 
 - name: Check if NDI Tools installed
   ansible.windows.win_stat:
@@ -13,16 +14,18 @@
   register: ndi_check
 
 - name: Copy NDI Tools installer from NAS
-  ansible.windows.win_copy:
-    src: "{{ ndi_tools_installer_source }}"
-    dest: C:\Windows\Temp\ndi_tools_setup.exe
-    remote_src: true
+  ansible.builtin.include_role:
+    name: win_robocopy_from_nas
+  vars:
+    win_robocopy_from_nas_src: "{{ ndi_tools_installer_dir }}"
+    win_robocopy_from_nas_file: "{{ ndi_tools_installer_file }}"
+    win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not ndi_check.stat.exists
 
 - name: Install NDI Tools (silent)
   ansible.windows.win_command:
     argv:
-      - C:\Windows\Temp\ndi_tools_setup.exe
+      - "C:\\Windows\\Temp\\{{ ndi_tools_installer_file }}"
       - /VERYSILENT
       - /NORESTART
   when: not ndi_check.stat.exists
@@ -43,5 +46,5 @@
 
 - name: Clean up NDI Tools installer
   ansible.windows.win_file:
-    path: C:\Windows\Temp\ndi_tools_setup.exe
+    path: "C:\\Windows\\Temp\\{{ ndi_tools_installer_file }}"
     state: absent

@@ -1,7 +1,8 @@
 ---
 # Workstation nodes — RTX 4090 (desktop GPU)
 
-nvidia_driver_source: "{{ deploy_share }}\\installers\\nvidia-driver\\591.74\\591.74-desktop-win10-win11-64bit-international-nsd-dch-whql.exe"
+nvidia_driver_dir: "{{ deploy_share }}\\installers\\nvidia-driver\\591.74"
+nvidia_driver_file: 591.74-desktop-win10-win11-64bit-international-nsd-dch-whql.exe
 nvidia_supported_gpus: ["RTX 4090"]
 
 vdd_width: 2560
@@ -14,18 +15,23 @@ ue_installer_source: "{{ deploy_share }}\\installers\\unreal-engine\\5.7"
 unreal_project: ""
 
 # NDI Tools
-ndi_tools_installer_source: "{{ deploy_share }}\\installers\\ndi-tools\\6\\NDI 6 Tools.exe"
+ndi_tools_installer_dir: "{{ deploy_share }}\\installers\\ndi-tools\\6"
+ndi_tools_installer_file: NDI 6 Tools.exe
 
 # Blender
 blender_version: "5.0.1"
-blender_installer_source: "{{ deploy_share }}\\installers\\blender\\5.0.1\\blender-5.0.1-windows-x64.msi"
+blender_installer_dir: "{{ deploy_share }}\\installers\\blender\\5.0.1"
+blender_installer_file: blender-5.0.1-windows-x64.msi
 
 # Adobe Creative Cloud
-adobe_cc_installer_source: "{{ deploy_share }}\\installers\\adobe-creative-cloud\\latest\\Creative_Cloud_Set-Up_7475.exe"
+adobe_cc_installer_dir: "{{ deploy_share }}\\installers\\adobe-creative-cloud\\latest"
+adobe_cc_installer_file: Creative_Cloud_Set-Up_7475.exe
 
 # PureRef
 pureref_version: "2.1.0"
-pureref_installer_source: "{{ deploy_share }}\\installers\\pureref\\2.1.0\\PureRef-2.1.0_x64.exe"
+pureref_installer_dir: "{{ deploy_share }}\\installers\\pureref\\2.1.0"
+pureref_installer_file: PureRef-2.1.0_x64.exe
 
 # Dropbox
-dropbox_installer_source: "{{ deploy_share }}\\installers\\dropbox\\242.4.5815\\Dropbox 242.4.5815 Enterprise Installer.x64.msi"
+dropbox_installer_dir: "{{ deploy_share }}\\installers\\dropbox\\242.4.5815"
+dropbox_installer_file: Dropbox 242.4.5815 Enterprise Installer.x64.msi

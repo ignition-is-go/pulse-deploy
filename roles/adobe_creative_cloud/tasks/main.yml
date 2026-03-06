@@ -6,7 +6,8 @@
 # After sign-in completes, re-run site.yml to verify installation.
 #
 # Requires (group_vars):
-#   adobe_cc_installer_source: UNC path to Creative Cloud Set-Up exe on NAS
+#   adobe_cc_installer_dir:  NAS directory containing Creative Cloud installer
+#   adobe_cc_installer_file: Creative Cloud installer filename
 
 - name: Check if Creative Cloud installed
   ansible.windows.win_stat:
@@ -14,17 +15,19 @@
   register: adobe_cc_check
 
 - name: Copy Creative Cloud installer from NAS
-  ansible.windows.win_copy:
-    src: "{{ adobe_cc_installer_source }}"
-    dest: C:\Windows\Temp\CreativeCloudSetup.exe
-    remote_src: true
+  ansible.builtin.include_role:
+    name: win_robocopy_from_nas
+  vars:
+    win_robocopy_from_nas_src: "{{ adobe_cc_installer_dir }}"
+    win_robocopy_from_nas_file: "{{ adobe_cc_installer_file }}"
+    win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not adobe_cc_check.stat.exists
 
 - name: Create CC installer scheduled task
   community.windows.win_scheduled_task:
     name: ansible-cc-install
     actions:
-      - path: C:\Windows\Temp\CreativeCloudSetup.exe
+      - path: "C:\\Windows\\Temp\\{{ adobe_cc_installer_file }}"
         arguments: --silent
     username: Administrator
     password: "{{ ansible_password }}"
@@ -59,6 +62,6 @@
 
 - name: Clean up Creative Cloud installer
   ansible.windows.win_file:
-    path: C:\Windows\Temp\CreativeCloudSetup.exe
+    path: "C:\\Windows\\Temp\\{{ adobe_cc_installer_file }}"
     state: absent
   when: adobe_cc_check.stat.exists

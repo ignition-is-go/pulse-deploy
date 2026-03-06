@@ -4,7 +4,8 @@
 # Installs Dropbox via enterprise MSI installer. Users sign in on first launch.
 #
 # Requires (group_vars):
-#   dropbox_installer_source: UNC path to Dropbox enterprise MSI on NAS
+#   dropbox_installer_dir:  NAS directory containing Dropbox MSI
+#   dropbox_installer_file: Dropbox MSI filename
 
 - name: Check if Dropbox installed
   ansible.windows.win_stat:
@@ -12,15 +13,17 @@
   register: dropbox_check
 
 - name: Copy Dropbox MSI from NAS
-  ansible.windows.win_copy:
-    src: "{{ dropbox_installer_source }}"
-    dest: C:\Windows\Temp\DropboxEnterprise.msi
-    remote_src: true
+  ansible.builtin.include_role:
+    name: win_robocopy_from_nas
+  vars:
+    win_robocopy_from_nas_src: "{{ dropbox_installer_dir }}"
+    win_robocopy_from_nas_file: "{{ dropbox_installer_file }}"
+    win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not dropbox_check.stat.exists
 
 - name: Install Dropbox (silent)
   ansible.windows.win_package:
-    path: C:\Windows\Temp\DropboxEnterprise.msi
+    path: "C:\\Windows\\Temp\\{{ dropbox_installer_file }}"
     state: present
   when: not dropbox_check.stat.exists
   register: dropbox_install
@@ -38,5 +41,5 @@
 
 - name: Clean up Dropbox MSI
   ansible.windows.win_file:
-    path: C:\Windows\Temp\DropboxEnterprise.msi
+    path: "C:\\Windows\\Temp\\{{ dropbox_installer_file }}"
     state: absent

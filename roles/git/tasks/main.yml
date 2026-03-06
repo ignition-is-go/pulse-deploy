@@ -2,7 +2,8 @@
 # git — Git for Windows installation and SSH deploy key configuration
 #
 # Requires (group_vars):
-#   git_installer_source: UNC path to Git for Windows exe on NAS
+#   git_installer_dir:  NAS directory containing Git for Windows installer
+#   git_installer_file: Git installer filename
 #   git_deploy_key: (optional) SSH private key for GitHub auth
 
 - name: Check if Git installed
@@ -11,15 +12,17 @@
   register: git_check
 
 - name: Copy Git installer from NAS
-  ansible.windows.win_copy:
-    src: "{{ git_installer_source }}"
-    dest: C:\Windows\Temp\git-installer.exe
-    remote_src: true
+  ansible.builtin.include_role:
+    name: win_robocopy_from_nas
+  vars:
+    win_robocopy_from_nas_src: "{{ git_installer_dir }}"
+    win_robocopy_from_nas_file: "{{ git_installer_file }}"
+    win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not git_check.stat.exists
 
 - name: Install Git for Windows (silent)
   ansible.windows.win_package:
-    path: C:\Windows\Temp\git-installer.exe
+    path: "C:\\Windows\\Temp\\{{ git_installer_file }}"
     arguments: /VERYSILENT /NORESTART /NOCANCEL /SP- /CLOSEAPPLICATIONS /RESTARTAPPLICATIONS /COMPONENTS=icons,ext\reg\shellhere,assoc,assoc_sh
     state: present
     product_id: Git_is1
@@ -34,7 +37,7 @@
 
 - name: Clean up Git installer
   ansible.windows.win_file:
-    path: C:\Windows\Temp\git-installer.exe
+    path: "C:\\Windows\\Temp\\{{ git_installer_file }}"
     state: absent
 
 - name: Create .ssh directory

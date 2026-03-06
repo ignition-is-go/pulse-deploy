@@ -22,10 +22,12 @@
   changed_when: false
 
 - name: Copy proxy DLL from NAS
-  ansible.windows.win_copy:
-    src: "{{ deploy_share }}\\installers\\uwd\\painter_x64.dll"
-    dest: C:\Windows\System32\painter_x64.dll
-    remote_src: true
+  ansible.builtin.include_role:
+    name: win_robocopy_from_nas
+  vars:
+    win_robocopy_from_nas_src: "{{ deploy_share }}\\installers\\uwd"
+    win_robocopy_from_nas_file: painter_x64.dll
+    win_robocopy_from_nas_dest: C:\Windows\System32
   when: "watermark_check.stdout | trim == 'NOT_INSTALLED' or watermark_check.stdout | trim == 'NO_KEY'"
 
 - name: Install watermark disabler via SYSTEM scheduled task
