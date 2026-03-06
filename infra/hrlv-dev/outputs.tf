@@ -21,7 +21,7 @@ output "ue_content" {
   value = { for k, v in var.ue_content : k => {
     id               = v.id
     ip               = v.ip
-    media_ip         = v.media_ip
+    ip_2110        = v.ip_2110
     ndisplay_node    = v.ndisplay_node
     ndisplay_primary = v.ndisplay_primary
   } }
@@ -38,9 +38,9 @@ output "ue_editing" {
 output "ue_previs" {
   description = "UE nDisplay previs render nodes"
   value = { for k, v in var.ue_previs : k => {
-    id       = v.id
-    ip       = v.ip
-    media_ip = v.media_ip
+    id         = v.id
+    ip         = v.ip
+    ip_2110  = v.ip_2110
   } }
 }
 

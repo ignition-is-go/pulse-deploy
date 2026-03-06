@@ -41,7 +41,7 @@ variable "proxmox_hosts" {
       pf_ifaces  = optional(list(string), [])  # discovered: kernel-assigned PF interface names
       rep_prefix = optional(string, "")        # discovered: representor name prefix (CX6 only)
       bf2_iface  = optional(string, "")        # discovered: BF2 host interface name
-      vf_count   = optional(number, 8)         # VFs per card
+      vf_count   = optional(number, 16)        # VFs per card
       bridge     = optional(string, "")        # OVS bridge name (CX6 only)
       bond       = optional(string, "")        # OVS bond name (CX6 only)
     })), [])
@@ -113,7 +113,8 @@ variable "ue_content" {
   type = map(object({
     id                = number
     ip                = string
-    media_ip          = string
+    ip_2110          = string
+    ip_smb        = optional(string)
     ndisplay_node     = string          # nDisplay cluster node ID (e.g. "Node_1")
     ndisplay_primary  = optional(bool)  # true for the primary node only
     node              = string          # key into proxmox_hosts
@@ -135,6 +136,8 @@ variable "ue_editing" {
   type = map(object({
     id           = number
     ip           = string
+    ip_2110     = optional(string)
+    ip_smb   = optional(string)
     node         = string
     cores        = number
     memory_mb    = number
@@ -154,7 +157,8 @@ variable "ue_previs" {
   type = map(object({
     id           = number
     ip           = string
-    media_ip     = string
+    ip_2110     = string
+    ip_smb   = optional(string)
     node         = string
     cores        = number
     memory_mb    = number
@@ -174,6 +178,8 @@ variable "touch" {
   type = map(object({
     id           = number
     ip           = string
+    ip_2110     = optional(string)
+    ip_smb   = optional(string)
     node         = string
     cores        = number
     memory_mb    = number
@@ -193,6 +199,8 @@ variable "arnold_fusion" {
   type = map(object({
     id           = number
     ip           = string
+    ip_2110     = optional(string)
+    ip_smb   = optional(string)
     node         = string
     cores        = number
     memory_mb    = number
@@ -212,6 +220,8 @@ variable "workstation" {
   type = map(object({
     id           = number
     ip           = string
+    ip_2110     = optional(string)
+    ip_smb   = optional(string)
     node         = string
     cores        = number
     memory_mb    = number
@@ -236,6 +246,8 @@ variable "ue_plugin_dev" {
   type = map(object({
     id           = number
     ip           = string
+    ip_2110     = optional(string)
+    ip_smb   = optional(string)
     node         = string
     cores        = number
     memory_mb    = number
