@@ -21,20 +21,20 @@
       ansible.builtin.meta: end_host
       when: skip_preflight | default(false) | bool
 
-    - name: Skip hosts without media_ip
+    - name: Skip hosts without ip_2110
       ansible.builtin.meta: end_host
-      when: media_ip is not defined
+      when: ip_2110 is not defined
 
     - name: Gather all media IPs
       ansible.builtin.set_fact:
-        all_media_ips: "{{ hostvars | dict2items | selectattr('value.media_ip', 'defined') | map(attribute='value.media_ip') | list }}"
+        peer_ips: "{{ hostvars | dict2items | selectattr('value.ip_2110', 'defined') | map(attribute='value.ip_2110') | list }}"
 
     - name: Ping all other media IPs (triggers ARP, primes OVS FDB)
       ansible.windows.win_command: ping -n 1 -w 500 {{ item }}
-      loop: "{{ all_media_ips | difference([media_ip]) }}"
+      loop: "{{ peer_ips | difference([ip_2110]) }}"
       changed_when: false
       failed_when: false
 
     - name: Show ARP prime result
       ansible.builtin.debug:
-        msg: "{{ inventory_hostname }}: primed {{ all_media_ips | difference([media_ip]) | length }} peers from {{ media_ip }}"
+        msg: "{{ inventory_hostname }}: primed {{ peer_ips | difference([ip_2110]) | length }} peers from {{ ip_2110 }}"

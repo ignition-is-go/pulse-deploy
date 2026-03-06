@@ -1,6 +1,6 @@
 ---
 # Start Rivermax media_sender (persistent, runs until stopped)
-# Sends a test 2110-20 stream from the node's media_ip.
+# Sends a test 2110-20 stream from the node's ip_2110.
 #
 # Usage:
 #   ansible-playbook playbooks/rmax-media-sender-start.yml --limit windows-unreal-render-01
@@ -30,21 +30,21 @@
       ansible.windows.win_copy:
         content: |
           v=0
-          o=- 0 0 IN IP4 {{ media_ip }}
+          o=- 0 0 IN IP4 {{ ip_2110 }}
           s=Rivermax TX {{ inventory_hostname }}
           c=IN IP4 {{ rmax_dst_ip }}/1
           t=0 0
           m=video {{ rmax_dst_port }} RTP/AVP 96
           a=rtpmap:96 raw/90000
           a=fmtp:96 sampling=YCbCr-4:2:2; width=4096; height=1080; depth=10; exactframerate=60; colorimetry=BT709; PM=2110GPM; SSN=ST2110-20:2017; TP=2110TPN
-          a=source-filter: incl IN IP4 {{ rmax_dst_ip }} {{ media_ip }}
+          a=source-filter: incl IN IP4 {{ rmax_dst_ip }} {{ ip_2110 }}
         dest: C:\temp\rmax-tx.sdp
 
     - name: Write TX launch script
       ansible.windows.win_copy:
         content: |
           & "{{ rmax_sender }}" -s C:\temp\rmax-tx.sdp `
-            --src-ip={{ media_ip }} --dst-ip={{ rmax_dst_ip }} `
+            --src-ip={{ ip_2110 }} --dst-ip={{ rmax_dst_ip }} `
             --dst-port={{ rmax_dst_port }} --fps={{ rmax_fps }} `
             -v system 2>&1 | Tee-Object -FilePath C:\temp\rmax-tx.log
         dest: C:\temp\rmax-tx.ps1
@@ -80,10 +80,10 @@
 
     - name: Show TX status
       ansible.builtin.debug:
-        msg: "{{ inventory_hostname }} ({{ media_ip }}): RUNNING (PID: {{ tx_check.stdout | trim }})"
+        msg: "{{ inventory_hostname }} ({{ ip_2110 }}): RUNNING (PID: {{ tx_check.stdout | trim }})"
       when: tx_check.stdout | trim | length > 0
 
     - name: Show TX failure
       ansible.builtin.debug:
-        msg: "{{ inventory_hostname }} ({{ media_ip }}): FAILED TO START — check C:\\temp\\rmax-tx.log"
+        msg: "{{ inventory_hostname }} ({{ ip_2110 }}): FAILED TO START — check C:\\temp\\rmax-tx.log"
       when: tx_check.stdout | trim | length == 0

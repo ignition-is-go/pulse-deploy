@@ -1,6 +1,6 @@
 ---
 # Start Rivermax media_receiver (persistent, runs until stopped)
-# Listens for a 2110-20 stream on the node's media_ip.
+# Listens for a 2110-20 stream on the node's ip_2110.
 #
 # Usage:
 #   ansible-playbook playbooks/rmax-media-receiver-start.yml --limit windows-unreal-render-05
@@ -13,7 +13,7 @@
   vars:
     rmax_receiver: 'C:\Program Files\Mellanox\Rivermax\apps\media_receiver\media_receiver.exe'
     rmax_src_ip: "10.0.0.1"
-    rmax_dst_ip: "{{ media_ip }}"
+    rmax_dst_ip: "{{ ip_2110 }}"
     rmax_dst_port: 50000
 
   tasks:
@@ -39,7 +39,7 @@
     - name: Write RX launch script
       ansible.windows.win_copy:
         content: |
-          & "{{ rmax_receiver }}" --sdp-file C:\temp\rmax-rx.sdp -i {{ media_ip }} 2>&1 | Tee-Object -FilePath C:\temp\rmax-rx.log
+          & "{{ rmax_receiver }}" --sdp-file C:\temp\rmax-rx.sdp -i {{ ip_2110 }} 2>&1 | Tee-Object -FilePath C:\temp\rmax-rx.log
         dest: C:\temp\rmax-rx.ps1
 
     - name: Create RX scheduled task
@@ -73,7 +73,7 @@
 
     - name: Show RX status
       ansible.builtin.debug:
-        msg: "{{ inventory_hostname }} ({{ media_ip }}): RUNNING (PID: {{ rx_check.stdout | trim }})"
+        msg: "{{ inventory_hostname }} ({{ ip_2110 }}): RUNNING (PID: {{ rx_check.stdout | trim }})"
       when: rx_check.stdout | trim | length > 0
 
     - name: Read RX log on failure
@@ -85,5 +85,5 @@
 
     - name: Show RX failure
       ansible.builtin.debug:
-        msg: "{{ inventory_hostname }} ({{ media_ip }}): FAILED TO START\n{{ rx_log.stdout }}"
+        msg: "{{ inventory_hostname }} ({{ ip_2110 }}): FAILED TO START\n{{ rx_log.stdout }}"
       when: rx_check.stdout | trim | length == 0

@@ -1,0 +1,52 @@
+---
+# ip_2110 — Configure static IP on the 2110 VF (10.0.0.x)
+#
+# Identifies the adapter by MAC address (set on the host via vf_mac role),
+# then assigns ip_2110 with /24 prefix.
+#
+# Requires (host_vars via Terraform):
+#   mac_2110:  expected MAC address (e.g. "02:00:00:04:91:00")
+#   ip_2110:  static IP for the 2110 network (e.g. "10.0.0.169")
+
+- name: Find 2110 adapter by MAC
+  ansible.windows.win_shell: |
+    $mac = "{{ mac_2110 }}" -replace ":", "-"
+    $nic = Get-NetAdapter | Where-Object { $_.MacAddress -eq $mac }
+    if (-not $nic) { throw "No adapter found with MAC $mac" }
+    $nic.ifIndex
+  register: nic_2110
+  changed_when: false
+
+- name: Check current IP on 2110 adapter
+  ansible.windows.win_shell: |
+    $ip = Get-NetIPAddress -InterfaceIndex {{ nic_2110.stdout | trim }} -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+      Where-Object { $_.IPAddress -notlike '169.*' }
+    if ($ip) { "CURRENT=$($ip.IPAddress)" } else { "NONE" }
+  register: current_ip_2110
+  changed_when: false
+
+- name: Remove existing IPs on 2110 adapter
+  ansible.windows.win_shell: |
+    Remove-NetIPAddress -InterfaceIndex {{ nic_2110.stdout | trim }} -Confirm:$false
+  when:
+    - "'CURRENT=' in current_ip_2110.stdout"
+    - "ip_2110 not in current_ip_2110.stdout"
+  changed_when: true
+
+- name: Remove existing routes on 2110 adapter
+  ansible.windows.win_shell: |
+    Remove-NetRoute -InterfaceIndex {{ nic_2110.stdout | trim }} -Confirm:$false
+  when:
+    - "'CURRENT=' in current_ip_2110.stdout"
+    - "ip_2110 not in current_ip_2110.stdout"
+  changed_when: true
+
+- name: Assign 2110 network IP
+  ansible.windows.win_shell: |
+    New-NetIPAddress -InterfaceIndex {{ nic_2110.stdout | trim }} -IPAddress {{ ip_2110 }} -PrefixLength 24
+  when: "ip_2110 not in (current_ip_2110.stdout | default(''))"
+
+- name: Disable DHCP on 2110 adapter
+  ansible.windows.win_shell: |
+    Set-NetIPInterface -InterfaceIndex {{ nic_2110.stdout | trim }} -Dhcp Disabled
+  changed_when: false

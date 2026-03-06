@@ -34,19 +34,21 @@
     - win_disable_watermark
 
 - name: GPU validation — Windows nodes with GPUs
-  hosts: ue_content:ue_editing:ue_previs:ue_plugin_dev:touch:arnold_fusion:workstation
+  hosts: ue_content:ue_editing:ue_previs:ue_plugin_dev:arnold_fusion:workstation
   gather_facts: false
   roles:
     - nvidia_gpu_win
     - virtual_display_driver
+    - role: ip_2110
+      when: mac_2110 is defined
+    - role: ip_smb
+      when: mac_smb is defined
 
 - name: Rivermax — all Windows nodes with rivermax enabled
   hosts: windows
   gather_facts: false
   roles:
     - role: rivermax
-      when: rivermax | default(false)
-    - role: cx6_ip
       when: rivermax | default(false)
     - role: cx6_tune
       when: rivermax | default(false)
@@ -164,6 +166,10 @@
   roles:
     - role: cx6_sriov
       when: has_cx6 | bool
+    - role: pve_bf2_sriov
+      when: has_bf2 | bool
+    - role: pve_vf_mac
+      when: vf_macs_json is defined
   post_tasks:
     - name: Verify SSH connectivity after convergence
       ansible.builtin.wait_for_connection:
@@ -174,6 +180,12 @@
   gather_facts: false
   roles:
     - samba_server
+
+- name: Pulse admin — mount deploy share
+  hosts: pulse_admin
+  gather_facts: false
+  roles:
+    - samba_client
 
 - name: Optik
   hosts: optik
