@@ -181,12 +181,6 @@
   roles:
     - samba_server
 
-- name: Pulse admin — mount deploy share
-  hosts: pulse_admin
-  gather_facts: false
-  roles:
-    - samba_client
-
 - name: Optik
   hosts: optik
   gather_facts: false
