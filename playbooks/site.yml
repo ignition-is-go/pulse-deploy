@@ -50,9 +50,9 @@
   roles:
     - role: rivermax
       when: rivermax | default(false)
-    - role: cx6_tune
+    - role: vf_2110_tune
       when: rivermax | default(false)
-    - role: cx6_ptp_timestamp
+    - role: vf_2110_ptp
       when: rivermax | default(false)
     - role: ptp_w32time
       when: rivermax | default(false)

@@ -238,6 +238,15 @@
   changed_when: false
   failed_when: false
 
+- name: Check VF firmware max on first PF of each card
+  ansible.builtin.slurp:
+    src: "/sys/class/net/{{ item.pf_ifaces[0] }}/device/sriov_totalvfs"
+  loop: "{{ cx6_cards }}"
+  loop_control:
+    label: "{{ item.pf_ifaces[0] }}"
+  register: vf_totalvfs_check
+  failed_when: false
+
 - name: Check VF count on first PF of each card
   ansible.builtin.slurp:
     src: "/sys/class/net/{{ item.pf_ifaces[0] }}/device/sriov_numvfs"
@@ -271,6 +280,16 @@
   loop_control:
     label: "{{ item.item.1 }}"
   when: "'switchdev' not in (item.stdout | default(''))"
+
+- name: Flag if firmware VF max does not match
+  ansible.builtin.set_fact:
+    _cx6_reboot_needed: true
+  loop: "{{ vf_totalvfs_check.results }}"
+  loop_control:
+    label: "{{ item.item.pf_ifaces[0] }}"
+  when: item.content is not defined or (item.content | b64decode | trim) | int != cx6_vf_count | int
+  changed_when: true
+  notify: Warn cold reboot needed
 
 - name: Warn if VF count does not match
   ansible.builtin.debug:
