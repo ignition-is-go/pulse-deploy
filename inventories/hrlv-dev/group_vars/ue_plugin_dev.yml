@@ -10,7 +10,11 @@ vs_buildtools_layout_source: "{{ deploy_share }}\\installers\\vs-buildtools\\17.
 dotnet_runtime_installer_source: "{{ deploy_share }}\\installers\\dotnet\\8.0\\windowsdesktop-runtime-8.0.24-win-x64.exe"
 netfx_devpack_installer_source: "{{ deploy_share }}\\installers\\dotnet-framework\\4.6.2\\NDP462-DevPack-KB3151934-ENU.exe"
 vscode_installer_source: "{{ deploy_share }}\\installers\\vscode\\1.109.5\\VSCodeUserSetup-x64-1.109.5.exe"
+vs_community_install_path: "C:\\Program Files\\Microsoft Visual Studio\\18\\Community"
 vs_community_installer_source: "{{ deploy_share }}\\installers\\visual-studio\\VisualStudioSetup.exe"
+vs_community_workloads:
+  - Microsoft.VisualStudio.Workload.NativeDesktop
+  - Microsoft.VisualStudio.Workload.NativeGame
 git_repos:
   - repo: "git@github.com:ignition-is-go/pulse-unreal.git"
     dest: "C:/pulse-unreal"

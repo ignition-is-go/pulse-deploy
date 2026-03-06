@@ -11,6 +11,17 @@
 #   ansible-playbook playbooks/site.yml --limit rship                # rship nodes only
 #   ansible-playbook playbooks/site.yml --check                      # dry run
 
+# === Preflight ===
+
+- name: Preflight — wait for Windows boot stability
+  hosts: windows
+  gather_facts: false
+  tasks:
+    - name: Wait for OS boot to stabilize
+      ansible.builtin.include_role:
+        name: win_base
+        tasks_from: wait_boot
+
 # === Windows VMs ===
 
 - name: Base config — all Windows
@@ -23,7 +34,7 @@
     - win_disable_watermark
 
 - name: GPU validation — Windows nodes with GPUs
-  hosts: ue_content:ue_previs:ue_plugin_dev:touch:arnold_fusion:workstation
+  hosts: ue_content:ue_editing:ue_previs:ue_plugin_dev:touch:arnold_fusion:workstation
   gather_facts: false
   roles:
     - nvidia_gpu_win
@@ -44,8 +55,14 @@
     - role: ptp_w32time
       when: rivermax | default(false)
 
-- name: Plastic SCM — staging and plugin dev nodes
-  hosts: ue_staging:ue_plugin_dev:workstation
+- name: Netbird mesh VPN — all hosts
+  hosts: all
+  gather_facts: true
+  roles:
+    - netbird
+
+- name: Plastic SCM — staging, plugin dev, touch, and workstation nodes
+  hosts: ue_staging:ue_plugin_dev:touch:workstation
   gather_facts: false
   roles:
     - plastic_scm
@@ -57,6 +74,13 @@
     - ndi_tools
     - unreal_engine
     - render_worker
+
+- name: Editing nodes — Concert multi-user editor
+  hosts: ue_editing
+  gather_facts: false
+  roles:
+    - ndi_tools
+    - unreal_engine
 
 - name: Previs nodes
   hosts: ue_previs
@@ -79,6 +103,10 @@
   roles:
     - win_remove_edge
     - win_install_chrome
+    - win_openssh_server
+    - win_bun
+    - win_gh_cli
+    - netbird_configure
     - git
     - win_ue_build_deps
     - vscode
@@ -117,7 +145,8 @@
 - name: Touch nodes
   hosts: touch
   gather_facts: false
-  roles: []
+  roles:
+    - touchdesigner
 
 - name: Arnold/Fusion nodes
   hosts: arnold_fusion
@@ -160,10 +189,3 @@
     - rship
 
 # === Cross-platform ===
-
-- name: Netbird mesh VPN — all hosts
-  hosts: all
-  gather_facts: true
-  roles:
-    - netbird
-

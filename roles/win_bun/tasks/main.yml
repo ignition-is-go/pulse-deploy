@@ -1,0 +1,27 @@
+---
+# win_bun — Bun JavaScript runtime installation
+#
+# Installs via the official PowerShell script (irm bun.sh/install.ps1).
+# Installs to %USERPROFILE%\.bun and adds to user PATH.
+# No group_vars required.
+
+- name: Check if Bun is installed
+  ansible.windows.win_shell: |
+    if (Test-Path "$env:USERPROFILE\.bun\bin\bun.exe") { 'INSTALLED' } else { 'MISSING' }
+  register: bun_check
+  changed_when: false
+
+- name: Install Bun via official script
+  ansible.windows.win_shell: irm bun.sh/install.ps1 | iex
+  when: "'MISSING' in bun_check.stdout"
+
+- name: Add Bun to system PATH
+  ansible.windows.win_path:
+    elements:
+      - '%USERPROFILE%\.bun\bin'
+    scope: machine
+
+- name: Verify Bun is callable
+  ansible.windows.win_shell: |
+    & "$env:USERPROFILE\.bun\bin\bun.exe" --version
+  changed_when: false

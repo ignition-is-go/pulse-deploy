@@ -1,0 +1,27 @@
+---
+# win_gh_cli — GitHub CLI installation
+#
+# Installs via winget. No group_vars required.
+
+- name: Check if gh CLI is installed
+  ansible.windows.win_stat:
+    path: C:\Program Files\GitHub CLI\gh.exe
+  register: gh_check
+
+- name: Install gh CLI via winget
+  ansible.windows.win_command:
+    argv:
+      - winget
+      - install
+      - --id
+      - GitHub.cli
+      - --accept-source-agreements
+      - --accept-package-agreements
+  when: not gh_check.stat.exists
+
+- name: Verify gh CLI is callable
+  ansible.windows.win_command:
+    argv:
+      - C:\Program Files\GitHub CLI\gh.exe
+      - --version
+  changed_when: false

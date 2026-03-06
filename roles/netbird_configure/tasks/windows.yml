@@ -1,14 +1,40 @@
 ---
 # netbird_configure/tasks/windows.yml — Enroll Netbird on Windows
+#
+# Always disconnects and re-enrolls with the correct setup key if connected.
+# If not connected, enrolls directly.
 
-- name: Check Netbird status
+- name: Check if Netbird is installed
+  ansible.windows.win_stat:
+    path: C:\Program Files\Netbird\netbird.exe
+  register: netbird_bin
+
+- name: Install Netbird if missing
+  ansible.builtin.include_role:
+    name: netbird
+  when: not netbird_bin.stat.exists
+
+- name: Get Netbird status as JSON
+  ansible.windows.win_shell: |
+    $status = netbird status --json | ConvertFrom-Json
+    @{
+      connected = $status.management.connected
+    } | ConvertTo-Json -Compress
+  register: netbird_json
+  changed_when: false
+  failed_when: false
+
+- name: Parse Netbird status
+  ansible.builtin.set_fact:
+    netbird_connected: "{{ (netbird_json.stdout | from_json).connected | default(false) }}"
+  when: netbird_json.rc == 0
+
+- name: Disconnect Netbird before re-enrollment
   ansible.windows.win_command:
     argv:
       - netbird
-      - status
-  register: netbird_status
-  changed_when: false
-  failed_when: false
+      - down
+  when: netbird_connected | bool
 
 - name: Enroll Netbird with setup key
   ansible.windows.win_command:
@@ -21,5 +47,4 @@
       - "{{ netbird_admin_url }}"
       - --setup-key
       - "{{ netbird_setup_key }}"
-  when: "'Connected' not in netbird_status.stdout"
   no_log: true

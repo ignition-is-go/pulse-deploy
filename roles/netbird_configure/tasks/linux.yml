@@ -1,14 +1,40 @@
 ---
 # netbird_configure/tasks/linux.yml — Enroll Netbird on Linux
+#
+# Always disconnects and re-enrolls with the correct setup key if connected.
+# If not connected, enrolls directly.
 
-- name: Check Netbird status
+- name: Check if Netbird is installed
+  ansible.builtin.stat:
+    path: /usr/bin/netbird
+  register: netbird_bin
+
+- name: Install Netbird if missing
+  ansible.builtin.include_role:
+    name: netbird
+  when: not netbird_bin.stat.exists
+
+- name: Get Netbird status as JSON
   ansible.builtin.command:
     argv:
       - /usr/bin/netbird
       - status
-  register: netbird_status
+      - --json
+  register: netbird_json
   changed_when: false
   failed_when: false
+
+- name: Parse Netbird status
+  ansible.builtin.set_fact:
+    netbird_connected: "{{ (netbird_json.stdout | from_json).management.connected | default(false) }}"
+  when: netbird_json.rc == 0
+
+- name: Disconnect Netbird before re-enrollment
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/netbird
+      - down
+  when: netbird_connected | bool
 
 - name: Enroll Netbird with setup key
   ansible.builtin.command:
@@ -21,6 +47,5 @@
       - "{{ netbird_admin_url }}"
       - --setup-key
       - "{{ netbird_setup_key }}"
-  when: "'Connected' not in netbird_status.stdout"
   no_log: true
   changed_when: true
