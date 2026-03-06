@@ -21,6 +21,7 @@ Ansible config for a multi-OS render farm (Proxmox). Windows UE/nDisplay render 
 13. **Never hardcode external dynamic data.** Fetch at runtime (`ssh-keyscan` + `register`), never paste static strings.
 14. **Never modify `hosts.yml` group hierarchy** without being asked.
 15. **nyc-pbs-01 (192.168.1.31) is the NAS/Samba server.** The deploy share is `\\192.168.1.31\share` backed by ZFS at `/mnt/datastore/tank/share`. pulse-admin is the Ansible control node only. Installer convention: `share/installers/<tool>/<version>/<filename>`.
+16. **`terraform apply` can restart VMs.** The proxmox provider stops/starts VMs to apply config changes (PCI devices, memory, CPU, etc.) even with `reboot_after_update = false`. NEVER tell the user an apply is safe without reading the plan output AND the module code. If unsure, say so.
 
 ## Architecture
 
@@ -68,7 +69,7 @@ linux (SSH):
 | Global refs | `group_vars/all/main.yml` |
 | All UE nodes | `group_vars/ue.yml` |
 | Per subgroup | `group_vars/ue_content.yml`, `ue_previs.yml`, etc. |
-| Per host | `hosts.yml` inline (`rivermax`, `media_ip`, `ndisplay_node`) |
+| Per host | `hosts.yml` inline (`rivermax`, `ip_2110`, `ndisplay_node`) |
 
 `unreal_project` is per-group (NOT `ue.yml`). `rivermax` is a host-level boolean.
 

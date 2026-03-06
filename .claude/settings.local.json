@@ -27,7 +27,8 @@
       "WebFetch(domain:docs.ndi.video)",
       "WebFetch(domain:docs.nvidia.com)",
       "WebFetch(domain:rustdesk.com)",
-      "WebFetch(domain:pve.proxmox.com)"
+      "WebFetch(domain:pve.proxmox.com)",
+      "WebFetch(domain:enterprise-support.nvidia.com)"
     ]
   }
 }
