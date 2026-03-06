@@ -66,7 +66,8 @@
 #   .177-.180   ue-editing
 #   .181-.184   ue-previs
 #   .185-.189   touch
-#   .191-.199   optik
+#   .191-.194   optik
+#   .195-.199   workstation
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -84,7 +85,7 @@ proxmox_username = "root@pam"
 proxmox_hosts = {
   # --- Production (5x identical) ---
   # 2x AMD EPYC 9575F 64-Core (2 sockets, SMT off)
-  # 8x RTX 6000 Ada, 2x CX6 (8 VFs on df:00.x)
+  # 8x RTX 6000 Ada, 2x CX6 (16 VFs each)
   # zfs-nvme-01 ~6.7T
 
   "nyc-prod-pve-01" = {
@@ -104,6 +105,7 @@ proxmox_hosts = {
       "0000:e0:00.0",
     ]
     cx6_vfs = [
+      # Card 1 (5a) — VF0-15
       "0000:5a:00.2",
       "0000:5a:00.3",
       "0000:5a:00.4",
@@ -112,6 +114,15 @@ proxmox_hosts = {
       "0000:5a:00.7",
       "0000:5a:01.0",
       "0000:5a:01.1",
+      "0000:5a:01.2",
+      "0000:5a:01.3",
+      "0000:5a:01.4",
+      "0000:5a:01.5",
+      "0000:5a:01.6",
+      "0000:5a:01.7",
+      "0000:5a:02.0",
+      "0000:5a:02.1",
+      # Card 2 (df) — VF0-15
       "0000:df:00.2",
       "0000:df:00.3",
       "0000:df:00.4",
@@ -120,6 +131,14 @@ proxmox_hosts = {
       "0000:df:00.7",
       "0000:df:01.0",
       "0000:df:01.1",
+      "0000:df:01.2",
+      "0000:df:01.3",
+      "0000:df:01.4",
+      "0000:df:01.5",
+      "0000:df:01.6",
+      "0000:df:01.7",
+      "0000:df:02.0",
+      "0000:df:02.1",
     ]
     sriov_cards = [
       {
@@ -274,7 +293,7 @@ proxmox_hosts = {
   }
 
   # 1x AMD EPYC 9474F 48-Core (1 socket, SMT on = 96 threads)
-  # 6x RTX A4000, 1x BlueField-2 CX6 Dx (8 VFs on 81:00.x)
+  # 6x RTX A4000, 1x BlueField-2 CX6 Dx (16 VFs on 81:00.x)
   # zfs-nvme-05 ~7T, local 94G (root only)
   "nyc-dev-pve-03" = {
     ip         = "192.168.1.43"
@@ -299,6 +318,14 @@ proxmox_hosts = {
       "0000:81:00.7",
       "0000:81:01.0",
       "0000:81:01.1",
+      "0000:81:01.2",
+      "0000:81:01.3",
+      "0000:81:01.4",
+      "0000:81:01.5",
+      "0000:81:01.6",
+      "0000:81:01.7",
+      "0000:81:02.0",
+      "0000:81:02.1",
     ]
     sriov_cards = [
       {
@@ -344,7 +371,7 @@ ssh_public_key = "ssh-ed25519 AAAA... user@control-plane"
 
 # =============================================================================
 # Node definitions — gpu_slots index into proxmox_hosts[node].gpus,
-#                    cx6_slots index into proxmox_hosts[node].cx6_vfs
+#                    cx6_card + cx6_vf_offsets resolve to proxmox_hosts[node].cx6_vfs
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -397,7 +424,8 @@ ue_plugin_dev = {
     memory_mb = 32768
     disk_gb   = 300
     gpu_slots = [0]
-    cx6_slots = [0, 1]
+    cx6_card       = 0
+    cx6_vf_offsets = [0, 1]
   }
   "ue-plugindev-02" = {
     id        = 1132
@@ -409,7 +437,8 @@ ue_plugin_dev = {
     memory_mb = 32768
     disk_gb   = 300
     gpu_slots = [1]
-    cx6_slots = [2, 3]
+    cx6_card       = 0
+    cx6_vf_offsets = [2, 3]
   }
 }
 
@@ -460,7 +489,8 @@ touch = {
     memory_mb = 98304
     disk_gb   = 300
     gpu_slots = [7]
-    cx6_slots = [14, 15]
+    cx6_card       = 1
+    cx6_vf_offsets = [6, 7]
   }
 }
 
@@ -491,7 +521,8 @@ workstation = {
     memory_mb  = 98304
     disk_gb    = 300
     gpu_slots  = [0]
-    cx6_slots  = [0, 1]
+    cx6_card       = 0
+    cx6_vf_offsets = [0, 1]
     extra_tags = ["jaksa"]
   }
   "workstation-02" = {
@@ -504,8 +535,35 @@ workstation = {
     memory_mb  = 98304
     disk_gb    = 300
     gpu_slots  = [1]
-    cx6_slots  = [2, 3]
+    cx6_card       = 0
+    cx6_vf_offsets = [2, 3]
     extra_tags = ["mateo"]
+  }
+  "workstation-03" = {
+    id         = 1195
+    ip         = "192.168.1.195"
+    ip_2110    = "10.0.0.195"
+    ip_smb     = "10.0.1.195"
+    node       = "nyc-prod-pve-01"
+    cores      = 32
+    memory_mb  = 98304
+    disk_gb    = 300
+    gpu_slots  = [5]
+    cx6_card       = 1
+    cx6_vf_offsets = [0, 1]
+  }
+  "workstation-04" = {
+    id         = 1196
+    ip         = "192.168.1.196"
+    ip_2110    = "10.0.0.196"
+    ip_smb     = "10.0.1.196"
+    node       = "nyc-prod-pve-01"
+    cores      = 32
+    memory_mb  = 98304
+    disk_gb    = 300
+    gpu_slots  = [6]
+    cx6_card       = 1
+    cx6_vf_offsets = [2, 3]
   }
 }
 
@@ -527,7 +585,8 @@ ue_content = {
     memory_mb        = 98304
     disk_gb          = 300
     gpu_slots        = [0]
-    cx6_slots        = [0, 1]
+    cx6_card         = 0
+    cx6_vf_offsets   = [0, 1]
     numa_node        = 0
     cpu_affinity     = "0-15"
     started          = false
@@ -543,7 +602,8 @@ ue_content = {
   #   memory_mb        = 98304
   #   disk_gb          = 300
   #   gpu_slots        = [1]
-  #   cx6_slots        = [2, 3]
+  #   cx6_card         = 0
+  #   cx6_vf_offsets   = [2, 3]
   #   numa_node        = 0
   #   cpu_affinity     = "16-31"
   #   started          = false
@@ -559,7 +619,8 @@ ue_content = {
   #   memory_mb        = 98304
   #   disk_gb          = 300
   #   gpu_slots        = [2]
-  #   cx6_slots        = [4, 5]
+  #   cx6_card         = 0
+  #   cx6_vf_offsets   = [4, 5]
   #   numa_node        = 0
   #   cpu_affinity     = "32-47"
   #   started          = false
@@ -575,7 +636,8 @@ ue_content = {
   #   memory_mb        = 98304
   #   disk_gb          = 300
   #   gpu_slots        = [3]
-  #   cx6_slots        = [6, 7]
+  #   cx6_card         = 0
+  #   cx6_vf_offsets   = [6, 7]
   #   numa_node        = 0
   #   cpu_affinity     = "48-63"
   #   started          = false
@@ -591,7 +653,8 @@ ue_content = {
   #   memory_mb        = 98304
   #   disk_gb          = 300
   #   gpu_slots        = [4]
-  #   cx6_slots        = [8, 9]
+  #   cx6_card         = 1
+  #   cx6_vf_offsets   = [0, 1]
   #   numa_node        = 1
   #   cpu_affinity     = "64-79"
   #   started          = false
@@ -607,7 +670,8 @@ ue_content = {
   #   memory_mb        = 98304
   #   disk_gb          = 300
   #   gpu_slots        = [5]
-  #   cx6_slots        = [10, 11]
+  #   cx6_card         = 1
+  #   cx6_vf_offsets   = [2, 3]
   #   numa_node        = 1
   #   cpu_affinity     = "80-95"
   #   started          = false
@@ -623,7 +687,8 @@ ue_content = {
   #   memory_mb        = 98304
   #   disk_gb          = 300
   #   gpu_slots        = [6]
-  #   cx6_slots        = [12, 13]
+  #   cx6_card         = 1
+  #   cx6_vf_offsets   = [4, 5]
   #   numa_node        = 1
   #   cpu_affinity     = "96-111"
   #   started          = false
@@ -639,7 +704,8 @@ ue_content = {
   #   memory_mb        = 98304
   #   disk_gb          = 300
   #   gpu_slots        = [7]
-  #   cx6_slots        = [14, 15]
+  #   cx6_card         = 1
+  #   cx6_vf_offsets   = [6, 7]
   #   numa_node        = 1
   #   cpu_affinity     = "112-127"
   #   started          = false
@@ -657,7 +723,8 @@ ue_content = {
     memory_mb        = 98304
     disk_gb          = 300
     gpu_slots        = [0]
-    cx6_slots        = [0, 1]
+    cx6_card         = 0
+    cx6_vf_offsets   = [0, 1]
     numa_node        = 0
     cpu_affinity     = "0-15"
   }
@@ -672,7 +739,8 @@ ue_content = {
     memory_mb        = 98304
     disk_gb          = 300
     gpu_slots        = [1]
-    cx6_slots        = [2, 3]
+    cx6_card         = 0
+    cx6_vf_offsets   = [2, 3]
     numa_node        = 0
     cpu_affinity     = "16-31"
   }
@@ -687,7 +755,8 @@ ue_content = {
     memory_mb        = 98304
     disk_gb          = 300
     gpu_slots        = [2]
-    cx6_slots        = [4, 5]
+    cx6_card         = 0
+    cx6_vf_offsets   = [4, 5]
     numa_node        = 0
     cpu_affinity     = "32-47"
   }
@@ -702,7 +771,8 @@ ue_content = {
     memory_mb        = 98304
     disk_gb          = 300
     gpu_slots        = [3]
-    cx6_slots        = [6, 7]
+    cx6_card         = 0
+    cx6_vf_offsets   = [6, 7]
     numa_node        = 0
     cpu_affinity     = "48-63"
   }
@@ -717,7 +787,8 @@ ue_content = {
     memory_mb        = 98304
     disk_gb          = 300
     gpu_slots        = [4]
-    cx6_slots        = [8, 9]
+    cx6_card         = 1
+    cx6_vf_offsets   = [0, 1]
     numa_node        = 1
     cpu_affinity     = "64-79"
   }
@@ -732,7 +803,8 @@ ue_content = {
     memory_mb        = 98304
     disk_gb          = 300
     gpu_slots        = [5]
-    cx6_slots        = [10, 11]
+    cx6_card         = 1
+    cx6_vf_offsets   = [2, 3]
     numa_node        = 1
     cpu_affinity     = "80-95"
   }
@@ -747,7 +819,8 @@ ue_content = {
     memory_mb        = 98304
     disk_gb          = 300
     gpu_slots        = [6]
-    cx6_slots        = [12, 13]
+    cx6_card         = 1
+    cx6_vf_offsets   = [4, 5]
     numa_node        = 1
     cpu_affinity     = "96-111"
   }
@@ -762,7 +835,8 @@ ue_content = {
     memory_mb        = 98304
     disk_gb          = 300
     gpu_slots        = [7]
-    cx6_slots        = [14, 15]
+    cx6_card         = 1
+    cx6_vf_offsets   = [6, 7]
     numa_node        = 1
     cpu_affinity     = "112-127"
   }
@@ -783,7 +857,8 @@ ue_editing = {
     memory_mb = 98304
     disk_gb   = 300
     gpu_slots = [0]
-    cx6_slots = [0, 1]
+    cx6_card       = 0
+    cx6_vf_offsets = [0, 1]
   }
 }
 
@@ -802,6 +877,7 @@ ue_previs = {
     memory_mb = 98304
     disk_gb   = 300
     gpu_slots = [4]
-    cx6_slots = [4, 5]
+    cx6_card       = 0
+    cx6_vf_offsets = [4, 5]
   }
 }

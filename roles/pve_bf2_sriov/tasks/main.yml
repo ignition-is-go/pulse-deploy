@@ -1,0 +1,66 @@
+---
+# pve_bf2_sriov — BlueField-2 SR-IOV VF creation for Proxmox hosts
+#
+# Deploys a systemd service that creates VFs at boot via sriov_numvfs.
+# BF2 stays in legacy mode (no switchdev, no OVS, no representors).
+# VF MAC assignment handled separately by pve_vf_mac role.
+#
+# Requires (group_vars/proxmox.yml):
+#   bf2_iface:    BF2 host interface name (e.g. nic3)
+#   bf2_vf_count: number of VFs to create (default 16)
+
+- name: Deploy BF2 VF creation service
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      Description=Enable BlueField-2 SR-IOV VFs
+      After=network-pre.target
+      Before=network.target pve-guests.service
+
+      [Service]
+      Type=oneshot
+      ExecStart=/bin/sh -c 'echo {{ bf2_vf_count }} > /sys/class/net/{{ bf2_iface }}/device/sriov_numvfs'
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/bluefield-vfs.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: Enable BF2 VF service
+  ansible.builtin.systemd:
+    name: bluefield-vfs.service
+    enabled: true
+    daemon_reload: true
+
+- name: Create BF2 VFs now
+  ansible.builtin.shell:
+    cmd: |
+      current=$(cat /sys/class/net/{{ bf2_iface }}/device/sriov_numvfs)
+      if [ "$current" -eq "{{ bf2_vf_count }}" ]; then
+        echo "already {{ bf2_vf_count }} VFs"
+        exit 0
+      fi
+      echo {{ bf2_vf_count }} > /sys/class/net/{{ bf2_iface }}/device/sriov_numvfs
+      echo "created {{ bf2_vf_count }} VFs (was $current)"
+  register: bf2_vf_result
+  changed_when: "'created' in bf2_vf_result.stdout"
+
+- name: Show BF2 VF result
+  ansible.builtin.debug:
+    msg: "{{ bf2_vf_result.stdout }}"
+
+- name: Verify VF count
+  ansible.builtin.slurp:
+    src: "/sys/class/net/{{ bf2_iface }}/device/sriov_numvfs"
+  register: bf2_numvfs_check
+
+- name: Report VF count mismatch
+  ansible.builtin.fail:
+    msg: >-
+      VF count is {{ bf2_numvfs_check.content | b64decode | trim }}, expected {{ bf2_vf_count }}.
+      Run: ansible-playbook playbooks/pve-bf2-set-numvfs.yml --limit {{ inventory_hostname }}
+  when: (bf2_numvfs_check.content | b64decode | trim) | int != bf2_vf_count | int

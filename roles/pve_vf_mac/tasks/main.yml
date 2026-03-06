@@ -1,0 +1,71 @@
+---
+# vf_mac — Set deterministic MAC addresses on SR-IOV VFs
+#
+# Deploys a script + systemd service that assigns known MACs to VFs
+# via devlink before VMs start. This allows guest OSes to identify
+# adapters by MAC address.
+#
+# Requires (host_vars via Terraform):
+#   vf_macs_json: JSON list of {vf_pci, mac} assignments
+
+- name: Parse VF MAC assignments
+  ansible.builtin.set_fact:
+    vf_macs: "{{ vf_macs_json | from_json }}"
+
+- name: Deploy VF MAC assignment script
+  ansible.builtin.template:
+    src: set-vf-macs.sh.j2
+    dest: /usr/local/bin/set-vf-macs.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Deploy VF MAC systemd service
+  ansible.builtin.copy:
+    content: |
+      [Unit]
+      Description=Set SR-IOV VF MAC addresses
+      After=systemd-udev-settle.service
+      Before=pve-guests.service
+
+      [Service]
+      Type=oneshot
+      ExecStart=/usr/local/bin/set-vf-macs.sh
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
+    dest: /etc/systemd/system/set-vf-macs.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Enable VF MAC service
+  ansible.builtin.systemd:
+    name: set-vf-macs.service
+    enabled: true
+    daemon_reload: true
+
+- name: Check if any VFs exist in sysfs
+  ansible.builtin.shell:
+    cmd: "ls /sys/bus/pci/devices/{{ (vf_macs | first).vf_pci }} 2>/dev/null && echo EXISTS || echo MISSING"
+  register: vf_sysfs_check
+  changed_when: false
+
+- name: Set VF MACs now
+  ansible.builtin.command:
+    cmd: /usr/local/bin/set-vf-macs.sh
+  register: vf_mac_result
+  changed_when: false
+  failed_when: vf_mac_result.rc != 0
+  when: "'EXISTS' in vf_sysfs_check.stdout"
+
+- name: Show VF MAC results
+  ansible.builtin.debug:
+    msg: "{{ vf_mac_result.stdout_lines }}"
+  when: vf_mac_result is not skipped
+
+- name: Warn if VFs not present
+  ansible.builtin.debug:
+    msg: "VFs not present in sysfs — MACs will be set on next boot by set-vf-macs.service"
+  when: "'MISSING' in vf_sysfs_check.stdout"

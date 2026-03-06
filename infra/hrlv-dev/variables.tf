@@ -122,7 +122,8 @@ variable "ue_content" {
     memory_mb         = number
     disk_gb           = number
     gpu_slots         = list(number)     # indices into proxmox_hosts[node].gpus
-    cx6_slots         = optional(list(number), []) # indices into proxmox_hosts[node].cx6_vfs
+    cx6_card          = optional(number)            # CX6 card index (0-based)
+    cx6_vf_offsets    = optional(list(number), []) # VF offsets on that card (e.g. [0, 1] for 2110 + SMB)
     numa_node         = optional(number) # host NUMA node (0 or 1)
     extra_tags        = optional(list(string), [])
     cpu_affinity      = optional(string) # host core pinning (e.g. "0-15")
@@ -143,7 +144,8 @@ variable "ue_editing" {
     memory_mb    = number
     disk_gb      = number
     gpu_slots    = list(number)
-    cx6_slots    = optional(list(number), [])
+    cx6_card       = optional(number)
+    cx6_vf_offsets = optional(list(number), [])
     numa_node    = optional(number)
     extra_tags   = optional(list(string), [])
     cpu_affinity = optional(string)
@@ -164,7 +166,8 @@ variable "ue_previs" {
     memory_mb    = number
     disk_gb      = number
     gpu_slots    = list(number)
-    cx6_slots    = optional(list(number), [])
+    cx6_card       = optional(number)
+    cx6_vf_offsets = optional(list(number), [])
     numa_node    = optional(number)
     extra_tags   = optional(list(string), [])
     cpu_affinity = optional(string)
@@ -185,7 +188,8 @@ variable "touch" {
     memory_mb    = number
     disk_gb      = number
     gpu_slots    = list(number)
-    cx6_slots    = optional(list(number), [])
+    cx6_card       = optional(number)
+    cx6_vf_offsets = optional(list(number), [])
     numa_node    = optional(number)
     extra_tags   = optional(list(string), [])
     cpu_affinity = optional(string)
@@ -206,7 +210,8 @@ variable "arnold_fusion" {
     memory_mb    = number
     disk_gb      = number
     gpu_slots    = list(number)
-    cx6_slots    = optional(list(number), [])
+    cx6_card       = optional(number)
+    cx6_vf_offsets = optional(list(number), [])
     numa_node    = optional(number)
     extra_tags   = optional(list(string), [])
     cpu_affinity = optional(string)
@@ -227,7 +232,8 @@ variable "workstation" {
     memory_mb    = number
     disk_gb      = number
     gpu_slots    = list(number)
-    cx6_slots    = optional(list(number), [])
+    cx6_card       = optional(number)
+    cx6_vf_offsets = optional(list(number), [])
     numa_node    = optional(number)
     extra_tags   = optional(list(string), [])
     cpu_affinity = optional(string)
@@ -253,7 +259,8 @@ variable "ue_plugin_dev" {
     memory_mb    = number
     disk_gb      = number
     gpu_slots    = list(number)
-    cx6_slots    = optional(list(number), [])
+    cx6_card       = optional(number)
+    cx6_vf_offsets = optional(list(number), [])
     numa_node    = optional(number)
     extra_tags   = optional(list(string), [])
     cpu_affinity = optional(string)
@@ -271,7 +278,8 @@ variable "ue_runner" {
     cores     = number
     memory_mb = number
     disk_gb   = number
-    cx6_slots = optional(list(number), [])
+    cx6_card       = optional(number)
+    cx6_vf_offsets = optional(list(number), [])
     started   = optional(bool, true)
   }))
   default = {}
@@ -286,7 +294,8 @@ variable "ue_staging" {
     cores     = number
     memory_mb = number
     disk_gb   = number
-    cx6_slots = optional(list(number), [])
+    cx6_card       = optional(number)
+    cx6_vf_offsets = optional(list(number), [])
     started   = optional(bool, true)
   }))
   default = {}
@@ -306,7 +315,8 @@ variable "optik" {
     memory_mb = number
     disk_gb   = number
     gpu_slots = list(number)
-    cx6_slots = optional(list(number), [])
+    cx6_card       = optional(number)
+    cx6_vf_offsets = optional(list(number), [])
     started   = optional(bool, true)
   }))
   default = {}

@@ -1,0 +1,63 @@
+#!/bin/bash
+# Managed by Ansible — pve_vf_mac role
+# Sets deterministic MAC addresses on SR-IOV VFs
+#
+# Boot: runs after udev (VFs exist) but before pve-guests (VMs start)
+# Safe to run with VMs stopped or VFs bound to vfio-pci.
+# Running VMs must be restarted to pick up new MACs.
+#
+# Uses ip link set (works on both CX6 switchdev and BF2 legacy).
+
+ERRORS=0
+
+set_vf_mac() {
+  local vf_pci="$1" mac="$2"
+
+  if [ ! -e "/sys/bus/pci/devices/$vf_pci" ]; then
+    echo "FAIL $vf_pci: not present in sysfs"
+    ERRORS=$((ERRORS + 1))
+    return
+  fi
+
+  if [ ! -e "/sys/bus/pci/devices/$vf_pci/physfn" ]; then
+    echo "FAIL $vf_pci: no physfn symlink (not a VF?)"
+    ERRORS=$((ERRORS + 1))
+    return
+  fi
+  local pf
+  pf=$(basename "$(readlink "/sys/bus/pci/devices/$vf_pci/physfn")")
+
+  local pf_iface
+  pf_iface=$(ls /sys/bus/pci/devices/"$pf"/net/ 2>/dev/null | head -1)
+  if [ -z "$pf_iface" ]; then
+    echo "FAIL $vf_pci: PF $pf has no net interface"
+    ERRORS=$((ERRORS + 1))
+    return
+  fi
+
+  local virtfn target
+  for virtfn in /sys/bus/pci/devices/"$pf"/virtfn*; do
+    [ -e "$virtfn" ] || continue
+    target=$(basename "$(readlink "$virtfn")")
+    if [ "$target" = "$vf_pci" ]; then
+      local vfnum=${virtfn##*virtfn}
+      local output
+      if output=$(ip link set "$pf_iface" vf "$vfnum" mac "$mac" 2>&1); then
+        echo "OK   $pf_iface vf $vfnum → $mac"
+      else
+        echo "FAIL $vf_pci (VF$vfnum): $output"
+        ERRORS=$((ERRORS + 1))
+      fi
+      return
+    fi
+  done
+
+  echo "FAIL $vf_pci: no matching virtfn on PF $pf"
+  ERRORS=$((ERRORS + 1))
+}
+
+{% for entry in vf_macs %}
+set_vf_mac {{ entry.vf_pci | quote }} {{ entry.mac | quote }}
+{% endfor %}
+
+exit $ERRORS

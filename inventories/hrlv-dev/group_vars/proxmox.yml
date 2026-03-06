@@ -17,8 +17,8 @@ has_bf2: "{{ bf2_cards | length > 0 }}"
 # BF2 convenience vars (first BF2 card — current hosts have one)
 bf2_pci: "{{ bf2_cards[0].pci_slots[0] | default('') if bf2_cards | length > 0 else '' }}"
 bf2_iface: "{{ bf2_cards[0].bf2_iface | default('') if bf2_cards | length > 0 else '' }}"
-bf2_vf_count: "{{ bf2_cards[0].vf_count | default(8) if bf2_cards | length > 0 else 0 }}"
+bf2_vf_count: "{{ bf2_cards[0].vf_count | default(16) if bf2_cards | length > 0 else 0 }}"
 
 # CX6 SR-IOV tuning (was in proxmox_cx6.yml)
-cx6_vf_count: 8
+cx6_vf_count: 16
 cx6_ovs_mtu: 9000

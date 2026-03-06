@@ -116,7 +116,14 @@
    10.0.0.185       2110
    10.0.1.185       smb
  192.168.1.186-.189  —                     reserved — touch
- 192.168.1.191-.199  —                     reserved — optik
+ 192.168.1.191-.194  —                     reserved — optik
+ 192.168.1.195      workstation-03         VM 1195, prod-pve-01
+   10.0.0.195       2110
+   10.0.1.195       smb
+ 192.168.1.196      workstation-04         VM 1196, prod-pve-01
+   10.0.0.196       2110
+   10.0.1.196       smb
+ 192.168.1.197-.199  —                     reserved — workstation
 
  192.168.1.200-.254                        DHCP
 

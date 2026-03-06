@@ -3,6 +3,15 @@
 # -----------------------------------------------------------------------------
 
 locals {
+  # VFs per CX6 card per host — derived from cx6_vfs list length and CX6 card count
+  cx6_vfs_per_card = {
+    for name, host in var.proxmox_hosts : name => (
+      length(host.cx6_vfs) > 0
+      ? length(host.cx6_vfs) / max(length([for c in host.sriov_cards : c if c.type == "cx6"]), 1)
+      : 0
+    )
+  }
+
   windows_gpu_vms = merge(
     var.ue_content,
     var.ue_editing,
@@ -63,9 +72,9 @@ module "windows_gpu_vm" {
       xvga   = false
     }],
     # CX6 VFs — next hostpci slots after GPUs (media + storage)
-    [for i, slot in each.value.cx6_slots : {
+    [for i, offset in each.value.cx6_vf_offsets : {
       device = "hostpci${length(each.value.gpu_slots) + i}"
-      id     = var.proxmox_hosts[each.value.node].cx6_vfs[slot]
+      id     = var.proxmox_hosts[each.value.node].cx6_vfs[each.value.cx6_card * local.cx6_vfs_per_card[each.value.node] + offset]
       pcie   = true
       rombar = true
       xvga   = false

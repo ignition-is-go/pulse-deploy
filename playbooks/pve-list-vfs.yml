@@ -1,0 +1,27 @@
+---
+# pve-list-vfs.yml — List SR-IOV VF PCI addresses on Proxmox hosts
+#
+# Usage:
+#   ansible-playbook playbooks/pve-list-vfs.yml --limit nyc-dev-pve-03
+#   ansible-playbook playbooks/pve-list-vfs.yml --limit proxmox
+
+- name: List SR-IOV VF PCI addresses
+  hosts: proxmox
+  gather_facts: false
+  tasks:
+    - name: Find all VF PCI addresses
+      ansible.builtin.shell:
+        cmd: >-
+          for vf in /sys/bus/pci/devices/*/physfn; do
+            [ -e "$vf" ] || continue;
+            vf_pci=$(basename "$(dirname "$vf")");
+            pf_pci=$(basename "$(readlink "$vf")");
+            pf_iface=$(ls "$(dirname "$vf")/../${pf_pci}/net/" 2>/dev/null | head -1);
+            echo "${pf_iface:-unknown}  ${vf_pci}";
+          done | sort
+      register: vf_list
+      changed_when: false
+
+    - name: Show VF PCI addresses
+      ansible.builtin.debug:
+        msg: "{{ vf_list.stdout_lines }}"

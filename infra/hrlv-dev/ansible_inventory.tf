@@ -131,11 +131,14 @@ resource "ansible_host" "ue_content" {
   variables = merge(
     {
       ansible_host      = each.value.ip
-      media_ip          = each.value.media_ip
+      ip_2110         = each.value.ip_2110
       ndisplay_node     = each.value.ndisplay_node
       concert_server_ip = values(var.ue_editing)[0].ip
     },
-    each.value.ndisplay_primary == true ? { ndisplay_primary = "true" } : {}
+    each.value.ndisplay_primary == true ? { ndisplay_primary = "true" } : {},
+    each.value.ip_smb != null ? { ip_smb = each.value.ip_smb } : {},
+    contains(keys(local.vm_mac_2110), each.key) ? { mac_2110 = local.vm_mac_2110[each.key] } : {},
+    contains(keys(local.vm_mac_smb), each.key) ? { mac_smb = local.vm_mac_smb[each.key] } : {},
   )
 }
 
@@ -143,47 +146,70 @@ resource "ansible_host" "ue_editing" {
   for_each = var.ue_editing
   name     = each.key
   groups   = ["ue_editing"]
-  variables = {
-    ansible_host       = each.value.ip
-    concert_server_ip  = each.value.ip
-  }
+  variables = merge(
+    {
+      ansible_host      = each.value.ip
+      concert_server_ip = each.value.ip
+    },
+    each.value.ip_2110 != null ? { ip_2110 = each.value.ip_2110 } : {},
+    each.value.ip_smb != null ? { ip_smb = each.value.ip_smb } : {},
+    contains(keys(local.vm_mac_2110), each.key) ? { mac_2110 = local.vm_mac_2110[each.key] } : {},
+    contains(keys(local.vm_mac_smb), each.key) ? { mac_smb = local.vm_mac_smb[each.key] } : {},
+  )
 }
 
 resource "ansible_host" "ue_previs" {
   for_each = var.ue_previs
   name     = each.key
   groups   = ["ue_previs"]
-  variables = {
-    ansible_host = each.value.ip
-    media_ip     = each.value.media_ip
-  }
+  variables = merge(
+    {
+      ansible_host = each.value.ip
+      ip_2110    = each.value.ip_2110
+    },
+    each.value.ip_smb != null ? { ip_smb = each.value.ip_smb } : {},
+    contains(keys(local.vm_mac_2110), each.key) ? { mac_2110 = local.vm_mac_2110[each.key] } : {},
+    contains(keys(local.vm_mac_smb), each.key) ? { mac_smb = local.vm_mac_smb[each.key] } : {},
+  )
 }
 
 resource "ansible_host" "touch" {
   for_each = var.touch
   name     = each.key
   groups   = ["touch"]
-  variables = {
-    ansible_host = each.value.ip
-  }
+  variables = merge(
+    { ansible_host = each.value.ip },
+    each.value.ip_2110 != null ? { ip_2110 = each.value.ip_2110 } : {},
+    each.value.ip_smb != null ? { ip_smb = each.value.ip_smb } : {},
+    contains(keys(local.vm_mac_2110), each.key) ? { mac_2110 = local.vm_mac_2110[each.key] } : {},
+    contains(keys(local.vm_mac_smb), each.key) ? { mac_smb = local.vm_mac_smb[each.key] } : {},
+  )
 }
 
 resource "ansible_host" "arnold_fusion" {
   for_each = var.arnold_fusion
   name     = each.key
   groups   = ["arnold_fusion"]
-  variables = {
-    ansible_host = each.value.ip
-  }
+  variables = merge(
+    { ansible_host = each.value.ip },
+    each.value.ip_2110 != null ? { ip_2110 = each.value.ip_2110 } : {},
+    each.value.ip_smb != null ? { ip_smb = each.value.ip_smb } : {},
+    contains(keys(local.vm_mac_2110), each.key) ? { mac_2110 = local.vm_mac_2110[each.key] } : {},
+    contains(keys(local.vm_mac_smb), each.key) ? { mac_smb = local.vm_mac_smb[each.key] } : {},
+  )
 }
 
 resource "ansible_host" "workstation" {
   for_each = var.workstation
   name     = each.key
   groups   = ["workstation"]
-  variables = {
-    ansible_host = each.value.ip
-  }
+  variables = merge(
+    { ansible_host = each.value.ip },
+    each.value.ip_2110 != null ? { ip_2110 = each.value.ip_2110 } : {},
+    each.value.ip_smb != null ? { ip_smb = each.value.ip_smb } : {},
+    contains(keys(local.vm_mac_2110), each.key) ? { mac_2110 = local.vm_mac_2110[each.key] } : {},
+    contains(keys(local.vm_mac_smb), each.key) ? { mac_smb = local.vm_mac_smb[each.key] } : {},
+  )
 }
 
 # --- Windows VMs (no GPU) ---------------------------------------------------
@@ -201,9 +227,13 @@ resource "ansible_host" "ue_plugin_dev" {
   for_each = var.ue_plugin_dev
   name     = each.key
   groups   = ["ue_plugin_dev"]
-  variables = {
-    ansible_host = each.value.ip
-  }
+  variables = merge(
+    { ansible_host = each.value.ip },
+    each.value.ip_2110 != null ? { ip_2110 = each.value.ip_2110 } : {},
+    each.value.ip_smb != null ? { ip_smb = each.value.ip_smb } : {},
+    contains(keys(local.vm_mac_2110), each.key) ? { mac_2110 = local.vm_mac_2110[each.key] } : {},
+    contains(keys(local.vm_mac_smb), each.key) ? { mac_smb = local.vm_mac_smb[each.key] } : {},
+  )
 }
 
 resource "ansible_host" "ue_runner" {
@@ -304,6 +334,7 @@ resource "ansible_host" "proxmox_prod" {
     { ansible_host = each.value.ip },
     length(each.value.sriov_cards) > 0 ? { sriov_cards_json = jsonencode(each.value.sriov_cards) } : {},
     length(each.value.gpus) > 0 ? { gpus_json = jsonencode(each.value.gpus) } : {},
+    length(local.vf_macs_by_host[each.key]) > 0 ? { vf_macs_json = jsonencode(local.vf_macs_by_host[each.key]) } : {},
   )
 }
 
@@ -318,5 +349,6 @@ resource "ansible_host" "proxmox_dev" {
     { ansible_host = each.value.ip },
     length(each.value.sriov_cards) > 0 ? { sriov_cards_json = jsonencode(each.value.sriov_cards) } : {},
     length(each.value.gpus) > 0 ? { gpus_json = jsonencode(each.value.gpus) } : {},
+    length(local.vf_macs_by_host[each.key]) > 0 ? { vf_macs_json = jsonencode(local.vf_macs_by_host[each.key]) } : {},
   )
 }

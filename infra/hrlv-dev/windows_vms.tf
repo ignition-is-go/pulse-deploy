@@ -38,9 +38,9 @@ module "windows_vm" {
   started        = each.value.started
 
   # No GPU — only CX6 VFs when specified
-  pci_devices = [for i, slot in each.value.cx6_slots : {
+  pci_devices = [for i, offset in each.value.cx6_vf_offsets : {
     device = "hostpci${i}"
-    id     = var.proxmox_hosts[each.value.node].cx6_vfs[slot]
+    id     = var.proxmox_hosts[each.value.node].cx6_vfs[each.value.cx6_card * local.cx6_vfs_per_card[each.value.node] + offset]
     xvga   = false
     pcie   = true
     rombar = true

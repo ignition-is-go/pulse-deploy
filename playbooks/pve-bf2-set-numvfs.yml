@@ -1,0 +1,46 @@
+---
+# pve-bf2-set-numvfs.yml — Set BF2 firmware NUM_OF_VFS and reboot if changed
+#
+# Requires reboot for firmware changes to take effect.
+#
+# Usage:
+#   ansible-playbook playbooks/pve-bf2-set-numvfs.yml --limit nyc-dev-pve-03
+#   ansible-playbook playbooks/pve-bf2-set-numvfs.yml --limit proxmox_dev
+
+- name: Set BF2 firmware NUM_OF_VFS
+  hosts: proxmox
+  serial: 1
+  gather_facts: false
+  tasks:
+    - name: Start MST driver
+      ansible.builtin.command:
+        cmd: mst start
+      changed_when: false
+
+    - name: Find MST device
+      ansible.builtin.shell:
+        cmd: ls /dev/mst/ | grep pciconf | head -1
+      register: mst_dev
+      changed_when: false
+      failed_when: mst_dev.stdout == ''
+
+    - name: Query current NUM_OF_VFS
+      ansible.builtin.shell:
+        cmd: "mlxconfig -d /dev/mst/{{ mst_dev.stdout }} q | grep -oP 'NUM_OF_VFS\\s+\\K\\d+'"
+      register: current_numvfs
+      changed_when: false
+
+    - name: Show current firmware VF limit
+      ansible.builtin.debug:
+        msg: "NUM_OF_VFS={{ current_numvfs.stdout }}, target={{ bf2_vf_count }}"
+
+    - name: Set NUM_OF_VFS in firmware
+      ansible.builtin.command:
+        cmd: "mlxconfig -d /dev/mst/{{ mst_dev.stdout }} -y set NUM_OF_VFS={{ bf2_vf_count }}"
+      when: current_numvfs.stdout | int != bf2_vf_count | int
+      register: mlxconfig_result
+
+    - name: Reboot required
+      ansible.builtin.debug:
+        msg: "NUM_OF_VFS changed to {{ bf2_vf_count }}. Reboot {{ inventory_hostname }} to apply."
+      when: mlxconfig_result is changed
