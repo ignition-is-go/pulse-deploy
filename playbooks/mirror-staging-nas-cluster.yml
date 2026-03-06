@@ -5,10 +5,10 @@
 # single two-stage pipeline.
 #
 # Usage:
-#   ansible-playbook playbooks/sync-workspace.yml
-#   ansible-playbook playbooks/sync-workspace.yml --limit ue_content
-#   ansible-playbook playbooks/sync-workspace.yml -e "parallel_nodes=2"
-#   ansible-playbook playbooks/sync-workspace.yml -e "robocopy_dry_run=true"
+#   ansible-playbook playbooks/mirror-staging-nas-cluster.yml
+#   ansible-playbook playbooks/mirror-staging-nas-cluster.yml --limit ue_content
+#   ansible-playbook playbooks/mirror-staging-nas-cluster.yml -e "parallel_nodes=2"
+#   ansible-playbook playbooks/mirror-staging-nas-cluster.yml -e "robocopy_dry_run=true"
 
 - name: Stage 1 — Mirror staging workspace to NAS
   ansible.builtin.import_playbook: mirror-staging-nas.yml

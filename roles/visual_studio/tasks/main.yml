@@ -1,42 +1,88 @@
 ---
-# visual_studio — Visual Studio Community 2022 with C++ desktop workload
+# visual_studio — Visual Studio Community 2022
 #
-# Uses the web bootstrapper (vs_community.exe) which downloads components
-# during install. Nodes need internet access for first install.
+# Installs VS Community with the workloads listed in vs_community_workloads,
+# or modifies an existing installation to add any missing workloads.
+# Fresh install uses the web bootstrapper — nodes need internet access.
+# Modify uses the local setup.exe (already present after initial install).
 #
 # Requires (group_vars):
 #   vs_community_installer_source: UNC path to VisualStudioSetup.exe on NAS
+#   vs_community_workloads: list of workload IDs to install
+#   vs_community_install_path: install path (default below)
 
 - name: Check if Visual Studio Community installed
   ansible.windows.win_stat:
-    path: C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\devenv.exe
+    path: "{{ vs_community_install_path }}\\Common7\\IDE\\devenv.exe"
   register: vs_community_check
 
-- name: Copy VS Community installer from NAS
+# --- Fresh install ---
+
+- name: Copy VS Community bootstrapper from NAS
   ansible.windows.win_copy:
     src: "{{ vs_community_installer_source }}"
     dest: C:\Windows\Temp\VisualStudioSetup.exe
     remote_src: true
   when: not vs_community_check.stat.exists
 
-- name: Install Visual Studio Community (silent)
-  ansible.windows.win_shell: >-
-    Start-Process -FilePath "C:\Windows\Temp\VisualStudioSetup.exe"
-    -ArgumentList "--wait --quiet --norestart --nocache
-    --add Microsoft.VisualStudio.Workload.NativeDesktop
-    --includeRecommended"
-    -Wait -PassThru
+- name: Install Visual Studio Community (fresh install)
+  ansible.windows.win_shell: |
+    $p = Start-Process -FilePath 'C:\Windows\Temp\VisualStudioSetup.exe' `
+      -ArgumentList "--wait --quiet --norestart --nocache {{ vs_community_workloads | map('regex_replace', '^', '--add ') | join(' ') }} --includeRecommended" `
+      -Wait -PassThru
+    exit $p.ExitCode
   when: not vs_community_check.stat.exists
+  register: vs_fresh_install
+  failed_when: vs_fresh_install.rc not in [0, 3010]
   async: 3600
   poll: 30
 
-- name: Verify Visual Studio Community installed
-  ansible.windows.win_stat:
-    path: C:\Program Files\Microsoft Visual Studio\18\Community\Common7\IDE\devenv.exe
-  register: vs_community_verify
-  failed_when: not vs_community_verify.stat.exists
-
-- name: Clean up VS Community installer
+- name: Clean up VS Community bootstrapper
   ansible.windows.win_file:
     path: C:\Windows\Temp\VisualStudioSetup.exe
     state: absent
+  when: not vs_community_check.stat.exists
+
+# --- Modify existing install if workloads are missing ---
+
+- name: Query installed VS workloads via vswhere
+  ansible.windows.win_shell: |
+    $vswhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
+    $missing = @()
+    foreach ($w in @({% for w in vs_community_workloads %}'{{ w }}'{% if not loop.last %}, {% endif %}{% endfor %})) {
+      $result = & $vswhere -products * -requires $w -property installationPath
+      if (-not $result) { $missing += $w }
+    }
+    $missing -join ','
+  register: vs_workload_query
+  changed_when: false
+  when: vs_community_check.stat.exists
+
+- name: Set missing workloads fact
+  ansible.builtin.set_fact:
+    vs_missing_workloads: "{{ vs_workload_query.stdout | default('') | trim }}"
+  when: vs_community_check.stat.exists
+
+- name: Modify Visual Studio to add missing workloads
+  ansible.windows.win_shell: |
+    $setup = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe'
+    $installPath = '{{ vs_community_install_path }}'
+    $missing = '{{ vs_missing_workloads }}'.Split(',')
+    $addArgs = ($missing | ForEach-Object { "--add $_" }) -join ' '
+    $p = Start-Process -FilePath $setup `
+      -ArgumentList "modify --installPath `"$installPath`" --quiet --norestart $addArgs --includeRecommended" `
+      -Wait -PassThru
+    exit $p.ExitCode
+  when: vs_community_check.stat.exists and (vs_missing_workloads | default('') | length > 0)
+  register: vs_modify_install
+  failed_when: vs_modify_install.rc not in [0, 3010]
+  async: 3600
+  poll: 30
+
+# --- Verify ---
+
+- name: Verify Visual Studio Community installed
+  ansible.windows.win_stat:
+    path: "{{ vs_community_install_path }}\\Common7\\IDE\\devenv.exe"
+  register: vs_community_verify
+  failed_when: not vs_community_verify.stat.exists

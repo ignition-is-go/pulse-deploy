@@ -1,10 +1,16 @@
 ---
-# Multi-User Editing (Concert) configuration
-plastic_workspace: "F:/P-0616-HRLV"
-unreal_project: "F:/P-0616-HRLV/ue/HRLV_Content/HRLV_Content.uproject"
+# Concert multi-user editor node — live scene editing for nDisplay cluster
 
-# Concert server settings
+rivermax: true
+
+nvidia_supported_gpus: ["RTX 6000 Ada"]
+vdd_width: 2560
+vdd_height: 1440
+
+unreal_project: "{{ plastic_workspace }}/ue/HRLV_Content/HRLV_Content.uproject"
+
+# Concert (Multi-User Editing) — this node runs the Concert server
+# concert_server_ip flows from Terraform via ansible_host variables
+concert_server_port: 6666
 concert_session: "HRLV_Content"
 concert_server_name: "HRLV-MU-Server"
-concert_server_port: 6666
-concert_server_ip: "192.168.1.153"

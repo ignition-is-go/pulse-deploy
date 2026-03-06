@@ -23,7 +23,7 @@ ndisplay: rivermax_4node
 ndisplay_config: "{{ ndisplay_configs[ndisplay] }}"
 
 # Concert (Multi-User Editing) — render nodes connect to this server
-concert_server_ip: "192.168.1.153"
+# concert_server_ip flows from Terraform via ansible_host variables
 concert_server_port: 6666
 concert_session: "HRLV_Content"
 concert_server_name: "HRLV-MU-Server"
