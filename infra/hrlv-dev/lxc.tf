@@ -33,7 +33,7 @@ module "lxc" {
   hostname         = each.key
   description      = local.lxc_descriptions[each.key]
   node_name        = each.value.node
-  tags             = local.lxc_tags[each.key]
+  tags             = sort(local.lxc_tags[each.key])
   template_file_id = var.lxc_template
   cores            = each.value.cores
   memory_mb        = each.value.memory_mb

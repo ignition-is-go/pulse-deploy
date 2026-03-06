@@ -27,13 +27,27 @@ resource "proxmox_virtual_environment_vm" "this" {
   }
 
   cpu {
-    cores = var.cores
-    type  = local.cpu_type
+    cores    = var.cores
+    type     = local.cpu_type
+    numa     = var.numa_config != null
+    affinity = var.cpu_affinity
   }
 
   memory {
     dedicated = var.memory_mb
     floating  = var.floating
+  }
+
+  # NUMA node binding — pin guest memory and vCPUs to a host NUMA node
+  dynamic "numa" {
+    for_each = var.numa_config != null ? [var.numa_config] : []
+    content {
+      device    = "numa0"
+      cpus      = "0-${var.cores - 1}"
+      hostnodes = numa.value.hostnodes
+      memory    = numa.value.memory_mb
+      policy    = "bind"
+    }
   }
 
   # EFI disk — only when override_bios = "ovmf"

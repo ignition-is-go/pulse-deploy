@@ -27,7 +27,7 @@ module "windows_vm" {
   name           = each.key
   description    = local.windows_vm_descriptions[each.key]
   node_name      = each.value.node
-  tags           = local.windows_vm_tags[each.key]
+  tags           = sort(local.windows_vm_tags[each.key])
   template_id    = var.windows_template_ids[each.value.node]
   cores          = each.value.cores
   memory_mb      = each.value.memory_mb
@@ -37,14 +37,14 @@ module "windows_vm" {
   os_type        = "win11"
   started        = each.value.started
 
-  # No GPU — only CX6 VF when specified
-  pci_devices = each.value.cx6_slot != null ? [{
-    device = "hostpci0"
-    id     = var.proxmox_hosts[each.value.node].cx6_vfs[each.value.cx6_slot]
+  # No GPU — only CX6 VFs when specified
+  pci_devices = [for i, slot in each.value.cx6_slots : {
+    device = "hostpci${i}"
+    id     = var.proxmox_hosts[each.value.node].cx6_vfs[slot]
     xvga   = false
     pcie   = true
     rombar = true
-  }] : []
+  }]
 
   # Cloudbase-init sets IP/DNS on first boot
   cloud_init = {

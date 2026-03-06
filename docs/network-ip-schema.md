@@ -116,7 +116,9 @@ nyc-dev-pve-01 is on a separate 192.168.8.x subnet (travel cluster) — not in t
 │  .62 │  kvm-prod-pve-02        │  KVM-IP      │  If equipped                             │
 │.63-69│  —                      │  reserved    │                                          │
 │      │                         │              │                                          │
-│      │  .70-.79 BMC / IPMI     │              │                                          │
+│      │  .70-.79 CONTROL + BMC   │              │                                          │
+│      │                         │              │                                          │
+│  .70 │  pulse-admin            │  LXC         │  Ansible control node (on nyc-prod-pve-01)│
 │      │                         │              │                                          │
 │      │                         │              │  NOTE: .71-.76 occupied by legacy render │
 │      │                         │              │  nodes until ue-content migration done.  │
@@ -138,16 +140,12 @@ nyc-dev-pve-01 is on a separate 192.168.8.x subnet (travel cluster) — not in t
 │      │                         │              │  VM ID = 1000 + last octet               │
 │      │                         │              │                                          │
 │ .100 │  —                      │  reserved    │  Range base                              │
-│ .101 │  pulse-admin-dev        │  LXC (1101)  │  Control node clone (optional)           │
-│.102-9│  —                      │  reserved    │  Dev Linux services                      │
+│.101-9│  —                      │  reserved    │  Dev Linux services                      │
 │ .110 │  —                      │  reserved    │  Range base                              │
 │ .111 │  ue-staging-01          │  VM (1111)   │  UE staging environment                  │
 │ .112 │  ue-staging-02          │  VM (1112)   │  Backup staging                          │
 │.113-9│  —                      │  reserved    │  Staging expansion                       │
-│ .120 │  —                      │  reserved    │  Range base                              │
-│ .121 │  ue-editing-01          │  VM (1121)   │  Concert multi-user server + editing     │
-│.122-4│  —                      │  reserved    │  Editing expansion                       │
-│ .125 │  —                      │  reserved    │  Range base                              │
+│.120-5│  —                      │  reserved    │  Future dev VMs                          │
 │ .126 │  workstation-01         │  VM (1126)   │  Artist workstation (RDP)                │
 │.127-9│  —                      │  reserved    │  Workstation expansion                   │
 │ .130 │  —                      │  reserved    │  Range base                              │
@@ -166,7 +164,7 @@ nyc-dev-pve-01 is on a separate 192.168.8.x subnet (travel cluster) — not in t
 │      │  .160-.199 PROD GUESTS  │              │  VMs/LXCs on nyc-prod-pve-*              │
 │      │                         │              │  VM ID = 1000 + last octet               │
 │      │                         │              │                                          │
-│ .160 │  pulse-admin            │  LXC (1160)  │  Ansible control node, Samba NAS         │
+│ .160 │  —                      │  reserved    │  Future prod LXC                         │
 │ .161 │  ue-content-01          │  VM (1161)   │  nDisplay (primary)         media .161   │
 │ .162 │  ue-content-02          │  VM (1162)   │  nDisplay                   media .162   │
 │ .163 │  ue-content-03          │  VM (1163)   │  nDisplay                   media .163   │
@@ -183,7 +181,8 @@ nyc-dev-pve-01 is on a separate 192.168.8.x subnet (travel cluster) — not in t
 │ .174 │  ue-content-14          │  VM (1174)   │                                          │
 │ .175 │  ue-content-15          │  VM (1175)   │                                          │
 │ .176 │  ue-content-16          │  VM (1176)   │                                          │
-│.177-9│  —                      │  reserved    │  Content cluster expansion               │
+│ .177 │  ue-editing-01          │  VM (1177)   │  Concert multi-user editor               │
+│.178-9│  —                      │  reserved    │  Editing expansion                       │
 │ .180 │  —                      │  reserved    │  Range base                              │
 │ .181 │  ue-previs-01           │  VM (1181)   │  Previs receiver            media .181   │
 │.182-4│  —                      │  reserved    │  Previs expansion                        │
@@ -245,6 +244,7 @@ Last octet mirrors management IP for easy correlation.
 │  nyc-dev-pve-03               │  .43       │  .43       │  —                 │
 │  nyc-prod-pve-01              │  .51       │  .51       │  —                 │
 │  nyc-prod-pve-02              │  .61       │  .61       │  —                 │
+│  pulse-admin                  │  .70       │  .70       │  —                 │
 │  Mellanox switch              │  .5        │  .5        │  —                 │
 │  Netgear switch               │  .7        │  .7        │  —                 │
 │  Symmetricom PTP (mgmt)       │  .6        │  .6        │  —                 │
@@ -264,7 +264,6 @@ Last octet mirrors management IP for easy correlation.
 ├───────────────────────────────┼────────────┼────────────┼────────────────────┤
 │  MOVE — guest IPs (terraform) │            │            │                    │
 ├───────────────────────────────┼────────────┼────────────┼────────────────────┤
-│  pulse-admin                  │  .70       │  .160      │  Move              │
 │  ue-staging-01                │  .14       │  .111      │  Update terraform  │
 │  touch-01                     │  .76       │  .185      │  Move + rename     │
 │  ue-editing-01                │  .153      │  .121      │  Move + rename     │

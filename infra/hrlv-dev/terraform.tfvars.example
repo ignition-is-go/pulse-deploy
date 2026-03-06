@@ -51,7 +51,7 @@ ssh_public_key = "ssh-ed25519 AAAA... user@control-plane"
 
 # =============================================================================
 # Node definitions — gpu_slots index into proxmox_hosts[node].gpus,
-#                    cx6_slot indexes into proxmox_hosts[node].cx6_vfs
+#                    cx6_slots index into proxmox_hosts[node].cx6_vfs
 #
 # ID = 1000 + IP last octet
 # =============================================================================
@@ -98,6 +98,6 @@ ue_render_nodes = {     # .100-.139
     memory_mb = 98304
     disk_gb   = 300
     gpu_slots = [0]
-    cx6_slot  = 0
+    cx6_slots = [0, 1]
   }
 }

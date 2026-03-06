@@ -1,7 +1,7 @@
 # =============================================================================
 # VM Type Catalog
 #
-# All VM types get a CX6 VF when available (high-speed media network).
+# GPU VMs get two CX6 VFs: media (Rivermax) + storage (SMB Direct).
 #
 #   Type                  OS           GPU     Notes
 #   ──────────────────    ──────────   ──────  ─────────────────────────────────
@@ -46,7 +46,7 @@
 # =============================================================================
 # IP Plan (192.168.1.0/24) — see docs/network-ip-schema.md for full detail
 #
-#   .1-.99      PHYSICAL      everything with a chassis
+#   .1-.99      PHYSICAL      hosts + pulse-admin LXC (.70)
 #   .100-.159   DEV GUESTS    VMs/LXCs on nyc-dev-pve-*
 #   .160-.199   PROD GUESTS   VMs/LXCs on nyc-prod-pve-*
 #   .200-.254   DHCP          temporary / unmanaged
@@ -54,7 +54,6 @@
 # VM ID = 1000 + last octet
 #
 # Dev guests (.100-.159):
-#   .101        pulse-admin-dev
 #   .111-.114   ue-staging
 #   .121-.124   ue-editing
 #   .126-.129   workstation
@@ -63,8 +62,8 @@
 #   .150-.159   arnold/fusion
 #
 # Prod guests (.160-.199):
-#   .160        pulse-admin
 #   .161-.176   ue-content
+#   .177-.180   ue-editing
 #   .181-.184   ue-previs
 #   .185-.189   touch
 #   .191-.199   optik
@@ -161,6 +160,14 @@ proxmox_hosts = {
       "0000:e0:00.0",
     ]
     cx6_vfs = [
+      "0000:5a:00.2",
+      "0000:5a:00.3",
+      "0000:5a:00.4",
+      "0000:5a:00.5",
+      "0000:5a:00.6",
+      "0000:5a:00.7",
+      "0000:5a:01.0",
+      "0000:5a:01.1",
       "0000:df:00.2",
       "0000:df:00.3",
       "0000:df:00.4",
@@ -337,7 +344,7 @@ ssh_public_key = "ssh-ed25519 AAAA... user@control-plane"
 
 # =============================================================================
 # Node definitions — gpu_slots index into proxmox_hosts[node].gpus,
-#                    cx6_slot indexes into proxmox_hosts[node].cx6_vfs
+#                    cx6_slots index into proxmox_hosts[node].cx6_vfs
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -437,16 +444,16 @@ ue_staging = {
 # -----------------------------------------------------------------------------
 
 touch = {
-  # "touch-01" = {
-  #   id        = 1185
-  #   ip        = "192.168.1.185"
-  #   node      = "nyc-prod-pve-02"
-  #   cores     = 16
-  #   memory_mb = 98304
-  #   disk_gb   = 200
-  #   gpu_slots = [0]
-  #   cx6_slot  = 0
-  # }
+  "touch-01" = {
+    id        = 1185
+    ip        = "192.168.1.185"
+    node      = "nyc-prod-pve-01"
+    cores     = 16
+    memory_mb = 98304
+    disk_gb   = 300
+    gpu_slots = [7]
+    cx6_slots = [14, 15]
+  }
 }
 
 # -----------------------------------------------------------------------------
@@ -467,22 +474,24 @@ rship = {}
 
 workstation = {
   "workstation-01" = {
-    id        = 1126
-    ip        = "192.168.1.126"
-    node      = "nyc-dev-pve-02"
-    cores     = 16
-    memory_mb = 98304
-    disk_gb   = 300
-    gpu_slots = [0]
+    id         = 1126
+    ip         = "192.168.1.126"
+    node       = "nyc-dev-pve-02"
+    cores      = 32
+    memory_mb  = 98304
+    disk_gb    = 300
+    gpu_slots  = [0]
+    extra_tags = ["jaksa"]
   }
   "workstation-02" = {
-    id        = 1127
-    ip        = "192.168.1.127"
-    node      = "nyc-dev-pve-02"
-    cores     = 16
-    memory_mb = 98304
-    disk_gb   = 300
-    gpu_slots = [1]
+    id         = 1127
+    ip         = "192.168.1.127"
+    node       = "nyc-dev-pve-02"
+    cores      = 32
+    memory_mb  = 98304
+    disk_gb    = 300
+    gpu_slots  = [1]
+    extra_tags = ["mateo"]
   }
 }
 
@@ -491,6 +500,7 @@ workstation = {
 # -----------------------------------------------------------------------------
 
 ue_content = {
+  # --- nyc-prod-pve-01 (nodes 01-08) --- NUMA 0: slots 0-3, NUMA 1: slots 4-7
   "ue-content-01" = {
     id               = 1161
     ip               = "192.168.1.161"
@@ -502,7 +512,246 @@ ue_content = {
     memory_mb        = 98304
     disk_gb          = 300
     gpu_slots        = [0]
-    cx6_slot         = 0
+    cx6_slots        = [0, 1]
+    numa_node        = 0
+    cpu_affinity     = "0-15"
+    started          = false
+  }
+  # "ue-content-02" = {
+  #   id               = 1162
+  #   ip               = "192.168.1.162"
+  #   media_ip         = "10.0.0.162"
+  #   ndisplay_node    = "Node_2"
+  #   node             = "nyc-prod-pve-01"
+  #   cores            = 16
+  #   memory_mb        = 98304
+  #   disk_gb          = 300
+  #   gpu_slots        = [1]
+  #   cx6_slots        = [2, 3]
+  #   numa_node        = 0
+  #   cpu_affinity     = "16-31"
+  #   started          = false
+  # }
+  # "ue-content-03" = {
+  #   id               = 1163
+  #   ip               = "192.168.1.163"
+  #   media_ip         = "10.0.0.163"
+  #   ndisplay_node    = "Node_3"
+  #   node             = "nyc-prod-pve-01"
+  #   cores            = 16
+  #   memory_mb        = 98304
+  #   disk_gb          = 300
+  #   gpu_slots        = [2]
+  #   cx6_slots        = [4, 5]
+  #   numa_node        = 0
+  #   cpu_affinity     = "32-47"
+  #   started          = false
+  # }
+  # "ue-content-04" = {
+  #   id               = 1164
+  #   ip               = "192.168.1.164"
+  #   media_ip         = "10.0.0.164"
+  #   ndisplay_node    = "Node_4"
+  #   node             = "nyc-prod-pve-01"
+  #   cores            = 16
+  #   memory_mb        = 98304
+  #   disk_gb          = 300
+  #   gpu_slots        = [3]
+  #   cx6_slots        = [6, 7]
+  #   numa_node        = 0
+  #   cpu_affinity     = "48-63"
+  #   started          = false
+  # }
+  # "ue-content-05" = {
+  #   id               = 1165
+  #   ip               = "192.168.1.165"
+  #   media_ip         = "10.0.0.165"
+  #   ndisplay_node    = "Node_5"
+  #   node             = "nyc-prod-pve-01"
+  #   cores            = 16
+  #   memory_mb        = 98304
+  #   disk_gb          = 300
+  #   gpu_slots        = [4]
+  #   cx6_slots        = [8, 9]
+  #   numa_node        = 1
+  #   cpu_affinity     = "64-79"
+  #   started          = false
+  # }
+  # "ue-content-06" = {
+  #   id               = 1166
+  #   ip               = "192.168.1.166"
+  #   media_ip         = "10.0.0.166"
+  #   ndisplay_node    = "Node_6"
+  #   node             = "nyc-prod-pve-01"
+  #   cores            = 16
+  #   memory_mb        = 98304
+  #   disk_gb          = 300
+  #   gpu_slots        = [5]
+  #   cx6_slots        = [10, 11]
+  #   numa_node        = 1
+  #   cpu_affinity     = "80-95"
+  #   started          = false
+  # }
+  # "ue-content-07" = {
+  #   id               = 1167
+  #   ip               = "192.168.1.167"
+  #   media_ip         = "10.0.0.167"
+  #   ndisplay_node    = "Node_7"
+  #   node             = "nyc-prod-pve-01"
+  #   cores            = 16
+  #   memory_mb        = 98304
+  #   disk_gb          = 300
+  #   gpu_slots        = [6]
+  #   cx6_slots        = [12, 13]
+  #   numa_node        = 1
+  #   cpu_affinity     = "96-111"
+  #   started          = false
+  # }
+  # "ue-content-08" = {
+  #   id               = 1168
+  #   ip               = "192.168.1.168"
+  #   media_ip         = "10.0.0.168"
+  #   ndisplay_node    = "Node_8"
+  #   node             = "nyc-prod-pve-01"
+  #   cores            = 16
+  #   memory_mb        = 98304
+  #   disk_gb          = 300
+  #   gpu_slots        = [7]
+  #   cx6_slots        = [14, 15]
+  #   numa_node        = 1
+  #   cpu_affinity     = "112-127"
+  #   started          = false
+  # }
+  # --- nyc-prod-pve-02 (nodes 09-16) --- NUMA 0: slots 0-3, NUMA 1: slots 4-7
+  "ue-content-09" = {
+    id               = 1169
+    ip               = "192.168.1.169"
+    media_ip         = "10.0.0.169"
+    ndisplay_node    = "Node_1"
+    ndisplay_primary = true
+    node             = "nyc-prod-pve-02"
+    cores            = 16
+    memory_mb        = 98304
+    disk_gb          = 300
+    gpu_slots        = [0]
+    cx6_slots        = [0, 1]
+    numa_node        = 0
+    cpu_affinity     = "0-15"
+  }
+  "ue-content-10" = {
+    id               = 1170
+    ip               = "192.168.1.170"
+    media_ip         = "10.0.0.170"
+    ndisplay_node    = "Node_2"
+    node             = "nyc-prod-pve-02"
+    cores            = 16
+    memory_mb        = 98304
+    disk_gb          = 300
+    gpu_slots        = [1]
+    cx6_slots        = [2, 3]
+    numa_node        = 0
+    cpu_affinity     = "16-31"
+  }
+  "ue-content-11" = {
+    id               = 1171
+    ip               = "192.168.1.171"
+    media_ip         = "10.0.0.171"
+    ndisplay_node    = "Node_3"
+    node             = "nyc-prod-pve-02"
+    cores            = 16
+    memory_mb        = 98304
+    disk_gb          = 300
+    gpu_slots        = [2]
+    cx6_slots        = [4, 5]
+    numa_node        = 0
+    cpu_affinity     = "32-47"
+  }
+  "ue-content-12" = {
+    id               = 1172
+    ip               = "192.168.1.172"
+    media_ip         = "10.0.0.172"
+    ndisplay_node    = "Node_4"
+    node             = "nyc-prod-pve-02"
+    cores            = 16
+    memory_mb        = 98304
+    disk_gb          = 300
+    gpu_slots        = [3]
+    cx6_slots        = [6, 7]
+    numa_node        = 0
+    cpu_affinity     = "48-63"
+  }
+  "ue-content-13" = {
+    id               = 1173
+    ip               = "192.168.1.173"
+    media_ip         = "10.0.0.173"
+    ndisplay_node    = "Node_5"
+    node             = "nyc-prod-pve-02"
+    cores            = 16
+    memory_mb        = 98304
+    disk_gb          = 300
+    gpu_slots        = [4]
+    cx6_slots        = [8, 9]
+    numa_node        = 1
+    cpu_affinity     = "64-79"
+  }
+  "ue-content-14" = {
+    id               = 1174
+    ip               = "192.168.1.174"
+    media_ip         = "10.0.0.174"
+    ndisplay_node    = "Node_6"
+    node             = "nyc-prod-pve-02"
+    cores            = 16
+    memory_mb        = 98304
+    disk_gb          = 300
+    gpu_slots        = [5]
+    cx6_slots        = [10, 11]
+    numa_node        = 1
+    cpu_affinity     = "80-95"
+  }
+  "ue-content-15" = {
+    id               = 1175
+    ip               = "192.168.1.175"
+    media_ip         = "10.0.0.175"
+    ndisplay_node    = "Node_7"
+    node             = "nyc-prod-pve-02"
+    cores            = 16
+    memory_mb        = 98304
+    disk_gb          = 300
+    gpu_slots        = [6]
+    cx6_slots        = [12, 13]
+    numa_node        = 1
+    cpu_affinity     = "96-111"
+  }
+  "ue-content-16" = {
+    id               = 1176
+    ip               = "192.168.1.176"
+    media_ip         = "10.0.0.176"
+    ndisplay_node    = "Node_8"
+    node             = "nyc-prod-pve-02"
+    cores            = 16
+    memory_mb        = 98304
+    disk_gb          = 300
+    gpu_slots        = [7]
+    cx6_slots        = [14, 15]
+    numa_node        = 1
+    cpu_affinity     = "112-127"
+  }
+}
+
+# -----------------------------------------------------------------------------
+# ue_editing (Windows + GPU) — Concert multi-user editor              .177-.180
+# -----------------------------------------------------------------------------
+
+ue_editing = {
+  "ue-editing-01" = {
+    id        = 1177
+    ip        = "192.168.1.177"
+    node      = "nyc-prod-pve-01"
+    cores     = 16
+    memory_mb = 98304
+    disk_gb   = 300
+    gpu_slots = [0]
+    cx6_slots = [0, 1]
   }
 }
 
@@ -519,6 +768,6 @@ ue_previs = {
   #   memory_mb = 98304
   #   disk_gb   = 300
   #   gpu_slots = [4]
-  #   cx6_slot  = 4
+  #   cx6_slots = [4, 5]
   # }
 }

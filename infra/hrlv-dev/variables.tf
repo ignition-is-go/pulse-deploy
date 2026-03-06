@@ -121,8 +121,30 @@ variable "ue_content" {
     memory_mb         = number
     disk_gb           = number
     gpu_slots         = list(number)     # indices into proxmox_hosts[node].gpus
-    cx6_slot          = optional(number) # index into proxmox_hosts[node].cx6_vfs
+    cx6_slots         = optional(list(number), []) # indices into proxmox_hosts[node].cx6_vfs
+    numa_node         = optional(number) # host NUMA node (0 or 1)
+    extra_tags        = optional(list(string), [])
+    cpu_affinity      = optional(string) # host core pinning (e.g. "0-15")
     started           = optional(bool, true)
+  }))
+  default = {}
+}
+
+variable "ue_editing" {
+  description = "UE Concert multi-user editor nodes (Windows + GPU)"
+  type = map(object({
+    id           = number
+    ip           = string
+    node         = string
+    cores        = number
+    memory_mb    = number
+    disk_gb      = number
+    gpu_slots    = list(number)
+    cx6_slots    = optional(list(number), [])
+    numa_node    = optional(number)
+    extra_tags   = optional(list(string), [])
+    cpu_affinity = optional(string)
+    started      = optional(bool, true)
   }))
   default = {}
 }
@@ -130,16 +152,19 @@ variable "ue_content" {
 variable "ue_previs" {
   description = "UE nDisplay previs render nodes (Windows + GPU)"
   type = map(object({
-    id        = number
-    ip        = string
-    media_ip  = string
-    node      = string
-    cores     = number
-    memory_mb = number
-    disk_gb   = number
-    gpu_slots = list(number)
-    cx6_slot  = optional(number)
-    started   = optional(bool, true)
+    id           = number
+    ip           = string
+    media_ip     = string
+    node         = string
+    cores        = number
+    memory_mb    = number
+    disk_gb      = number
+    gpu_slots    = list(number)
+    cx6_slots    = optional(list(number), [])
+    numa_node    = optional(number)
+    extra_tags   = optional(list(string), [])
+    cpu_affinity = optional(string)
+    started      = optional(bool, true)
   }))
   default = {}
 }
@@ -147,15 +172,18 @@ variable "ue_previs" {
 variable "touch" {
   description = "TouchDesigner nodes — volumetric content render (Windows + GPU)"
   type = map(object({
-    id        = number
-    ip        = string
-    node      = string
-    cores     = number
-    memory_mb = number
-    disk_gb   = number
-    gpu_slots = list(number)
-    cx6_slot  = optional(number)
-    started   = optional(bool, true)
+    id           = number
+    ip           = string
+    node         = string
+    cores        = number
+    memory_mb    = number
+    disk_gb      = number
+    gpu_slots    = list(number)
+    cx6_slots    = optional(list(number), [])
+    numa_node    = optional(number)
+    extra_tags   = optional(list(string), [])
+    cpu_affinity = optional(string)
+    started      = optional(bool, true)
   }))
   default = {}
 }
@@ -163,15 +191,18 @@ variable "touch" {
 variable "arnold_fusion" {
   description = "Arnold/Fusion offline render + compositing nodes (Windows + GPU)"
   type = map(object({
-    id        = number
-    ip        = string
-    node      = string
-    cores     = number
-    memory_mb = number
-    disk_gb   = number
-    gpu_slots = list(number)
-    cx6_slot  = optional(number)
-    started   = optional(bool, true)
+    id           = number
+    ip           = string
+    node         = string
+    cores        = number
+    memory_mb    = number
+    disk_gb      = number
+    gpu_slots    = list(number)
+    cx6_slots    = optional(list(number), [])
+    numa_node    = optional(number)
+    extra_tags   = optional(list(string), [])
+    cpu_affinity = optional(string)
+    started      = optional(bool, true)
   }))
   default = {}
 }
@@ -179,15 +210,18 @@ variable "arnold_fusion" {
 variable "workstation" {
   description = "Artist workstations — content creation, RDP (Windows + GPU)"
   type = map(object({
-    id        = number
-    ip        = string
-    node      = string
-    cores     = number
-    memory_mb = number
-    disk_gb   = number
-    gpu_slots = list(number)
-    cx6_slot  = optional(number)
-    started   = optional(bool, true)
+    id           = number
+    ip           = string
+    node         = string
+    cores        = number
+    memory_mb    = number
+    disk_gb      = number
+    gpu_slots    = list(number)
+    cx6_slots    = optional(list(number), [])
+    numa_node    = optional(number)
+    extra_tags   = optional(list(string), [])
+    cpu_affinity = optional(string)
+    started      = optional(bool, true)
   }))
   default = {}
 }
@@ -200,15 +234,18 @@ variable "workstation" {
 variable "ue_plugin_dev" {
   description = "UE plugin development nodes (Windows + GPU)"
   type = map(object({
-    id        = number
-    ip        = string
-    node      = string
-    cores     = number
-    memory_mb = number
-    disk_gb   = number
-    gpu_slots = list(number)
-    cx6_slot  = optional(number)
-    started   = optional(bool, true)
+    id           = number
+    ip           = string
+    node         = string
+    cores        = number
+    memory_mb    = number
+    disk_gb      = number
+    gpu_slots    = list(number)
+    cx6_slots    = optional(list(number), [])
+    numa_node    = optional(number)
+    extra_tags   = optional(list(string), [])
+    cpu_affinity = optional(string)
+    started      = optional(bool, true)
   }))
   default = {}
 }
@@ -222,7 +259,7 @@ variable "ue_runner" {
     cores     = number
     memory_mb = number
     disk_gb   = number
-    cx6_slot  = optional(number)
+    cx6_slots = optional(list(number), [])
     started   = optional(bool, true)
   }))
   default = {}
@@ -237,7 +274,7 @@ variable "ue_staging" {
     cores     = number
     memory_mb = number
     disk_gb   = number
-    cx6_slot  = optional(number)
+    cx6_slots = optional(list(number), [])
     started   = optional(bool, true)
   }))
   default = {}
@@ -257,7 +294,7 @@ variable "optik" {
     memory_mb = number
     disk_gb   = number
     gpu_slots = list(number)
-    cx6_slot  = optional(number)
+    cx6_slots = optional(list(number), [])
     started   = optional(bool, true)
   }))
   default = {}

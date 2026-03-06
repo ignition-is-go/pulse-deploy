@@ -24,7 +24,7 @@ module "linux_gpu_vm" {
   name           = each.key
   description    = local.linux_gpu_vm_descriptions[each.key]
   node_name      = each.value.node
-  tags           = local.linux_gpu_vm_tags[each.key]
+  tags           = sort(local.linux_gpu_vm_tags[each.key])
   template_id    = var.linux_template_id
   cores          = each.value.cores
   memory_mb      = each.value.memory_mb
@@ -43,14 +43,14 @@ module "linux_gpu_vm" {
       pcie   = true
       rombar = true
     }],
-    # CX6 VF — next hostpci slot after GPUs
-    each.value.cx6_slot != null ? [{
-      device = "hostpci${length(each.value.gpu_slots)}"
-      id     = var.proxmox_hosts[each.value.node].cx6_vfs[each.value.cx6_slot]
+    # CX6 VFs — next hostpci slots after GPUs (media + storage)
+    [for i, slot in each.value.cx6_slots : {
+      device = "hostpci${length(each.value.gpu_slots) + i}"
+      id     = var.proxmox_hosts[each.value.node].cx6_vfs[slot]
       xvga   = false
       pcie   = true
       rombar = true
-    }] : [],
+    }],
   )
 
   cloud_init = {

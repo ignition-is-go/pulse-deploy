@@ -36,6 +36,7 @@ provider "proxmox" {
 locals {
   all_hostnames = concat(
     keys(var.ue_content),
+    keys(var.ue_editing),
     keys(var.ue_previs),
     keys(var.touch),
     keys(var.arnold_fusion),

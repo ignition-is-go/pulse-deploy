@@ -172,3 +172,23 @@ variable "override_cpu_type" {
   type        = string
   default     = null
 }
+
+# --- NUMA pinning (optional) --------------------------------------------------
+
+variable "cpu_affinity" {
+  description = "Pin vCPUs to specific host cores (taskset format, e.g. '0-15'). null = no pinning"
+  type        = string
+  default     = null
+}
+
+variable "numa_config" {
+  description = <<-EOT
+    NUMA node configuration. When set, enables guest NUMA topology and binds
+    memory/vCPUs to the specified host NUMA node.
+  EOT
+  type = object({
+    hostnodes = string  # host NUMA node ID (e.g. "0" or "1")
+    memory_mb = number  # memory to bind to this node
+  })
+  default = null
+}

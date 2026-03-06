@@ -29,6 +29,7 @@ resource "ansible_group" "ue" {
   name = "ue"
   children = [
     "ue_content",
+    "ue_editing",
     "ue_previs",
     "ue_staging",
     "ue_plugin_dev",
@@ -57,6 +58,10 @@ resource "ansible_group" "linux" {
 
 resource "ansible_group" "ue_content" {
   name = "ue_content"
+}
+
+resource "ansible_group" "ue_editing" {
+  name = "ue_editing"
 }
 
 resource "ansible_group" "ue_previs" {
@@ -125,12 +130,23 @@ resource "ansible_host" "ue_content" {
   groups   = ["ue_content"]
   variables = merge(
     {
-      ansible_host  = each.value.ip
-      media_ip      = each.value.media_ip
-      ndisplay_node = each.value.ndisplay_node
+      ansible_host      = each.value.ip
+      media_ip          = each.value.media_ip
+      ndisplay_node     = each.value.ndisplay_node
+      concert_server_ip = values(var.ue_editing)[0].ip
     },
     each.value.ndisplay_primary == true ? { ndisplay_primary = "true" } : {}
   )
+}
+
+resource "ansible_host" "ue_editing" {
+  for_each = var.ue_editing
+  name     = each.key
+  groups   = ["ue_editing"]
+  variables = {
+    ansible_host       = each.value.ip
+    concert_server_ip  = each.value.ip
+  }
 }
 
 resource "ansible_host" "ue_previs" {

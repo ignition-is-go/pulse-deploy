@@ -27,6 +27,14 @@ output "ue_content" {
   } }
 }
 
+output "ue_editing" {
+  description = "UE Concert multi-user editor nodes"
+  value = { for k, v in var.ue_editing : k => {
+    id = v.id
+    ip = v.ip
+  } }
+}
+
 output "ue_previs" {
   description = "UE nDisplay previs render nodes"
   value = { for k, v in var.ue_previs : k => {
