@@ -1,0 +1,18 @@
+---
+# wait_boot — Wait for OS boot to stabilize
+#
+# Reusable from any playbook or role:
+#   - ansible.builtin.include_role:
+#       name: win_base
+#       tasks_from: wait_boot
+
+- name: Wait for OS boot to stabilize
+  ansible.windows.win_shell: |
+    $uptime = (Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+    if ($uptime.TotalSeconds -lt 5) { throw "OS still initializing ($([int]$uptime.TotalSeconds)s uptime)" }
+    "ready"
+  retries: 12
+  delay: 10
+  register: winrm_stable
+  until: winrm_stable is success
+  changed_when: false
