@@ -111,7 +111,7 @@
   loop: "{{ cx6_fw_query.results }}"
   loop_control:
     label: "{{ item.item.pci_slots[0] }}"
-  when: "'SRIOV_EN' not in item.stdout or 'True' not in (item.stdout | regex_search('SRIOV_EN\\s+\\S+'))"
+  when: "'SRIOV_EN' not in item.stdout or 'True' not in (item.stdout | regex_search('SRIOV_EN\\s+\\S+') | default(''))"
 
 - name: Parse current NUM_OF_VFS from firmware
   ansible.builtin.set_fact:
@@ -188,6 +188,7 @@
   ansible.builtin.systemd:
     name: cx6-ovs-globals.service
     enabled: true
+    daemon_reload: true
 
 # =================================================================
 # Network config (bridges + bonds)
