@@ -1,4 +1,8 @@
 ---
-- name: Reboot to apply CX6 SR-IOV changes
+- name: Reload systemd
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Warn cold reboot needed
   ansible.builtin.debug:
-    msg: "REBOOT REQUIRED — CX6 SR-IOV config changed, reboot host to apply"
+    msg: "COLD REBOOT REQUIRED — CX6 firmware NUM_OF_VFS changed to {{ cx6_vf_count }}. Warm reboot is not sufficient."

@@ -10,14 +10,6 @@ ue_installer_source: "{{ deploy_share }}\\installers\\unreal-engine\\5.7"
 ndi_tools_installer_dir: "{{ deploy_share }}\\installers\\ndi-tools\\6"
 ndi_tools_installer_file: NDI 6 Tools.exe
 
-# Plastic SCM
-plastic_exe: "C:/Program Files/PlasticSCM5/client/cm.exe"
-plastic_workspace: "C:/P-0616-HRLV"
-plastic_repo: "P-0616-HRLV"
-plastic_cloud_org: "{{ vault_plastic_cloud_org }}"
-plastic_cloud_user: "{{ vault_plastic_cloud_user }}"
-plastic_api_key: "{{ vault_plastic_api_key }}"
-
 # Staging sync — NAS/DMZ workspace path (robocopy source for destination nodes)
 staging_workspace_unc: "\\\\192.168.1.31\\share\\P-0616-HRLV"
 

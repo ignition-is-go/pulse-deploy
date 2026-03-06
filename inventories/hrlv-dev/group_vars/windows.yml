@@ -15,6 +15,14 @@ rivermax_winof2_file: MLNX_WinOF2-24_10_50010_All_x64.exe
 rivermax_sdk_file: Rivermax_Windows_1.71.30.zip
 rivermax_license_file: Rivermax-12022026-qty3-1a7da843cfd1.lic
 
+# Plastic SCM
+plastic_exe: "C:/Program Files/PlasticSCM5/client/cm.exe"
+plastic_workspace: "C:/P-0616-HRLV"
+plastic_repo: "P-0616-HRLV"
+plastic_cloud_org: "{{ vault_plastic_cloud_org }}"
+plastic_cloud_user: "{{ vault_plastic_cloud_user }}"
+plastic_api_key: "{{ vault_plastic_api_key }}"
+
 # Netbird
 netbird_installer_dir: "{{ deploy_share }}\\installers\\netbird\\0.66.0"
 netbird_installer_file: netbird_installer_0.66.0_windows_amd64.exe
