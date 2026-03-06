@@ -1,6 +1,6 @@
 # BlueField-2 SR-IOV VF Setup
 
-BF2-only path extracted from [CONNECTX6_SRIOV.md](CONNECTX6_SRIOV.md).
+BF2-only path extracted from [connectx6-sriov.md](connectx6-sriov.md).
 No IB→ETH, no switchdev/udev, no OVS bonding — just firmware + systemd.
 
 ## Setup
