@@ -1,23 +1,18 @@
 # Managed by Ansible — cx6_sriov role
-# CX6 OVS bridges with bonded uplinks
+# CX6 OVS bridges with single PF uplink (no bonding)
+# Uplink PF auto-detected at role runtime
 {% for card in cx6_cards %}
+{% set uplink = cx6_uplinks | selectattr('bridge', 'eq', card.bridge) | map(attribute='uplink') | first %}
 
-{% for pf in card.pf_ifaces %}
-auto {{ pf }}
-iface {{ pf }} inet manual
-
-{% endfor %}
 auto {{ card.bridge }}
 iface {{ card.bridge }} inet manual
     ovs_type OVSBridge
-    ovs_ports {{ card.bond }}
+    ovs_ports {{ uplink }}
     ovs_mtu {{ cx6_ovs_mtu }}
 
-auto {{ card.bond }}
-iface {{ card.bond }} inet manual
-    ovs_type OVSBond
-    ovs_bonds {{ card.pf_ifaces | join(' ') }}
+auto {{ uplink }}
+iface {{ uplink }} inet manual
+    ovs_type OVSPort
     ovs_bridge {{ card.bridge }}
     ovs_mtu {{ cx6_ovs_mtu }}
-    ovs_options lacp=active bond_mode=balance-tcp
 {% endfor %}

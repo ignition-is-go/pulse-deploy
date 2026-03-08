@@ -493,7 +493,10 @@ Configure ovs-vsctl
 
 ovs-vsctl set Open_vSwitch . other_config:hw-offload=true
 ovs-vsctl set Open_vSwitch . other_config:lacp-fallback-ab=true 
-ovs-vsctl set Open_vSwitch . other_config:tc-policy=skip_sw
+ovs-vsctl set Open_vSwitch . other_config:tc-policy=none
+# NVIDIA says skip_sw is for debugging only — it forces all TC rules to hardware,
+# blocking the OVS software path that IGMP snooping needs to forward reports.
+# Ref: https://docs.nvidia.com/networking/display/mlnxofedv531001/ovs+offload+using+asap%C2%B2+direct
 
 
 Verify openvswitch and adapter configuration
@@ -502,7 +505,7 @@ root@nyc-prod-pve-01:~# ovs-vsctl show
 2aa59794-c7d0-4c19-ac95-d5a4e7dc5149
     ovs_version: "3.5.0"
 root@nyc-prod-pve-01:~# ovs-vsctl get Open_vSwitch . other_config
-{hw-offload="true", lacp-fallback-ab="true", tc-policy=skip_sw}
+{hw-offload="true", lacp-fallback-ab="true", tc-policy=none}
 root@nyc-prod-pve-01:~# ip -d link show ens13f0np0
 4: ens13f0np0: <BROADCAST,MULTICAST> mtu 1500 qdisc noop state DOWN mode DEFAULT group default qlen 1000
     link/ether 0c:42:a1:d2:03:5a brd ff:ff:ff:ff:ff:ff promiscuity 0 allmulti 0 minmtu 68 maxmtu 9978 addrgenmode eui64 numtxqueues 760 numrxqueues 63 gso_max_size 65536 gso_max_segs 65535 tso_max_size 524280 tso_max_segs 65535 gro_max_size 65536 gso_ipv4_max_size 65536 gro_ipv4_max_size 65536 portname p0 switchid 5a03d20003a1420c parentbus pci parentdev 0000:0f:00.0
@@ -779,7 +782,7 @@ cadf7b4b-d43e-440f-94bd-b80ffb7ae9d2
 
 OVS Hardware Offload — ARP Priming Requirement
 
-With `hw-offload=true` and `tc-policy=skip_sw`, OVS offloads L2 forwarding to the CX6
+With `hw-offload=true` and `tc-policy=none`, OVS offloads L2 forwarding to the CX6
 eSwitch hardware. However, OVS must first **learn the VF MAC addresses** via ARP before it
 can install offloaded flow rules. If a high-rate stream (e.g. Rivermax media) starts before
 any ARP exchange between VFs, OVS has no MAC→port mapping and **floods the stream to every
@@ -816,7 +819,9 @@ ovs-appctl fdb/show vmbr1
 ```bash
 ovs-vsctl set Open_vSwitch . other_config:hw-offload=true
 ovs-vsctl set Open_vSwitch . other_config:lacp-fallback-ab=true
-ovs-vsctl set Open_vSwitch . other_config:tc-policy=skip_sw
+ovs-vsctl set Open_vSwitch . other_config:tc-policy=none
+# skip_sw is for debugging only — blocks IGMP snooping software path
+# Ref: https://docs.nvidia.com/networking/display/mlnxofedv531001/ovs+offload+using+asap%C2%B2+direct
 systemctl restart openvswitch-switch
 ```
 

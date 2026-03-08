@@ -153,36 +153,79 @@
     mode: "0644"
 
 # =================================================================
+# Uplink auto-detection — find which PF has cable on each card
+# =================================================================
+
+- name: Bring all CX6 PFs up for link detection
+  ansible.builtin.command:
+    argv: [ip, link, set, "{{ item.1 }}", up]
+  loop: "{{ cx6_cards | subelements('pf_ifaces') }}"
+  loop_control:
+    label: "{{ item.1 }}"
+  changed_when: false
+
+- name: Wait for link negotiation
+  ansible.builtin.pause:
+    seconds: 5
+
+- name: Check link state on each CX6 PF
+  ansible.builtin.command:
+    argv: [ethtool, "{{ item.1 }}"]
+  loop: "{{ cx6_cards | subelements('pf_ifaces') }}"
+  loop_control:
+    label: "{{ item.1 }}"
+  register: cx6_link_check
+  changed_when: false
+
+- name: Detect uplink PF for each card
+  ansible.builtin.set_fact:
+    cx6_uplinks: >-
+      {% set result = [] -%}
+      {% for card in cx6_cards -%}
+        {% set ns = namespace(found='') -%}
+        {% for pf in card.pf_ifaces -%}
+          {% set check = cx6_link_check.results | selectattr('item.1', 'eq', pf) | first -%}
+          {% if 'Link detected: yes' in check.stdout and ns.found == '' -%}
+            {% set ns.found = pf -%}
+          {% endif -%}
+        {% endfor -%}
+        {% if ns.found == '' -%}
+          {{ result.append({'bridge': card.bridge, 'uplink': card.pf_ifaces[0], 'detected': false}) }}{%- else -%}
+          {{ result.append({'bridge': card.bridge, 'uplink': ns.found, 'detected': true}) }}{%- endif -%}
+      {% endfor -%}
+      {{ result }}
+
+- name: Warn if no link detected on any PF
+  ansible.builtin.debug:
+    msg: "WARNING — no cable detected on {{ item.bridge }}, defaulting to {{ item.uplink }}"
+  loop: "{{ cx6_uplinks }}"
+  loop_control:
+    label: "{{ item.bridge }}"
+  when: not item.detected
+
+# =================================================================
 # OVS global settings (systemd oneshot service)
 #
 # ifupdown2 recreates the OVS database on every boot, so globals
 # set via ovs-vsctl do not persist across reboots. A oneshot
 # service re-applies them after OVS starts.
 # See docs/proxmox/CONNECTX6_SRIOV.md lines 492-496.
+#
+# tc-policy=none (not skip_sw): NVIDIA recommends tc-policy for debugging only.
+# skip_sw blocks the software fallback path, preventing OVS IGMP snooping
+# from forwarding reports to the physical uplink. none allows hw-offload
+# for data traffic while IGMP control packets use the software path.
+# Ref: https://docs.nvidia.com/networking/display/mlnxofedv531001/ovs+offload+using+asap%C2%B2+direct
 # =================================================================
 
 - name: Deploy CX6 OVS globals service
-  ansible.builtin.copy:
-    content: |
-      [Unit]
-      Description=CX6 OVS global settings (hw-offload, tc-policy, lacp-fallback-ab)
-      After=openvswitch-switch.service
-      Requires=openvswitch-switch.service
-
-      [Service]
-      Type=oneshot
-      ExecStart=/usr/bin/ovs-vsctl set Open_vSwitch . other_config:hw-offload=true
-      ExecStart=/usr/bin/ovs-vsctl set Open_vSwitch . other_config:lacp-fallback-ab=true
-      ExecStart=/usr/bin/ovs-vsctl set Open_vSwitch . other_config:tc-policy=skip_sw
-      RemainAfterExit=yes
-
-      [Install]
-      WantedBy=multi-user.target
+  ansible.builtin.template:
+    src: cx6-ovs-globals.service.j2
     dest: /etc/systemd/system/cx6-ovs-globals.service
     owner: root
     group: root
     mode: "0644"
-  notify: Reload systemd
+  notify: Restart CX6 OVS globals
 
 - name: Enable CX6 OVS globals service
   ansible.builtin.systemd:
@@ -191,7 +234,7 @@
     daemon_reload: true
 
 # =================================================================
-# Network config (bridges + bonds)
+# Network config (bridges)
 # =================================================================
 
 - name: Ensure source interfaces.d line in /etc/network/interfaces
@@ -201,13 +244,14 @@
     state: present
     mode: "0644"
 
-- name: Deploy CX6 bridge and bond config
+- name: Deploy CX6 bridge config
   ansible.builtin.template:
     src: cx6-bridges.conf.j2
     dest: /etc/network/interfaces.d/cx6-bridges.conf
     owner: root
     group: root
     mode: "0644"
+  notify: Reload network interfaces
 
 # =================================================================
 # Representor config
@@ -223,6 +267,7 @@
   loop: "{{ cx6_cards }}"
   loop_control:
     label: "{{ item.bridge }}"
+  notify: Reload network interfaces
 
 # =================================================================
 # Runtime verification — check live state, warn only on mismatch
@@ -314,3 +359,21 @@
   loop_control:
     label: "{{ item.item.bridge }}"
   when: item.rc != 0
+
+- name: Check IGMP snooping on OVS bridges
+  ansible.builtin.command:
+    argv: [ovs-vsctl, get, bridge, "{{ item.bridge }}", mcast_snooping_enable]
+  loop: "{{ cx6_cards }}"
+  loop_control:
+    label: "{{ item.bridge }}"
+  register: mcast_check
+  changed_when: false
+  failed_when: false
+
+- name: Warn if IGMP snooping is not enabled
+  ansible.builtin.debug:
+    msg: "IGMP snooping not enabled on {{ item.item.bridge }} — multicast will flood all ports"
+  loop: "{{ mcast_check.results }}"
+  loop_control:
+    label: "{{ item.item.bridge }}"
+  when: "'true' not in (item.stdout | default(''))"

@@ -1,0 +1,20 @@
+[Unit]
+Description=CX6 OVS global settings (hw-offload, tc-policy, IGMP snooping)
+After=openvswitch-switch.service networking.service
+Requires=openvswitch-switch.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/ovs-vsctl set Open_vSwitch . other_config:hw-offload=true
+ExecStart=/usr/bin/ovs-vsctl set Open_vSwitch . other_config:tc-policy=none
+{% for card in cx6_cards %}
+{% set uplink = cx6_uplinks | selectattr('bridge', 'eq', card.bridge) | map(attribute='uplink') | first %}
+ExecStart=/usr/bin/ovs-vsctl set bridge {{ card.bridge }} mcast_snooping_enable=true
+ExecStart=/usr/bin/ovs-vsctl set bridge {{ card.bridge }} other_config:mcast-snooping-disable-flood-unregistered=true
+ExecStart=/usr/bin/ovs-vsctl set port {{ uplink }} other_config:mcast-snooping-flood=true
+ExecStart=/usr/bin/ovs-vsctl set port {{ uplink }} other_config:mcast-snooping-flood-reports=true
+{% endfor %}
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,7 +1,14 @@
 ---
-- name: Reload systemd
+- name: Restart CX6 OVS globals
   ansible.builtin.systemd:
+    name: cx6-ovs-globals.service
+    state: restarted
     daemon_reload: true
+
+- name: Reload network interfaces
+  ansible.builtin.command:
+    argv: [ifreload, -a]
+  changed_when: true
 
 - name: Warn cold reboot needed
   ansible.builtin.debug:
