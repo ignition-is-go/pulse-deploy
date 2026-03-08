@@ -3,8 +3,8 @@
 # Listens for a 2110-20 stream on the node's ip_2110.
 #
 # Usage:
-#   ansible-playbook playbooks/rmax-media-receiver-start.yml --limit windows-unreal-render-05
-#   ansible-playbook playbooks/rmax-media-receiver-start.yml --limit windows-unreal-render-05 -e "rmax_src_ip=10.0.0.1"
+#   ansible-playbook playbooks/rmax-media-receiver-start.yml --limit ue-previs-01 -e "rmax_src_ip=10.0.0.169 rmax_dst_ip=239.0.0.1"
+#   ansible-playbook playbooks/rmax-media-receiver-start.yml --limit ue-previs-01 -e '{"rmax_src_ip":"10.0.0.169","rmax_dst_ip":"239.0.0.1","rmax_width":"3840","rmax_height":"2160","rmax_fps":"60","rmax_depth":"10"}'
 
 - name: Start Rivermax media_receiver
   hosts: windows
@@ -15,6 +15,11 @@
     rmax_src_ip: "10.0.0.1"
     rmax_dst_ip: "{{ ip_2110 }}"
     rmax_dst_port: 50000
+    rmax_width: "1920"
+    rmax_height: "1080"
+    rmax_depth: "8"
+    rmax_fps: "30"
+    rmax_sampling: "YCbCr-4:2:2"
 
   tasks:
     - name: Ensure temp directory exists
@@ -32,7 +37,7 @@
           t=0 0
           m=video {{ rmax_dst_port }} RTP/AVP 96
           a=rtpmap:96 raw/90000
-          a=fmtp:96 sampling=YCbCr-4:2:2; width=4096; height=1080; depth=10; exactframerate=60; colorimetry=BT709; PM=2110GPM; SSN=ST2110-20:2017; TP=2110TPN
+          a=fmtp:96 sampling={{ rmax_sampling }}; width={{ rmax_width }}; height={{ rmax_height }}; depth={{ rmax_depth }}; exactframerate={{ rmax_fps }}; colorimetry=BT709; PM=2110GPM; SSN=ST2110-20:2017; TP=2110TPN
           a=source-filter: incl IN IP4 {{ rmax_dst_ip }} {{ rmax_src_ip }}
         dest: C:\temp\rmax-rx.sdp
 

@@ -131,3 +131,40 @@ nyc-dev-pve-01 — travel unit (separate subnet)
  192.168.8.40      bmc-dev-pve-01         BMC
  192.168.8.41      nyc-dev-pve-01         proxmox
 ```
+
+## Mellanox MSN2700 Switch Port Map (192.168.1.5)
+
+VLAN 20 (10.0.0.0/24 media), all ports untagged. No ASIC-level IGMP snooping (SONiC/SAI limitation).
+
+```
+PROD — etp1-8 (adjacent pairs reserved for bonding)
+  etp1  Ethernet0    prod-pve-01  card 1 (enp90s0f0np0)  vmbr1   100G
+  etp2  Ethernet4    — bond pair slot (card 1 f1)                 100G
+  etp3  Ethernet8    prod-pve-01  card 2 (enp223s0f0np0) vmbr2   100G
+  etp4  Ethernet12   — bond pair slot (card 2 f1)                 100G
+  etp5  Ethernet16   prod-pve-02  card 1 (enp90s0f0np0)  vmbr1   100G
+  etp6  Ethernet20   — bond pair slot (card 1 f1)                 100G
+  etp7  Ethernet24   prod-pve-02  card 2 (enp223s0f0np0) vmbr2   100G
+  etp8  Ethernet28   — bond pair slot (card 2 f1)                 100G
+
+PROD EXPANSION — etp9-12
+  etp9  Ethernet32   — reserved (future prod hosts)               100G
+  etp10 Ethernet36   — reserved                                   100G
+  etp11 Ethernet40   — reserved                                   100G
+  etp12 Ethernet44   — reserved                                   100G
+
+DEV — etp13-16
+  etp13 Ethernet48   dev-pve-03  BF2 f1 (b8:ce:f6:bc:8a:6c)      10G
+  etp14 Ethernet52   — empty                                      10G
+  etp15 Ethernet56   — empty                                      100G
+  etp16 Ethernet60   — empty                                      10G
+
+INFRA — etp17, etp31-32
+  etp17 Ethernet64   MikroTik RDS2216                             100G
+  etp31 Ethernet120  MikroTik CRS518 (192.168.1.11)               100G
+  etp32 Ethernet124  Cisco 1G switch (192.168.1.2) + PTP GM       10G
+
+UNUSED — etp18-30 (except etp25-26 below)
+  etp25 Ethernet96   — empty                                      100G
+  etp26 Ethernet100  dev-pve-02  BF2 (down, NVMe failure)         100G
+```

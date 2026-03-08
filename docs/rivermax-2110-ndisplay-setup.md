@@ -110,6 +110,23 @@ WinRM runs in Session 0 (no GPU access). Launch requires:
 | `rivermax_1node` | `nDisplayConfig_Rivermax_1Node.ndisplay`             |
 | `ndi_4node`      | `nDisplayConfig_NDI_4Node.ndisplay`                  |
 
+## Mellanox Switch (MSN2700 / SONiC) — Multicast
+
+Switch: MSN2700-CS2RO (Spectrum-1), SONiC 202511, at `192.168.1.5`.
+
+**IGMP snooping does NOT prevent flooding on this switch.** SONiC uses SAI/syncd
+for ASIC programming (not the kernel mlxsw_spectrum switchdev driver), so kernel
+bridge MDB entries are never offloaded to the Spectrum ASIC. The ASIC floods all
+multicast to all VLAN ports regardless of learned group memberships.
+
+Multicast filtering is handled per-VM by OVS IGMP snooping on each Proxmox host
+(see cx6_sriov role). The switch-level flooding wastes inter-switch bandwidth but
+does not affect VMs.
+
+CoPP IGMP trap is configured (`sonic_mcast` role) so the kernel bridge can see
+IGMP reports — this is a prerequisite for any future ASIC-level snooping if the
+switch OS is changed to one that supports it (e.g. Cumulus Linux).
+
 ## SMPTE 2110 Stream Config (TODO)
 
 Epic ref: https://dev.epicgames.com/documentation/en-us/unreal-engine/ndisplay-workflows-for-smpte-2110-in-unreal-engine
@@ -120,7 +137,6 @@ Each nDisplay node needs a Media Output with:
 - Pixel format, frame rate, capture sync TBD
 
 Outstanding:
-- Mellanox switch IGMP snooping / multicast routing config
 - Configure Media Output assets per content node
 - Set up receiver-side Media Source on previs node
 - Validate end-to-end stream delivery

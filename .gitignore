@@ -15,6 +15,7 @@
 *.exe
 *.pkg
 *.msi
+*.bin
 
 # nDisplayConfig files
 *.ndisplay

@@ -28,7 +28,11 @@
       "WebFetch(domain:docs.nvidia.com)",
       "WebFetch(domain:rustdesk.com)",
       "WebFetch(domain:pve.proxmox.com)",
-      "WebFetch(domain:enterprise-support.nvidia.com)"
+      "WebFetch(domain:enterprise-support.nvidia.com)",
+      "WebFetch(domain:www.openvswitch.org)",
+      "WebFetch(domain:sonic-build.azurewebsites.net)",
+      "WebFetch(domain:community.tp-link.com)",
+      "WebFetch(domain:www.tp-link.com)"
     ]
   }
 }
