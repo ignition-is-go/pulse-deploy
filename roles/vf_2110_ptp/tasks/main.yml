@@ -1,19 +1,20 @@
 ---
-# cx6_ptp_timestamp — Enable PTP hardware timestamping on ConnectX-6 media NICs
+# vf_2110_ptp — Enable PTP hardware timestamping on 2110 VF
+#
+# Requires (host_vars via Terraform):
+#   mac_2110:  expected MAC address of the 2110 VF
 
-- name: Discover ConnectX-6 adapter
+- name: Discover 2110 adapter by MAC
   ansible.windows.win_shell: |
-    $adapters = @(Get-NetAdapter | Where-Object {
-      $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
-    })
-    if ($adapters.Count -eq 0) { throw "ConnectX adapter not found" }
-    if ($adapters.Count -gt 1) { throw "Multiple ConnectX adapters found ($($adapters.Count)), expected 1" }
-    $adapters[0].Name
+    $mac = "{{ mac_2110 }}" -replace ":", "-"
+    $nic = Get-NetAdapter | Where-Object { $_.MacAddress -eq $mac }
+    if (-not $nic) { throw "No adapter found with MAC {{ mac_2110 }}" }
+    $nic.Name
   register: cx6_discovery
   changed_when: false
   when: rivermax | default(false)
 
-- name: Set ConnectX-6 adapter name
+- name: Set 2110 adapter name
   ansible.builtin.set_fact:
     cx6_adapter: "{{ cx6_discovery.stdout | trim }}"
   when: rivermax | default(false)

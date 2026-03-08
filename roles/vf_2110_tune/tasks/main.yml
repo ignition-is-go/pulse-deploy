@@ -1,9 +1,14 @@
 ---
-# cx6_tune — Tune ConnectX-6 VF for high-throughput ST 2110
+# vf_2110_tune — Tune 2110 VF for high-throughput ST 2110
 #
 # ST 2110 video generates ~1M+ small UDP packets/sec per stream. This role:
 #   1. Maxes out VF ring buffers (default 512 too small, causes drops)
 #   2. Sets aggressive interrupt moderation (coalesces packets, fewer interrupts)
+#
+# Identifies the 2110 adapter by mac_2110 (supports nodes with multiple VFs).
+#
+# Requires (host_vars via Terraform):
+#   mac_2110:  expected MAC address of the 2110 VF
 #
 # RSS is already 16 queues by default on these VFs — no change needed.
 # Interrupt moderation defaults to Adaptive/Moderate which doesn't coalesce
@@ -12,14 +17,12 @@
 # Proxmox host-side (run manually on each hypervisor):
 #   for i in 0 1 2 3 4 5 6 7; do ethtool -G ens13f0r${i} rx 8192 tx 8192 2>/dev/null; done
 
-- name: Discover ConnectX-6 adapter
+- name: Discover ConnectX-6 2110 adapter by MAC
   ansible.windows.win_shell: |
-    $adapters = @(Get-NetAdapter | Where-Object {
-      $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*'
-    })
-    if ($adapters.Count -eq 0) { throw "ConnectX adapter not found" }
-    if ($adapters.Count -gt 1) { throw "Multiple ConnectX adapters found ($($adapters.Count)), expected 1" }
-    $adapters[0].Name
+    $mac = "{{ mac_2110 }}" -replace ":", "-"
+    $nic = Get-NetAdapter | Where-Object { $_.MacAddress -eq $mac }
+    if (-not $nic) { throw "No adapter found with MAC {{ mac_2110 }}" }
+    $nic.Name
   register: cx6_discovery
   changed_when: false
   when: rivermax | default(false)
