@@ -1,0 +1,17 @@
+---
+- name: Load CoPP config into CONFIG_DB
+  ansible.builtin.command:
+    argv: [config, load, /etc/sonic/copp_cfg.json, -y]
+  changed_when: true
+  notify: Restart coppmgrd
+
+- name: Restart coppmgrd
+  ansible.builtin.command:
+    argv: [docker, exec, swss, supervisorctl, restart, coppmgrd]
+  changed_when: true
+  notify: Save sonic config
+
+- name: Save sonic config
+  ansible.builtin.command:
+    argv: [config, save, -y]
+  changed_when: true

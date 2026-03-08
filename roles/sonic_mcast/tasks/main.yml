@@ -1,0 +1,44 @@
+---
+# sonic_mcast — CoPP IGMP trap for SONiC switches
+#
+# Traps IGMP packets to CPU so the kernel bridge can see group
+# memberships. This is a prerequisite for IGMP snooping but does NOT
+# prevent multicast flooding on its own — SONiC on Mellanox uses
+# SAI/syncd (not mlxsw_spectrum switchdev), so kernel bridge MDB
+# entries are never offloaded to the Spectrum ASIC.
+#
+# To actually prevent flooding, either:
+#   - Switch to Cumulus Linux (mlxsw_spectrum switchdev = MDB offload)
+#   - Wait for SONiC to add SAI-based IGMP snooping for Mellanox
+
+# =================================================================
+# CoPP — IGMP trap so ASIC sends reports to CPU
+#
+# Patches the existing copp_cfg.json to add an IGMP trap entry with
+# a dedicated trap group. Uses always_enabled so coppmgrd does not
+# gate on the FEATURE table. Leaves all other entries untouched so
+# SONiC upgrades that add new defaults are preserved.
+# =================================================================
+
+- name: Patch CoPP config with IGMP trap entry
+  ansible.builtin.script:
+    cmd: patch_copp_igmp.py
+  register: copp_patch_result
+  changed_when: "'CHANGED' in copp_patch_result.stdout"
+  notify: Load CoPP config into CONFIG_DB
+
+# =================================================================
+# Runtime verification
+# =================================================================
+
+- name: Check IGMP CoPP trap in APP_DB
+  ansible.builtin.command:
+    argv: [redis-cli, -n, "0", hget, "COPP_TABLE:queue4_group4", trap_ids]
+  register: copp_check
+  changed_when: false
+  failed_when: false
+
+- name: Warn if IGMP CoPP trap not programmed
+  ansible.builtin.debug:
+    msg: "IGMP CoPP trap NOT in APP_DB — ASIC will not trap IGMP to CPU. Reboot may be required."
+  when: "'igmp_query' not in (copp_check.stdout | default(''))"
