@@ -46,8 +46,9 @@
   vars:
     gpu_check_hosts: ue_content
 
-- name: Prime OVS FDB for Rivermax hardware offload
-  ansible.builtin.import_playbook: rmax-arp-prime.yml
+# TODO: Disabled — verify if OVS FDB priming is still needed with tc-policy=none
+# - name: Prime OVS FDB for Rivermax hardware offload
+#   ansible.builtin.import_playbook: rmax-arp-prime.yml
 
 - name: Preflight and prepare nDisplay launch
   hosts: ue_content
@@ -55,6 +56,16 @@
   any_errors_fatal: true
 
   tasks:
+    - name: Validate .uproject file exists and is not empty
+      ansible.windows.win_shell: |
+        $f = "{{ unreal_project }}"
+        if (-not (Test-Path $f)) { Write-Error "File not found: $f"; exit 1 }
+        $size = (Get-Item $f).Length
+        if ($size -eq 0) { Write-Error "File is empty (0 bytes): $f"; exit 1 }
+        Write-Host "OK: $f ($size bytes)"
+      changed_when: false
+      when: not (skip_preflight | default(false) | bool)
+
     - name: Validate nDisplay config is set
       ansible.builtin.assert:
         that:
@@ -191,13 +202,14 @@
 
     - name: Wait for UE process to appear
       ansible.windows.win_shell: |
-        (Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue).Id
+        $p = Get-Process -Name UnrealEditor* -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($p) { Write-Host "$($p.Id) ($($p.ProcessName))" }
       register: launch_result
       until: launch_result.stdout | trim | length > 0
-      retries: 15
-      delay: 2
+      retries: 30
+      delay: 5
       changed_when: false
 
     - name: Show launch status
       ansible.builtin.debug:
-        msg: "{{ inventory_hostname }} ({{ ndisplay_node }}): UnrealEditor running (PID: {{ launch_result.stdout | trim }})"
+        msg: "{{ inventory_hostname }} ({{ ndisplay_node }}): UnrealEditor running — {{ launch_result.stdout | trim }}"

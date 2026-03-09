@@ -8,10 +8,6 @@ plastic_repo: ""
 plastic_api_key: ""
 skip_plastic: false
 
-# --- Deploy share (installer source) ---
-deploy_share_host: "192.168.1.31"
-deploy_share_name: "share"
-
 # --- Windows ---
 plastic_exe: "C:/Program Files/PlasticSCM5/client/cm.exe"
 plastic_installer: "unity-vcs-11.0.16.9961-win.exe"

@@ -33,7 +33,7 @@
   ansible.builtin.include_role:
     name: win_robocopy_from_nas
   vars:
-    win_robocopy_from_nas_src: "\\\\{{ deploy_share_host }}\\{{ deploy_share_name }}\\plastic"
+    win_robocopy_from_nas_src: "{{ nas_share }}\\plastic"
     win_robocopy_from_nas_file: "{{ plastic_installer }}"
     win_robocopy_from_nas_dest: C:\Windows\Temp
 

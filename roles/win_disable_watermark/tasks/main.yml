@@ -6,7 +6,7 @@
 # Does not modify system files.
 #
 # Requires (group_vars):
-#   deploy_share: UNC path to deploy share
+#   nas_share: UNC path to NAS share
 #
 # Source: https://github.com/pr701/universal-watermark-disabler
 
@@ -25,7 +25,7 @@
   ansible.builtin.include_role:
     name: win_robocopy_from_nas
   vars:
-    win_robocopy_from_nas_src: "{{ deploy_share }}\\installers\\uwd"
+    win_robocopy_from_nas_src: "{{ nas_share }}\\installers\\uwd"
     win_robocopy_from_nas_file: painter_x64.dll
     win_robocopy_from_nas_dest: C:\Windows\System32
   when: "watermark_check.stdout | trim == 'NOT_INSTALLED' or watermark_check.stdout | trim == 'NO_KEY'"

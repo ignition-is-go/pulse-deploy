@@ -4,14 +4,14 @@
 # Unreal Engine paths
 unreal_engine_dir: "C:/Program Files/Epic Games/5.7"
 unreal_exe: "{{ unreal_engine_dir }}/Engine/Binaries/Win64/UnrealEditor.exe"
-ue_installer_source: "{{ deploy_share }}\\installers\\unreal-engine\\5.7"
+ue_installer_source: "{{ nas_share }}\\installers\\unreal-engine\\5.7"
 
 # NDI Tools
-ndi_tools_installer_dir: "{{ deploy_share }}\\installers\\ndi-tools\\6"
+ndi_tools_installer_dir: "{{ nas_share }}\\installers\\ndi-tools\\6"
 ndi_tools_installer_file: NDI 6 Tools.exe
 
 # Staging sync — NAS/DMZ workspace path (robocopy source for destination nodes)
-staging_workspace_unc: "\\\\192.168.1.31\\share\\P-0616-HRLV"
+staging_workspace_unc: "\\\\10.0.1.31\\share\\P-0616-HRLV"
 
 # Render worker (Rust binary)
 worker_path: C:\ue-render-farm

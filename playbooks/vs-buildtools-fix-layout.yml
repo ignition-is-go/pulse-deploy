@@ -16,7 +16,7 @@
   hosts: windows
   gather_facts: false
   vars:
-    layout_nas: "{{ deploy_share }}\\installers\\vs-buildtools\\17.14"
+    layout_nas: "{{ nas_share }}\\installers\\vs-buildtools\\17.14"
     fix_packages:
       - Microsoft.Net.4.6.2.TargetingPack
       - Microsoft.Net.4.6.2.TargetingPack.Resources

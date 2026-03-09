@@ -19,7 +19,7 @@
   gather_facts: false
   vars:
     layout_local: C:\vs_BuildTools_layout
-    layout_nas: "{{ deploy_share }}\\installers\\vs-buildtools\\17.14"
+    layout_nas: "{{ nas_share }}\\installers\\vs-buildtools\\17.14"
     bootstrapper_url: "https://aka.ms/vs/17/release/vs_buildtools.exe"
 
   tasks:

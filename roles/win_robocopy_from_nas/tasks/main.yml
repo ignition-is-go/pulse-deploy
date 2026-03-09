@@ -6,7 +6,7 @@
 # never flows through the WinRM channel.
 #
 # Required vars:
-#   win_robocopy_from_nas_src:  source directory  (e.g. {{ deploy_share }}\installers\chrome\latest)
+#   win_robocopy_from_nas_src:  source directory  (e.g. {{ nas_share }}\installers\chrome\latest)
 #   win_robocopy_from_nas_file: filename to copy  (e.g. ChromeSetup.exe)
 #   win_robocopy_from_nas_dest: dest directory    (e.g. C:\Windows\Temp)
 

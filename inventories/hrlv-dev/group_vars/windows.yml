@@ -10,7 +10,7 @@ ptp_masters: "10.0.0.100"
 ptp_domain: 0
 
 # Rivermax (applied when rivermax: true)
-rivermax_installer_dir: "{{ deploy_share }}\\rivermax"
+rivermax_installer_dir: "{{ nas_share }}\\rivermax"
 rivermax_winof2_file: MLNX_WinOF2-24_10_50010_All_x64.exe
 rivermax_sdk_file: Rivermax_Windows_1.71.30.zip
 rivermax_license_file: Rivermax-12022026-qty3-1a7da843cfd1.lic
@@ -24,5 +24,5 @@ plastic_cloud_user: "{{ vault_plastic_cloud_user }}"
 plastic_api_key: "{{ vault_plastic_api_key }}"
 
 # Netbird
-netbird_installer_dir: "{{ deploy_share }}\\installers\\netbird\\0.66.0"
+netbird_installer_dir: "{{ nas_share }}\\installers\\netbird\\0.66.0"
 netbird_installer_file: netbird_installer_0.66.0_windows_amd64.exe

@@ -7,8 +7,9 @@
 #   ansible-playbook playbooks/rmax-media-sender-start.yml --limit ue-content-09 -e "rmax_dst_ip=239.0.0.1"
 #   ansible-playbook playbooks/rmax-media-sender-start.yml --limit ue-content-09 -e '{"rmax_dst_ip":"239.0.0.1","rmax_width":"3840","rmax_height":"2160","rmax_fps":"60","rmax_depth":"10"}'
 
-- name: Prime OVS FDB for Rivermax hardware offload
-  ansible.builtin.import_playbook: rmax-arp-prime.yml
+# TODO: Disabled — verify if OVS FDB priming is still needed with tc-policy=none
+# - name: Prime OVS FDB for Rivermax hardware offload
+#   ansible.builtin.import_playbook: rmax-arp-prime.yml
 
 - name: Start Rivermax media_sender
   hosts: windows

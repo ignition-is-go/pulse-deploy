@@ -11,7 +11,7 @@
 
   vars:
     build_dir: C:\Windows\Temp\uwd-build
-    nas_dest: "{{ deploy_share }}\\installers\\uwd"
+    nas_dest: "{{ nas_share }}\\installers\\uwd"
 
   tasks:
     - name: Create build directory
