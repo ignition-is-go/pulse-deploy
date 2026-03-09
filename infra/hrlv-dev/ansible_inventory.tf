@@ -57,7 +57,16 @@ resource "ansible_group" "linux" {
 # --- Windows sub-groups ------------------------------------------------------
 
 resource "ansible_group" "ue_content" {
-  name = "ue_content"
+  name     = "ue_content"
+  children = ["ue_content_group_01", "ue_content_group_02"]
+}
+
+resource "ansible_group" "ue_content_group_01" {
+  name = "ue_content_group_01"
+}
+
+resource "ansible_group" "ue_content_group_02" {
+  name = "ue_content_group_02"
 }
 
 resource "ansible_group" "ue_editing" {
@@ -124,14 +133,37 @@ resource "ansible_group" "pulse_admin" {
 
 # --- Windows GPU VMs ---------------------------------------------------------
 
-resource "ansible_host" "ue_content" {
-  for_each = var.ue_content
+locals {
+  ue_content_group_01 = { for k, v in var.ue_content : k => v if v.node == "nyc-prod-pve-01" }
+  ue_content_group_02 = { for k, v in var.ue_content : k => v if v.node == "nyc-prod-pve-02" }
+}
+
+resource "ansible_host" "ue_content_group_01" {
+  for_each = local.ue_content_group_01
   name     = each.key
-  groups   = ["ue_content"]
+  groups   = ["ue_content_group_01"]
   variables = merge(
     {
       ansible_host      = each.value.ip
-      ip_2110         = each.value.ip_2110
+      ip_2110           = each.value.ip_2110
+      ndisplay_node     = each.value.ndisplay_node
+      concert_server_ip = values(var.ue_editing)[0].ip
+    },
+    each.value.ndisplay_primary == true ? { ndisplay_primary = "true" } : {},
+    each.value.ip_smb != null ? { ip_smb = each.value.ip_smb } : {},
+    contains(keys(local.vm_mac_2110), each.key) ? { mac_2110 = local.vm_mac_2110[each.key] } : {},
+    contains(keys(local.vm_mac_smb), each.key) ? { mac_smb = local.vm_mac_smb[each.key] } : {},
+  )
+}
+
+resource "ansible_host" "ue_content_group_02" {
+  for_each = local.ue_content_group_02
+  name     = each.key
+  groups   = ["ue_content_group_02"]
+  variables = merge(
+    {
+      ansible_host      = each.value.ip
+      ip_2110           = each.value.ip_2110
       ndisplay_node     = each.value.ndisplay_node
       concert_server_ip = values(var.ue_editing)[0].ip
     },
@@ -218,9 +250,11 @@ resource "ansible_host" "ue_staging" {
   for_each = var.ue_staging
   name     = each.key
   groups   = ["ue_staging"]
-  variables = {
-    ansible_host = each.value.ip
-  }
+  variables = merge(
+    { ansible_host = each.value.ip },
+    each.value.ip_smb != null ? { ip_smb = each.value.ip_smb } : {},
+    contains(keys(local.vm_mac_smb), each.key) ? { mac_smb = local.vm_mac_smb[each.key] } : {},
+  )
 }
 
 resource "ansible_host" "ue_plugin_dev" {

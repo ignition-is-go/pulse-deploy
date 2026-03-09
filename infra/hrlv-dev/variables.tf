@@ -288,15 +288,16 @@ variable "ue_runner" {
 variable "ue_staging" {
   description = "Plastic sync + build distribution nodes (Windows)"
   type = map(object({
-    id        = number
-    ip        = string
-    node      = string
-    cores     = number
-    memory_mb = number
-    disk_gb   = number
+    id             = number
+    ip             = string
+    ip_smb         = optional(string)
+    node           = string
+    cores          = number
+    memory_mb      = number
+    disk_gb        = number
     cx6_card       = optional(number)
     cx6_vf_offsets = optional(list(number), [])
-    started   = optional(bool, true)
+    started        = optional(bool, true)
   }))
   default = {}
 }

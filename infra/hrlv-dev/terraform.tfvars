@@ -482,13 +482,16 @@ ue_runner = {
 
 ue_staging = {
   "ue-staging-01" = {
-    id        = 1111
-    ip        = "192.168.1.111"
-    node      = "nyc-dev-pve-03"
-    cores     = 16
-    memory_mb = 32768
-    disk_gb   = 300
-    started   = true
+    id             = 1111
+    ip             = "192.168.1.111"
+    ip_smb         = "10.0.1.111"
+    node           = "nyc-dev-pve-03"
+    cores          = 16
+    memory_mb      = 32768
+    disk_gb        = 300
+    cx6_card       = 0
+    cx6_vf_offsets = [4]
+    started        = true
   }
 }
 
@@ -509,6 +512,7 @@ touch = {
     gpu_slots = [7]
     cx6_card       = 1
     cx6_vf_offsets = [6, 7]
+    started        = false
   }
 }
 
@@ -569,6 +573,7 @@ workstation = {
     gpu_slots  = [5]
     cx6_card       = 1
     cx6_vf_offsets = [0, 1]
+    started        = false
   }
   "workstation-04" = {
     id         = 1196
@@ -582,6 +587,7 @@ workstation = {
     gpu_slots  = [6]
     cx6_card       = 1
     cx6_vf_offsets = [2, 3]
+    started        = false
   }
 }
 
