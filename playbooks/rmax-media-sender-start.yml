@@ -28,7 +28,7 @@
   tasks:
     - name: Ensure temp directory exists
       ansible.windows.win_file:
-        path: "C:\\temp"
+        path: "C:\\Windows\\Temp"
         state: directory
 
     - name: Write SDP file
@@ -43,16 +43,16 @@
           a=rtpmap:96 raw/90000
           a=fmtp:96 sampling={{ rmax_sampling }}; width={{ rmax_width }}; height={{ rmax_height }}; depth={{ rmax_depth }}; exactframerate={{ rmax_fps }}; colorimetry=BT709; PM=2110GPM; SSN=ST2110-20:2017; TP=2110TPN
           a=source-filter: incl IN IP4 {{ rmax_dst_ip }} {{ ip_2110 }}
-        dest: C:\temp\rmax-tx.sdp
+        dest: C:\Windows\Temp\rmax-tx.sdp
 
     - name: Write TX launch script
       ansible.windows.win_copy:
         content: |
-          & "{{ rmax_sender }}" -s C:\temp\rmax-tx.sdp `
+          & "{{ rmax_sender }}" -s C:\Windows\Temp\rmax-tx.sdp `
             --src-ip={{ ip_2110 }} --dst-ip={{ rmax_dst_ip }} `
             --dst-port={{ rmax_dst_port }} --fps={{ rmax_fps }} `
-            -v system 2>&1 | Tee-Object -FilePath C:\temp\rmax-tx.log
-        dest: C:\temp\rmax-tx.ps1
+            -v system 2>&1 | Tee-Object -FilePath C:\Windows\Temp\rmax-tx.log
+        dest: C:\Windows\Temp\rmax-tx.ps1
 
     - name: Create TX scheduled task
       community.windows.win_scheduled_task:
@@ -60,7 +60,7 @@
         description: Rivermax media_sender
         actions:
           - path: powershell.exe
-            arguments: -ExecutionPolicy Bypass -File C:\temp\rmax-tx.ps1
+            arguments: -ExecutionPolicy Bypass -File C:\Windows\Temp\rmax-tx.ps1
         triggers: []
         username: "{{ ansible_user }}"
         password: "{{ ansible_password }}"
@@ -90,5 +90,5 @@
 
     - name: Show TX failure
       ansible.builtin.debug:
-        msg: "{{ inventory_hostname }} ({{ ip_2110 }}): FAILED TO START — check C:\\temp\\rmax-tx.log"
+        msg: "{{ inventory_hostname }} ({{ ip_2110 }}): FAILED TO START — check C:\\Windows\\Temp\\rmax-tx.log"
       when: tx_check.stdout | trim | length == 0

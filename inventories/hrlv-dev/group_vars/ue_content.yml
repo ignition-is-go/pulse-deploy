@@ -14,12 +14,13 @@ ndisplay_map: "/Game/HRLV_Content/Maps/PL_ContentHostSend_v7"
 
 # Available nDisplay configs — select with: -e "ndisplay=rivermax_4node"
 ndisplay_configs:
+  rivermax_8node: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_RM_FullRes_8Node.ndisplay"
   rivermax_4node: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_Rivermax_4Node.ndisplay"
   rivermax_1node: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_Rivermax_1Node.ndisplay"
   ndi_4node: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_NDI_4Node.ndisplay"
 
 # Default config (override with -e "ndisplay=...")
-ndisplay: rivermax_4node
+ndisplay: rivermax_8node
 ndisplay_config: "{{ ndisplay_configs[ndisplay] }}"
 
 # Concert (Multi-User Editing) — render nodes connect to this server

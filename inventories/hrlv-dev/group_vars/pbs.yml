@@ -1,5 +1,9 @@
 ---
 # Samba share on PBS — serves installers and workspaces to Windows and Linux clients
+
+# SMB storage network (10.0.1.x) — CX6 direct attach
+ip_smb: "10.0.1.31"
+
 smb_users:
   - name: "{{ vault_win_user }}"
     password: "{{ vault_win_password }}"
