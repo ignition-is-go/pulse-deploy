@@ -72,15 +72,11 @@
   failed_when: not ue_post_check.stat.exists
 
 - name: Install UE-bundled VC++ Redistributable
-  ansible.windows.win_command:
-    argv:
-      - "{{ unreal_engine_dir }}/Engine/Extras/Redist/en-us/vc_redist.x64.exe"
-      - /install
-      - /quiet
-      - /norestart
-  register: vcredist_install
-  changed_when: vcredist_install.rc == 0
-  failed_when: vcredist_install.rc not in [0, 1638, 3010]
+  ansible.windows.win_package:
+    path: "{{ unreal_engine_dir }}/Engine/Extras/Redist/en-us/vc_redist.x64.exe"
+    product_id: '{d8bbe9f9-7c5b-42c6-b715-9ee898a2e515}'
+    arguments: /install /quiet /norestart
+    expected_return_code: [0, 3010]
 
 - name: Associate .uproject extension with Unreal.ProjectFile class
   ansible.windows.win_regedit:
