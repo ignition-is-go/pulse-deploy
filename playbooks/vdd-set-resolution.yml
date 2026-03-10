@@ -52,13 +52,13 @@
         state: present
       no_log: true
 
-    - name: Run scheduled task
+    - name: Run VDD resolution change task
       ansible.windows.win_shell: |
         Start-ScheduledTask -TaskName "_vdd_set_resolution"
         Start-Sleep -Seconds 5
       changed_when: true
 
-    - name: Read result
+    - name: Read VDD resolution change log
       ansible.windows.win_shell: Get-Content C:\Windows\Temp\set-vdd-res.log
       register: vdd_res
       changed_when: false
@@ -68,7 +68,7 @@
         name: _vdd_set_resolution
         state: absent
 
-    - name: Display result
+    - name: Show VDD resolution change result
       ansible.builtin.debug:
         msg: "{{ vdd_res.stdout | trim }}"
 
@@ -85,6 +85,6 @@
       register: vdd_verify
       changed_when: false
 
-    - name: Display verification
+    - name: Show VDD resolution verification
       ansible.builtin.debug:
         msg: "{{ vdd_verify.stdout | trim }}"

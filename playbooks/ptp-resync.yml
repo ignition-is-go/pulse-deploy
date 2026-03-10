@@ -41,6 +41,6 @@
       register: w32time_status
       changed_when: false
 
-    - name: Display W32Time status
+    - name: Show W32Time status
       ansible.builtin.debug:
         msg: "{{ w32time_status.stdout_lines }}"

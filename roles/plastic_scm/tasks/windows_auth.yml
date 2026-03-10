@@ -63,6 +63,6 @@
   register: cloud_check
   changed_when: false
 
-- name: Cloud access verified
+- name: Show cloud access result
   ansible.builtin.debug:
     msg: "{{ inventory_hostname }}: cloud access OK ({{ cloud_check.stdout_lines | length }} repos)"

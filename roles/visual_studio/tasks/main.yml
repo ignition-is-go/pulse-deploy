@@ -12,14 +12,14 @@
 #   vs_community_workloads: list of workload IDs to install
 #   vs_community_install_path: install path (default below)
 
-- name: Check if Visual Studio Community installed
+- name: Check if installed
   ansible.windows.win_stat:
     path: "{{ vs_community_install_path }}\\Common7\\IDE\\devenv.exe"
   register: vs_community_check
 
 # --- Fresh install ---
 
-- name: Copy VS Community bootstrapper from NAS
+- name: Copy bootstrapper from NAS
   ansible.builtin.include_role:
     name: win_robocopy_from_nas
   vars:
@@ -28,7 +28,7 @@
     win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not vs_community_check.stat.exists
 
-- name: Install Visual Studio Community (fresh install)
+- name: Install (fresh install)
   ansible.windows.win_shell: |
     $p = Start-Process -FilePath 'C:\Windows\Temp\{{ vs_community_installer_file }}' `
       -ArgumentList "--wait --quiet --norestart --nocache {{ vs_community_workloads | map('regex_replace', '^', '--add ') | join(' ') }} --includeRecommended" `
@@ -40,7 +40,7 @@
   async: 3600
   poll: 30
 
-- name: Clean up VS Community bootstrapper
+- name: Clean up bootstrapper
   ansible.windows.win_file:
     path: "C:\\Windows\\Temp\\{{ vs_community_installer_file }}"
     state: absent
@@ -48,7 +48,7 @@
 
 # --- Modify existing install if workloads are missing ---
 
-- name: Query installed VS workloads via vswhere
+- name: Query installed workloads via vswhere
   ansible.windows.win_shell: |
     $vswhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
     $missing = @()
@@ -66,7 +66,7 @@
     vs_missing_workloads: "{{ vs_workload_query.stdout | default('') | trim }}"
   when: vs_community_check.stat.exists
 
-- name: Modify Visual Studio to add missing workloads
+- name: Modify install to add missing workloads
   ansible.windows.win_shell: |
     $setup = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\setup.exe'
     $installPath = '{{ vs_community_install_path }}'
@@ -84,7 +84,7 @@
 
 # --- Verify ---
 
-- name: Verify Visual Studio Community installed
+- name: Verify installation
   ansible.windows.win_stat:
     path: "{{ vs_community_install_path }}\\Common7\\IDE\\devenv.exe"
   register: vs_community_verify

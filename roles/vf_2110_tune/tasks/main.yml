@@ -17,7 +17,7 @@
 # Proxmox host-side (run manually on each hypervisor):
 #   for i in 0 1 2 3 4 5 6 7; do ethtool -G ens13f0r${i} rx 8192 tx 8192 2>/dev/null; done
 
-- name: Discover ConnectX-6 2110 adapter by MAC
+- name: Discover adapter by MAC
   ansible.windows.win_shell: |
     $mac = "{{ mac_2110 }}" -replace ":", "-"
     $nic = Get-NetAdapter | Where-Object { $_.MacAddress -eq $mac }
@@ -27,7 +27,7 @@
   changed_when: false
   when: rivermax | default(false)
 
-- name: Set ConnectX-6 adapter name
+- name: Set adapter name fact
   ansible.builtin.set_fact:
     cx6_adapter: "{{ cx6_discovery.stdout | trim }}"
   when: rivermax | default(false)
@@ -84,7 +84,7 @@
   changed_when: false
   when: rivermax | default(false)
 
-- name: Display final settings
+- name: Show final settings
   ansible.builtin.debug:
     msg: "{{ inventory_hostname }}:\n{{ tune_verify.stdout | trim }}"
   when: rivermax | default(false)

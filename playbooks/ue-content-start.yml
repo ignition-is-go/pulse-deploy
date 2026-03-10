@@ -42,7 +42,7 @@
       when: "'UnrealEditor.exe' in ue_running_check.stdout"
 
 - name: GPU health check
-  ansible.builtin.import_playbook: gpu-health-check.yml
+  ansible.builtin.import_playbook: win-gpu-check.yml
   vars:
     gpu_check_hosts: ue_content
 
@@ -56,7 +56,7 @@
   any_errors_fatal: true
 
   tasks:
-    - name: Validate .uproject file exists and is not empty
+    - name: Check .uproject file exists
       ansible.windows.win_shell: |
         $f = "{{ unreal_project }}"
         if (-not (Test-Path $f)) { Write-Error "File not found: $f"; exit 1 }
@@ -99,7 +99,7 @@
         - rivermax_preflight is not skipped
         - "'FAIL' in rivermax_preflight.stdout"
 
-    - name: Validate files and read nDisplay node config
+    - name: Check nDisplay files and read node config
       ansible.windows.win_shell: |
         $result = @{ config = 'OK'; map = 'OK'; window = $null }
         if (!(Test-Path "{{ ndisplay_config }}")) {

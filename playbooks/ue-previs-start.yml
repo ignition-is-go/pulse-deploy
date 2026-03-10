@@ -6,7 +6,7 @@
   hosts: ue_previs
   gather_facts: false
   tasks:
-    - name: Validate .uproject file exists and is not empty
+    - name: Check .uproject file exists
       ansible.windows.win_shell: |
         $f = "{{ unreal_project }}"
         if (-not (Test-Path $f)) { Write-Error "File not found: $f"; exit 1 }
@@ -62,6 +62,6 @@
       delay: 5
       changed_when: false
 
-    - name: Show status
+    - name: Show previs launch result
       ansible.builtin.debug:
         msg: "{{ inventory_hostname }}: UnrealEditor running — {{ launch_result.stdout | trim }}"

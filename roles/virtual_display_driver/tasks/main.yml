@@ -13,7 +13,7 @@
 # load. The <gpu><friendlyname>default</friendlyname></gpu> setting triggers
 # IddCxAdapterSetRenderAdapter to target the highest-VRAM GPU.
 
-- name: Check if VDD is already installed
+- name: Check if installed
   ansible.windows.win_shell: |
     $dev = Get-PnpDevice -FriendlyName "Virtual Display Driver" -ErrorAction SilentlyContinue
     if ($dev) { "installed" } else { "not_installed" }
@@ -58,7 +58,7 @@
   when: vdd_settings.changed and "'installed' in vdd_check.stdout"
   changed_when: true
 
-- name: Verify VDD is present in display adapters
+- name: Verify device exists
   ansible.windows.win_shell: |
     $dev = Get-PnpDevice -FriendlyName "Virtual Display Driver" -ErrorAction SilentlyContinue
     if (-not $dev) { throw "VDD not found in device list after install" }
@@ -68,7 +68,7 @@
   register: vdd_verify
   changed_when: false
 
-- name: Display VDD status
+- name: Show VDD status
   ansible.builtin.debug:
     msg: "{{ vdd_verify.stdout | trim }}"
 
@@ -180,6 +180,6 @@
     msg: "{{ vdd_res_result.stdout | trim }}"
   when: "'PASS' not in vdd_res_result.stdout"
 
-- name: Display VDD configuration result
+- name: Show VDD configuration result
   ansible.builtin.debug:
     msg: "{{ vdd_res_result.stdout | trim }}"

@@ -42,7 +42,7 @@
   changed_when: false
   when: rivermax | default(false)
 
-- name: Display PTP status
+- name: Show PTP status
   ansible.builtin.debug:
     msg: "{{ inventory_hostname }}: PTP Hardware Timestamp = {{ ptp_verify.stdout | trim }}"
   when: rivermax | default(false)

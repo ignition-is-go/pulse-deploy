@@ -4,17 +4,17 @@
 # Always disconnects and re-enrolls with the correct setup key if connected.
 # If not connected, enrolls directly.
 
-- name: Check if Netbird is installed
+- name: Check if installed
   ansible.builtin.stat:
     path: /usr/bin/netbird
   register: netbird_bin
 
-- name: Install Netbird if missing
+- name: Install if missing
   ansible.builtin.include_role:
     name: netbird
   when: not netbird_bin.stat.exists
 
-- name: Get Netbird status as JSON
+- name: Get status
   ansible.builtin.command:
     argv:
       - /usr/bin/netbird
@@ -24,19 +24,19 @@
   changed_when: false
   failed_when: false
 
-- name: Parse Netbird status
+- name: Parse status
   ansible.builtin.set_fact:
     netbird_connected: "{{ (netbird_json.stdout | from_json).management.connected | default(false) }}"
   when: netbird_json.rc == 0
 
-- name: Disconnect Netbird before re-enrollment
+- name: Disconnect before re-enrollment
   ansible.builtin.command:
     argv:
       - /usr/bin/netbird
       - down
   when: netbird_connected | bool
 
-- name: Enroll Netbird with setup key
+- name: Enroll with setup key
   ansible.builtin.command:
     argv:
       - /usr/bin/netbird

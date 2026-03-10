@@ -16,11 +16,11 @@
 #   ansible-playbook playbooks/cluster-up.yml
 #   ansible-playbook playbooks/cluster-up.yml -e skip_preflight=true  # fast relaunch
 
-- name: "=== Phase 1: Concert server ==="
+- name: "Phase 1 — Start Concert server"
   ansible.builtin.import_playbook: ue-concert-server-start.yml
 
-- name: "=== Phase 2: Concert editor ==="
+- name: "Phase 2 — Start Concert editor"
   ansible.builtin.import_playbook: ue-concert-editor-start.yml
 
-- name: "=== Phase 3: nDisplay cluster ==="
+- name: "Phase 3 — Start nDisplay cluster"
   ansible.builtin.import_playbook: ue-content-start.yml

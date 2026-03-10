@@ -7,12 +7,12 @@
 #   dropbox_installer_dir:  NAS directory containing Dropbox MSI
 #   dropbox_installer_file: Dropbox MSI filename
 
-- name: Check if Dropbox installed
+- name: Check if installed
   ansible.windows.win_stat:
     path: C:\Program Files (x86)\Dropbox\Client\Dropbox.exe
   register: dropbox_check
 
-- name: Copy Dropbox MSI from NAS
+- name: Copy MSI from NAS
   ansible.builtin.include_role:
     name: win_robocopy_from_nas
   vars:
@@ -21,25 +21,25 @@
     win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not dropbox_check.stat.exists
 
-- name: Install Dropbox (silent)
+- name: Install (silent)
   ansible.windows.win_package:
     path: "C:\\Windows\\Temp\\{{ dropbox_installer_file }}"
     state: present
   when: not dropbox_check.stat.exists
   register: dropbox_install
 
-- name: Verify Dropbox installation
+- name: Verify installation
   ansible.windows.win_stat:
     path: C:\Program Files (x86)\Dropbox\Client\Dropbox.exe
   register: dropbox_verify
   failed_when: not dropbox_verify.stat.exists
 
-- name: Create Dropbox desktop shortcut
+- name: Create desktop shortcut
   community.windows.win_shortcut:
     src: C:\Program Files (x86)\Dropbox\Client\Dropbox.exe
     dest: C:\Users\Public\Desktop\Dropbox.lnk
 
-- name: Clean up Dropbox MSI
+- name: Clean up installer
   ansible.windows.win_file:
     path: "C:\\Windows\\Temp\\{{ dropbox_installer_file }}"
     state: absent

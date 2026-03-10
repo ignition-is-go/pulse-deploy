@@ -1,5 +1,5 @@
 ---
-# adobe_creative_cloud -- Adobe Creative Cloud desktop app (Windows)
+# adobe_cc — Adobe Creative Cloud desktop app (Windows)
 #
 # Copies the CC installer and launches it in the interactive desktop session.
 # The installer requires manual sign-in — it cannot be fully automated.
@@ -9,12 +9,12 @@
 #   adobe_cc_installer_dir:  NAS directory containing Creative Cloud installer
 #   adobe_cc_installer_file: Creative Cloud installer filename
 
-- name: Check if Creative Cloud installed
+- name: Check if installed
   ansible.windows.win_stat:
     path: C:\Program Files\Adobe\Adobe Creative Cloud\ACC\Creative Cloud.exe
   register: adobe_cc_check
 
-- name: Copy Creative Cloud installer from NAS
+- name: Copy installer from NAS
   ansible.builtin.include_role:
     name: win_robocopy_from_nas
   vars:
@@ -23,7 +23,7 @@
     win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not adobe_cc_check.stat.exists
 
-- name: Create CC installer scheduled task
+- name: Create installer scheduled task
   community.windows.win_scheduled_task:
     name: ansible-cc-install
     actions:
@@ -37,7 +37,7 @@
     enabled: true
   when: not adobe_cc_check.stat.exists
 
-- name: Launch CC installer in interactive session
+- name: Launch installer in interactive session
   ansible.windows.win_command:
     argv:
       - schtasks.exe
@@ -46,7 +46,7 @@
       - ansible-cc-install
   when: not adobe_cc_check.stat.exists
 
-- name: Prompt — Creative Cloud requires manual sign-in
+- name: Prompt — requires manual sign-in
   ansible.builtin.debug:
     msg: >-
       Adobe Creative Cloud installer launched on {{ inventory_hostname }}.
@@ -54,13 +54,13 @@
       Re-run site.yml afterward to verify.
   when: not adobe_cc_check.stat.exists
 
-- name: Remove CC installer scheduled task
+- name: Remove installer scheduled task
   community.windows.win_scheduled_task:
     name: ansible-cc-install
     state: absent
   when: adobe_cc_check.stat.exists
 
-- name: Clean up Creative Cloud installer
+- name: Clean up installer
   ansible.windows.win_file:
     path: "C:\\Windows\\Temp\\{{ adobe_cc_installer_file }}"
     state: absent

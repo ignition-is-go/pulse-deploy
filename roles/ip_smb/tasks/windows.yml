@@ -5,7 +5,7 @@
 #   mac_smb:  expected MAC address (e.g. "02:00:00:04:91:01")
 #   ip_smb:   static IP for the storage network (e.g. "10.0.1.169")
 
-- name: Ensure SMB adapter has TCP/IP bound
+- name: Bind TCP/IP on SMB adapter
   ansible.windows.win_shell: |
     $mac = ("{{ mac_smb }}" -replace ":", "-")
     $nic = Get-NetAdapter | Where-Object { $_.MacAddress -eq $mac }

@@ -12,11 +12,11 @@
 # Usage:
 #   ansible-playbook playbooks/cluster-down.yml
 
-- name: "=== Phase 1: nDisplay cluster ==="
+- name: "Phase 1 — Stop nDisplay cluster"
   ansible.builtin.import_playbook: ue-content-stop.yml
 
-- name: "=== Phase 2: Concert editor ==="
+- name: "Phase 2 — Stop Concert editor"
   ansible.builtin.import_playbook: ue-concert-editor-stop.yml
 
-- name: "=== Phase 3: Concert server ==="
+- name: "Phase 3 — Stop Concert server"
   ansible.builtin.import_playbook: ue-concert-server-stop.yml

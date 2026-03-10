@@ -1,7 +1,7 @@
 ---
-# uwd-build-proxy — Build patched UWD proxy DLL on a Windows host with MSVC
+# win-uwd-build-proxy.yml — Build patched UWD proxy DLL on a Windows host with MSVC
 #
-# Usage: ansible-playbook playbooks/uwd-build-proxy.yml -e target=ue-plugindev-01
+# Usage: ansible-playbook playbooks/win-uwd-build-proxy.yml -e target=ue-plugindev-01
 #
 # Requires: VS Build Tools 2022 with C++ desktop workload
 

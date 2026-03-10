@@ -1,12 +1,12 @@
 ---
-# build.yml — UE build pipeline
+# ue-build.yml — UE build pipeline
 #
 # Builds Unreal project, stages to SMB share, distributes to previs nodes.
 # Consolidates: cl-build-unreal.yml, build-and-monitor.yml,
 #               copy-build-to-nfs.yml, distribute-build-to-previs.yml
 #
 # Usage:
-#   ansible-playbook playbooks/build.yml --limit windows-unreal-dev-01
+#   ansible-playbook playbooks/ue-build.yml --limit windows-unreal-dev-01
 
 - name: Build and stage UE project
   hosts: ue

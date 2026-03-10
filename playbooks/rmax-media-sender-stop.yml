@@ -25,11 +25,11 @@
         name: RivermaxMediaSender
         state: absent
 
-    - name: Confirm stopped
+    - name: Verify media_sender process stopped
       ansible.windows.win_command: tasklist /FI "IMAGENAME eq media_sender.exe" /NH
       register: tx_status
       changed_when: false
 
-    - name: Show status
+    - name: Show media_sender stop result
       ansible.builtin.debug:
         msg: "{{ inventory_hostname }}: {{ 'STOPPED' if 'media_sender.exe' not in tx_status.stdout else 'STILL RUNNING' }}"

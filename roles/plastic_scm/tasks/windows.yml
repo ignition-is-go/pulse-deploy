@@ -4,7 +4,7 @@
 # Runs all steps: install → auth → workspace → sync
 # Individual playbooks use tasks_from to run specific steps.
 
-- name: Plastic SCM operations (Windows)
+- name: Install, auth, and sync workspace
   when: plastic_workspace | length > 0
   block:
     - name: Install Plastic SCM

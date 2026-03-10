@@ -8,12 +8,12 @@
 #   ndi_tools_installer_dir:  NAS directory containing NDI Tools installer
 #   ndi_tools_installer_file: NDI Tools installer filename
 
-- name: Check if NDI Tools installed
+- name: Check if installed
   ansible.windows.win_stat:
     path: C:\Program Files\NDI\NDI 6 Tools\NDI Launcher.exe
   register: ndi_check
 
-- name: Copy NDI Tools installer from NAS
+- name: Copy installer from NAS
   ansible.builtin.include_role:
     name: win_robocopy_from_nas
   vars:
@@ -22,7 +22,7 @@
     win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not ndi_check.stat.exists
 
-- name: Install NDI Tools (silent)
+- name: Install (silent)
   ansible.windows.win_command:
     argv:
       - "C:\\Windows\\Temp\\{{ ndi_tools_installer_file }}"
@@ -30,13 +30,13 @@
       - /NORESTART
   when: not ndi_check.stat.exists
 
-- name: Verify NDI Tools installed
+- name: Verify installation
   ansible.windows.win_stat:
     path: C:\Program Files\NDI\NDI 6 Tools\NDI Launcher.exe
   register: ndi_verify
   failed_when: not ndi_verify.stat.exists
 
-- name: Verify NDI runtime env var is set
+- name: Verify runtime env var is set
   ansible.windows.win_shell: |
     $val = [System.Environment]::GetEnvironmentVariable('NDI_RUNTIME_DIR_V5', 'Machine')
     if ($val) { "NDI_RUNTIME_DIR_V5=$val" } else { "NOT_SET" }
@@ -44,7 +44,7 @@
   changed_when: false
   failed_when: "'NOT_SET' in ndi_env_check.stdout"
 
-- name: Clean up NDI Tools installer
+- name: Clean up installer
   ansible.windows.win_file:
     path: "C:\\Windows\\Temp\\{{ ndi_tools_installer_file }}"
     state: absent

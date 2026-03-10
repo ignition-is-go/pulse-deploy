@@ -8,12 +8,12 @@
 #   pureref_installer_file: PureRef installer filename
 #   pureref_version: version string (e.g. "2.1.0")
 
-- name: Check if PureRef installed
+- name: Check if installed
   ansible.windows.win_stat:
     path: C:\Program Files\PureRef\PureRef.exe
   register: pureref_check
 
-- name: Copy PureRef installer from NAS
+- name: Copy installer from NAS
   ansible.builtin.include_role:
     name: win_robocopy_from_nas
   vars:
@@ -22,7 +22,7 @@
     win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not pureref_check.stat.exists
 
-- name: Install PureRef (silent)
+- name: Install (silent)
   ansible.windows.win_command:
     argv:
       - "C:\\Windows\\Temp\\{{ pureref_installer_file }}"
@@ -30,18 +30,18 @@
   when: not pureref_check.stat.exists
   register: pureref_install
 
-- name: Verify PureRef installation
+- name: Verify installation
   ansible.windows.win_stat:
     path: C:\Program Files\PureRef\PureRef.exe
   register: pureref_verify
   failed_when: not pureref_verify.stat.exists
 
-- name: Create PureRef desktop shortcut
+- name: Create desktop shortcut
   community.windows.win_shortcut:
     src: C:\Program Files\PureRef\PureRef.exe
     dest: C:\Users\Public\Desktop\PureRef.lnk
 
-- name: Clean up PureRef installer
+- name: Clean up installer
   ansible.windows.win_file:
     path: "C:\\Windows\\Temp\\{{ pureref_installer_file }}"
     state: absent

@@ -40,7 +40,7 @@
       when: current_numvfs.stdout | int != bf2_vf_count | int
       register: mlxconfig_result
 
-    - name: Reboot required
+    - name: Warn reboot required for firmware change
       ansible.builtin.debug:
         msg: "NUM_OF_VFS changed to {{ bf2_vf_count }}. Reboot {{ inventory_hostname }} to apply."
       when: mlxconfig_result is changed

@@ -112,10 +112,10 @@
   gather_facts: false
   roles:
     - win_remove_edge
-    - win_install_chrome
+    - win_chrome
     - win_openssh_server
-    - win_bun
-    - win_gh_cli
+    - bun
+    - gh_cli
     - netbird_configure
     - git
     - win_ue_build_deps
@@ -144,11 +144,11 @@
   gather_facts: false
   roles:
     - win_remove_edge
-    - win_install_chrome
+    - win_chrome
     - ndi_tools
     - unreal_engine
     - blender
-    # TODO: adobe_creative_cloud (needs Admin Console deployment package)
+    # TODO: adobe_cc (needs Admin Console deployment package)
     - pureref
     - dropbox
 
@@ -179,7 +179,7 @@
     - role: pve_vf_mac
       when: vf_macs_json is defined
   post_tasks:
-    - name: Verify SSH connectivity after convergence
+    - name: Verify SSH connectivity
       ansible.builtin.wait_for_connection:
         timeout: 30
 

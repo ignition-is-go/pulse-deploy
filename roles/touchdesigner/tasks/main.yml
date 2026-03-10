@@ -9,12 +9,12 @@
 #   touchdesigner_version: version string (e.g. "2025.32280")
 #   touchdesigner_install_dir: install directory (check after first install)
 
-- name: Check if TouchDesigner installed
+- name: Check if installed
   ansible.windows.win_stat:
     path: "{{ touchdesigner_install_dir }}\\bin\\TouchDesigner.exe"
   register: touch_check
 
-- name: Copy TouchDesigner installer from NAS
+- name: Copy installer from NAS
   ansible.builtin.include_role:
     name: win_robocopy_from_nas
   vars:
@@ -23,7 +23,7 @@
     win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not touch_check.stat.exists
 
-- name: Install TouchDesigner (silent)
+- name: Install (silent)
   ansible.windows.win_command:
     argv:
       - "C:\\Windows\\Temp\\{{ touchdesigner_installer_file }}"
@@ -34,7 +34,7 @@
   register: touch_install_job
   when: not touch_check.stat.exists
 
-- name: Wait for TouchDesigner install
+- name: Wait for install to complete
   ansible.builtin.async_status:
     jid: "{{ touch_install_job.ansible_job_id }}"
   register: touch_install_result
@@ -43,13 +43,13 @@
   delay: 15
   when: not touch_check.stat.exists
 
-- name: Verify TouchDesigner installation
+- name: Verify installation
   ansible.windows.win_stat:
     path: "{{ touchdesigner_install_dir }}\\bin\\TouchDesigner.exe"
   register: touch_verify
   failed_when: not touch_verify.stat.exists
 
-- name: Clean up TouchDesigner installer
+- name: Clean up installer
   ansible.windows.win_file:
     path: "C:\\Windows\\Temp\\{{ touchdesigner_installer_file }}"
     state: absent

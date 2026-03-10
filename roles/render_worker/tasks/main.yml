@@ -21,7 +21,7 @@
     msg: "WARNING: Worker binary not found at {{ worker_path }}\\{{ worker_exe }}. Build and deploy it first."
   when: not worker_binary_check.stat.exists
 
-- name: Ensure scheduled task exists for worker
+- name: Check if scheduled task exists
   ansible.windows.win_shell: |
     $task = Get-ScheduledTask -TaskName "{{ worker_task_name }}" -ErrorAction SilentlyContinue
     if ($task) {

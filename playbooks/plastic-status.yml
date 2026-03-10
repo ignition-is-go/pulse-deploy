@@ -4,7 +4,7 @@
 # Usage: ansible-playbook playbooks/plastic-status.yml
 #        ansible-playbook playbooks/plastic-status.yml --limit windows-unreal-03
 
-- name: Check Plastic Status
+- name: Check Plastic SCM workspace status
   hosts: "{{ plastic_status_hosts | default('ue') }}"
   gather_facts: false
   ignore_unreachable: true
@@ -19,6 +19,6 @@
       register: plastic_result
       changed_when: false
 
-    - name: Display result
+    - name: Show controlled changes
       ansible.builtin.debug:
         msg: "{{ plastic_result.stdout }}"

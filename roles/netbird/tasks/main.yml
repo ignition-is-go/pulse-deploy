@@ -7,10 +7,10 @@
 # Requires (group_vars):
 #   netbird_installer_source: (Windows only) UNC path to Netbird installer on NAS
 
-- name: Windows — Netbird install
+- name: Windows — install
   ansible.builtin.include_tasks: windows.yml
   when: ansible_os_family == "Windows"
 
-- name: Linux — Netbird install
+- name: Linux — install
   ansible.builtin.include_tasks: linux.yml
   when: ansible_os_family == "Debian"

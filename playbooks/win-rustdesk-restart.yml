@@ -1,8 +1,8 @@
 ---
-# rustdesk-restart.yml — Full restart of RustDesk (PulseRemoteDesktopVM) service
+# win-rustdesk-restart.yml — Full restart of RustDesk (PulseRemoteDesktopVM) service
 #
 # Usage:
-#   ansible-playbook playbooks/rustdesk-restart.yml --limit ue-plugindev-01
+#   ansible-playbook playbooks/win-rustdesk-restart.yml --limit ue-plugindev-01
 
 - name: Restart RustDesk
   hosts: windows
@@ -33,6 +33,6 @@
       register: rustdesk_id
       changed_when: false
 
-    - name: Display RustDesk ID
+    - name: Show RustDesk ID
       ansible.builtin.debug:
         msg: "RustDesk ID: {{ rustdesk_id.stdout | trim }}"

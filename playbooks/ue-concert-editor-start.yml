@@ -29,7 +29,7 @@
       when: "'UnrealEditor.exe' in editor_running_check.stdout"
 
 - name: GPU health check
-  ansible.builtin.import_playbook: gpu-health-check.yml
+  ansible.builtin.import_playbook: win-gpu-check.yml
   vars:
     gpu_check_hosts: ue_editing
 

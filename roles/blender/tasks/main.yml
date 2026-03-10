@@ -8,17 +8,17 @@
 #   blender_installer_file: Blender MSI filename
 #   blender_version: full version string (e.g. "5.0.1")
 
-- name: Set Blender install directory
+- name: Set install directory
   ansible.builtin.set_fact:
     blender_install_dir: >-
       C:\Program Files\Blender Foundation\Blender {{ blender_version.split('.')[:2] | join('.') }}
 
-- name: Check if Blender installed
+- name: Check if installed
   ansible.windows.win_stat:
     path: "{{ blender_install_dir }}\\blender.exe"
   register: blender_check
 
-- name: Copy Blender MSI from NAS
+- name: Copy MSI from NAS
   ansible.builtin.include_role:
     name: win_robocopy_from_nas
   vars:
@@ -27,7 +27,7 @@
     win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not blender_check.stat.exists
 
-- name: Install Blender (silent)
+- name: Install (silent)
   ansible.windows.win_package:
     path: "C:\\Windows\\Temp\\{{ blender_installer_file }}"
     arguments: ALLUSERS=1
@@ -35,7 +35,7 @@
   when: not blender_check.stat.exists
   register: blender_install
 
-- name: Verify Blender installation
+- name: Verify installation
   ansible.windows.win_command:
     argv:
       - "{{ blender_install_dir }}\\blender.exe"
@@ -44,11 +44,11 @@
   changed_when: false
   failed_when: blender_version not in blender_verify.stdout
 
-- name: Display Blender version
+- name: Show version
   ansible.builtin.debug:
     msg: "{{ blender_verify.stdout | trim }}"
 
-- name: Clean up Blender MSI
+- name: Clean up installer
   ansible.windows.win_file:
     path: "C:\\Windows\\Temp\\{{ blender_installer_file }}"
     state: absent

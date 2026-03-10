@@ -121,14 +121,14 @@
   register: sync_result
   changed_when: "'no changes' not in sync_result.stdout"
 
-- name: Display changeset switch result
+- name: Show changeset switch result
   when:
     - workspace_check.stat.exists
     - changeset | length > 0
   ansible.builtin.debug:
     msg: "{{ inventory_hostname }}: {{ switch_cs_result.stdout_lines[-1] | default('done') }}"
 
-- name: Display sync result
+- name: Show sync result
   when:
     - workspace_check.stat.exists
     - changeset | length == 0

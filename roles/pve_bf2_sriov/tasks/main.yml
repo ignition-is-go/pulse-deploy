@@ -58,7 +58,7 @@
     src: "/sys/class/net/{{ bf2_iface }}/device/sriov_numvfs"
   register: bf2_numvfs_check
 
-- name: Report VF count mismatch
+- name: Fail if VF count mismatch
   ansible.builtin.fail:
     msg: >-
       VF count is {{ bf2_numvfs_check.content | b64decode | trim }}, expected {{ bf2_vf_count }}.

@@ -1,8 +1,8 @@
 ---
-# Check status of all render nodes
+# ue-status.yml — Check status of all render nodes
 #
-# Usage: ansible-playbook playbooks/status.yml
-#        ansible-playbook playbooks/status.yml --limit windows-unreal-03
+# Usage: ansible-playbook playbooks/ue-status.yml
+#        ansible-playbook playbooks/ue-status.yml --limit windows-unreal-03
 
 - name: Check Render Node Status
   hosts: ue
@@ -20,7 +20,7 @@
       register: ue_status
       changed_when: false
 
-    - name: Display status
+    - name: Show render node status
       ansible.builtin.debug:
         msg: |
           {{ inventory_hostname }}: {{ ansible_processor_vcpus }} cores, {{ (ansible_memtotal_mb / 1024) | round(1) }}GB RAM

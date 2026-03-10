@@ -1,14 +1,14 @@
 ---
 # netbird/tasks/windows.yml — Install Netbird on Windows
 
-- name: Check if Netbird is installed
+- name: Check if installed
   ansible.windows.win_shell: |
     $nb = Get-Command netbird -ErrorAction SilentlyContinue
     if ($nb) { "INSTALLED=$($nb.Source)" } else { "NOT_INSTALLED" }
   register: netbird_check
   changed_when: false
 
-- name: Copy Netbird installer from NAS
+- name: Copy installer from NAS
   ansible.builtin.include_role:
     name: win_robocopy_from_nas
   vars:
@@ -17,14 +17,14 @@
     win_robocopy_from_nas_dest: C:\Windows\Temp
   when: "'NOT_INSTALLED' in netbird_check.stdout"
 
-- name: Install Netbird (silent)
+- name: Install (silent)
   ansible.windows.win_command:
     argv:
       - "C:\\Windows\\Temp\\{{ netbird_installer_file }}"
       - /S
   when: "'NOT_INSTALLED' in netbird_check.stdout"
 
-- name: Verify Netbird installed
+- name: Verify installation
   ansible.windows.win_shell: |
     $nb = Get-Command netbird -ErrorAction SilentlyContinue
     if ($nb) { "OK=$($nb.Source)" } else { "MISSING" }
@@ -32,7 +32,7 @@
   changed_when: false
   failed_when: "'MISSING' in netbird_win_verify.stdout"
 
-- name: Clean up Netbird installer
+- name: Clean up installer
   ansible.windows.win_file:
     path: "C:\\Windows\\Temp\\{{ netbird_installer_file }}"
     state: absent

@@ -5,7 +5,7 @@
 #   mac_2110:  expected MAC address (e.g. "02:00:00:04:91:00")
 #   ip_2110:   static IP for the 2110 network (e.g. "10.0.0.169")
 
-- name: Ensure 2110 adapter has TCP/IP bound
+- name: Bind TCP/IP on 2110 adapter
   ansible.windows.win_shell: |
     $mac = ("{{ mac_2110 }}" -replace ":", "-")
     $nic = Get-NetAdapter | Where-Object { $_.MacAddress -eq $mac }

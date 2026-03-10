@@ -5,12 +5,12 @@
 #   vscode_installer_dir:  NAS directory containing VS Code installer
 #   vscode_installer_file: VS Code installer filename
 
-- name: Check if VS Code installed
+- name: Check if installed
   ansible.windows.win_stat:
     path: C:\Users\{{ ansible_user }}\AppData\Local\Programs\Microsoft VS Code\Code.exe
   register: vscode_check
 
-- name: Copy VS Code installer from NAS
+- name: Copy installer from NAS
   ansible.builtin.include_role:
     name: win_robocopy_from_nas
   vars:
@@ -19,7 +19,7 @@
     win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not vscode_check.stat.exists
 
-- name: Install VS Code (silent)
+- name: Install (silent)
   ansible.windows.win_command:
     argv:
       - "C:\\Windows\\Temp\\{{ vscode_installer_file }}"
@@ -30,13 +30,13 @@
   async: 300
   poll: 15
 
-- name: Verify VS Code installed
+- name: Verify installation
   ansible.windows.win_stat:
     path: C:\Users\{{ ansible_user }}\AppData\Local\Programs\Microsoft VS Code\Code.exe
   register: vscode_verify
   failed_when: not vscode_verify.stat.exists
 
-- name: Clean up VS Code installer
+- name: Clean up installer
   ansible.windows.win_file:
     path: "C:\\Windows\\Temp\\{{ vscode_installer_file }}"
     state: absent

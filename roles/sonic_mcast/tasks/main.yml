@@ -79,6 +79,6 @@
   register: mdb_show
   changed_when: false
 
-- name: Display PTP MDB entries
+- name: Show PTP MDB entries
   ansible.builtin.debug:
     msg: "{{ mdb_show.stdout_lines | select('search', '224.0.1.129') | list }}"
