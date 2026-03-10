@@ -125,7 +125,7 @@
   ansible.builtin.include_role:
     name: win_robocopy_from_nas
   vars:
-    win_robocopy_from_nas_src: "{{ nas_share }}\\installers\\rustdesk\\1.4.3"
+    win_robocopy_from_nas_src: "{{ nas_share_mgmt }}\\installers\\rustdesk\\1.4.3"
     win_robocopy_from_nas_file: pulseremotedesktopvm.msi
     win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not rustdesk_check.stat.exists
@@ -198,7 +198,7 @@
   ansible.builtin.include_role:
     name: win_robocopy_from_nas
   vars:
-    win_robocopy_from_nas_src: "{{ nas_share }}\\installers\\powertoys\\0.97.2"
+    win_robocopy_from_nas_src: "{{ nas_share_mgmt }}\\installers\\powertoys\\0.97.2"
     win_robocopy_from_nas_file: PowerToysSetup-0.97.2-x64.exe
     win_robocopy_from_nas_dest: C:\Windows\Temp
   when: not powertoys_check.stat.exists

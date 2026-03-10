@@ -1,0 +1,70 @@
+---
+# ip_smb/tasks/linux.yml — Configure static IP on SMB interface (Linux)
+#
+# Auto-detects a ConnectX PF with link, deploys an ifupdown snippet to
+# /etc/network/interfaces.d/, and brings the interface up.
+#
+# Requires:
+#   ip_smb: static IP (e.g. "10.0.1.31")
+
+- name: Find ConnectX PF interfaces
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      for d in /sys/class/net/*/device/driver; do
+        [ -e "$d" ] || continue
+        iface=$(echo "$d" | cut -d/ -f5)
+        driver=$(basename "$(readlink "$d")")
+        if [ "$driver" = "mlx5_core" ]; then
+          virtfn="/sys/class/net/$iface/device/physfn"
+          if [ ! -e "$virtfn" ]; then echo "$iface"; fi
+        fi
+      done
+    executable: /bin/bash
+  register: cx6_pfs
+  changed_when: false
+
+- name: Fail if no ConnectX PF found
+  ansible.builtin.fail:
+    msg: "No ConnectX PF found on {{ inventory_hostname }}"
+  when: cx6_pfs.stdout_lines | length == 0
+
+- name: Bring all ConnectX PFs up for link detection
+  ansible.builtin.command:
+    argv: [ip, link, set, "{{ item }}", up]
+  loop: "{{ cx6_pfs.stdout_lines }}"
+  changed_when: false
+
+- name: Wait for link negotiation
+  ansible.builtin.pause:
+    seconds: 3
+
+- name: Check link state on each PF
+  ansible.builtin.command:
+    argv: [ethtool, "{{ item }}"]
+  loop: "{{ cx6_pfs.stdout_lines }}"
+  register: cx6_link_check
+  changed_when: false
+
+- name: Select first PF with link
+  ansible.builtin.set_fact:
+    smb_interface: >-
+      {{ cx6_link_check.results
+         | selectattr('stdout', 'search', 'Link detected: yes')
+         | map(attribute='item')
+         | first }}
+
+- name: Fail if no PF has link
+  ansible.builtin.fail:
+    msg: "No ConnectX PF has link on {{ inventory_hostname }}"
+  when: smb_interface is not defined or smb_interface | trim == ''
+
+- name: Deploy SMB interface config
+  ansible.builtin.copy:
+    content: |
+      auto {{ smb_interface | trim }}
+      iface {{ smb_interface | trim }} inet static
+          address {{ ip_smb }}/24
+    dest: "/etc/network/interfaces.d/{{ smb_interface | trim }}"
+    mode: "0644"
+  notify: Bring up SMB interface

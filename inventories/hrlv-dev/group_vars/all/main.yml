@@ -4,8 +4,11 @@
 # Render server
 render_server_url: "{{ vault_render_server_url }}"
 
-# SMB share on nyc-pbs-01 (storage network)
+# SMB share on nyc-pbs-01 (storage network — high-speed VF)
 nas_share: "\\\\10.0.1.31\\share"
+
+# SMB share on nyc-pbs-01 (management network — fallback before VF is configured)
+nas_share_mgmt: "\\\\192.168.1.31\\share"
 
 # NVIDIA RTX Enterprise driver (covers RTX A4000, RTX 6000 Ada, etc.)
 nvidia_driver_dir: "{{ nas_share }}\\installers\\nvidia-driver\\582.16"

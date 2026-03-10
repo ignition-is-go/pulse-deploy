@@ -1,0 +1,61 @@
+---
+# winof2 — Install Mellanox WinOF-2 driver for ConnectX/BlueField VF passthrough
+#
+# Provides the proper Mellanox network driver so TCP/IP binds to VF adapters.
+# Without this, BF2 VFs only get the generic mlx5Gen driver with netvsc_vfpp.
+#
+# Requires:
+#   winof2_installer_dir:  UNC path to installer directory on NAS
+#   winof2_installer_file: installer filename
+#   winof2_version:        expected version string (default in defaults/main.yml)
+
+- name: Get installed WinOF-2 version
+  ansible.windows.win_shell: |
+    $reg = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' |
+      Where-Object { $_.DisplayName -like '*WinOF*' }
+    if ($reg) { $reg.DisplayVersion } else { "not_installed" }
+  register: winof2_check
+  changed_when: false
+
+- name: Report WinOF-2 version
+  ansible.builtin.debug:
+    msg: "WinOF-2: {{ winof2_check.stdout | trim }} (expected {{ winof2_version }})"
+
+- name: Copy WinOF-2 installer from NAS
+  ansible.builtin.include_role:
+    name: win_robocopy_from_nas
+  vars:
+    win_robocopy_from_nas_src: "{{ winof2_installer_dir }}"
+    win_robocopy_from_nas_file: "{{ winof2_installer_file }}"
+    win_robocopy_from_nas_dest: C:\Windows\Temp
+  when: winof2_check.stdout | trim != winof2_version
+
+- name: Install WinOF-2 driver
+  ansible.windows.win_shell: |
+    $p = Start-Process -FilePath "C:\Windows\Temp\{{ winof2_installer_file }}" `
+      -ArgumentList '/S /v/qn /v"/log C:\Windows\Temp\winof2_install.log"' `
+      -Wait -PassThru
+    $p.ExitCode
+  register: winof2_install
+  when: winof2_check.stdout | trim != winof2_version
+
+- name: Reboot after WinOF-2 install
+  ansible.builtin.include_role:
+    name: win_reboot
+  when:
+    - winof2_check.stdout | trim != winof2_version
+    - winof2_install is changed
+
+- name: Verify WinOF-2 version
+  ansible.windows.win_shell: |
+    $reg = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' |
+      Where-Object { $_.DisplayName -like '*WinOF*' }
+    if ($reg) { $reg.DisplayVersion } else { "not_installed" }
+  register: winof2_verify
+  changed_when: false
+  failed_when: winof2_verify.stdout | trim != winof2_version
+
+- name: Cleanup installer
+  ansible.windows.win_file:
+    path: "C:\\Windows\\Temp\\{{ winof2_installer_file }}"
+    state: absent

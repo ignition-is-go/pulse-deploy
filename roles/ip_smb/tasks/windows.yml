@@ -1,13 +1,13 @@
 ---
-# ip_2110 — Configure static IP on the ST 2110 VF (10.0.0.x)
+# ip_smb — Configure static IP on the SMB/storage VF (10.0.1.x)
 #
 # Requires (host_vars via Terraform):
-#   mac_2110:  expected MAC address (e.g. "02:00:00:04:91:00")
-#   ip_2110:   static IP for the 2110 network (e.g. "10.0.0.169")
+#   mac_smb:  expected MAC address (e.g. "02:00:00:04:91:01")
+#   ip_smb:   static IP for the storage network (e.g. "10.0.1.169")
 
-- name: Ensure 2110 adapter has TCP/IP bound
+- name: Ensure SMB adapter has TCP/IP bound
   ansible.windows.win_shell: |
-    $mac = ("{{ mac_2110 }}" -replace ":", "-")
+    $mac = ("{{ mac_smb }}" -replace ":", "-")
     $nic = Get-NetAdapter | Where-Object { $_.MacAddress -eq $mac }
     if (-not $nic) { throw "No adapter with MAC $mac" }
 
@@ -30,20 +30,20 @@
       if (-not $tcpip) { throw "TCP/IP did not bind after disabling netvsc_vfpp" }
       "CHANGED"
     } else { "OK" }
-  register: nic_2110_tcpip
-  changed_when: "'CHANGED' in nic_2110_tcpip.stdout"
+  register: smb_tcpip
+  changed_when: "'CHANGED' in smb_tcpip.stdout"
 
-- name: Configure static IP on 2110 adapter via netsh
+- name: Configure static IP on SMB adapter via netsh
   ansible.windows.win_shell: |
-    $mac = ("{{ mac_2110 }}" -replace ":", "-")
+    $mac = ("{{ mac_smb }}" -replace ":", "-")
     $nic = Get-NetAdapter | Where-Object { $_.MacAddress -eq $mac }
 
     $current = Get-NetIPAddress -InterfaceIndex $nic.ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue |
       Where-Object { $_.IPAddress -notlike '169.*' }
-    if ($current.IPAddress -eq "{{ ip_2110 }}") { "OK"; return }
+    if ($current.IPAddress -eq "{{ ip_smb }}") { "OK"; return }
 
-    netsh interface ipv4 set address name="$($nic.Name)" static {{ ip_2110 }} 255.255.255.0
+    netsh interface ipv4 set address name="$($nic.Name)" static {{ ip_smb }} 255.255.255.0
     if ($LASTEXITCODE -ne 0) { throw "netsh failed with exit code $LASTEXITCODE" }
     "CHANGED"
-  register: nic_2110_ip
-  changed_when: "'CHANGED' in nic_2110_ip.stdout"
+  register: smb_ip
+  changed_when: "'CHANGED' in smb_ip.stdout"

@@ -24,6 +24,17 @@
 
 # === Windows VMs ===
 
+- name: VF network — Windows nodes with high-speed NIC passthrough
+  hosts: ue_content:ue_editing:ue_previs:ue_plugin_dev:ue_staging:arnold_fusion:workstation
+  gather_facts: true
+  roles:
+    - role: winof2
+      when: mac_2110 is defined or mac_smb is defined
+    - role: ip_2110
+      when: mac_2110 is defined
+    - role: ip_smb
+      when: mac_smb is defined
+
 - name: Base config — all Windows
   hosts: windows
   gather_facts: true
@@ -33,16 +44,12 @@
     - win_disable_wlms
     - win_disable_watermark
 
-- name: GPU validation — Windows nodes with GPUs
+- name: GPU drivers — Windows nodes with GPUs
   hosts: ue_content:ue_editing:ue_previs:ue_plugin_dev:arnold_fusion:workstation
   gather_facts: false
   roles:
     - nvidia_gpu_win
     - virtual_display_driver
-    - role: ip_2110
-      when: mac_2110 is defined
-    - role: ip_smb
-      when: mac_smb is defined
 
 - name: Rivermax — all Windows nodes with rivermax enabled
   hosts: windows
@@ -81,6 +88,7 @@
   hosts: ue_editing
   gather_facts: false
   roles:
+    - plastic_scm
     - ndi_tools
     - unreal_engine
 
@@ -177,8 +185,9 @@
 
 - name: PBS — deploy share
   hosts: pbs
-  gather_facts: false
+  gather_facts: true
   roles:
+    - ip_smb
     - samba_server
 
 - name: Optik

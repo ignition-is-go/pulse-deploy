@@ -9,9 +9,12 @@ ansible_password: "{{ vault_win_password }}"
 ptp_masters: "10.0.0.100"
 ptp_domain: 0
 
+# WinOF-2 driver (uses management NIC — must work before VF is configured)
+winof2_installer_dir: "{{ nas_share_mgmt }}\\installers\\winof2\\24.10.50010"
+winof2_installer_file: MLNX_WinOF2-24_10_50010_All_x64.exe
+
 # Rivermax (applied when rivermax: true)
-rivermax_installer_dir: "{{ nas_share }}\\rivermax"
-rivermax_winof2_file: MLNX_WinOF2-24_10_50010_All_x64.exe
+rivermax_installer_dir: "{{ nas_share }}\\installers\\rivermax\\1.71.30"
 rivermax_sdk_file: Rivermax_Windows_1.71.30.zip
 rivermax_license_file: Rivermax-12022026-qty3-1a7da843cfd1.lic
 

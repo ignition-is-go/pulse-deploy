@@ -1,0 +1,7 @@
+---
+- name: Bring up SMB interface
+  ansible.builtin.command:
+    argv:
+      - ifup
+      - "{{ smb_interface | trim }}"
+  changed_when: true
