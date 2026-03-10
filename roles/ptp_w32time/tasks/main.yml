@@ -17,6 +17,7 @@
     name: PtpMasters
     data: "{{ ptp_masters }}"
     type: string
+  notify: Restart W32Time
   when: rivermax | default(false)
 
 - name: Enable PTP client provider
@@ -25,6 +26,7 @@
     name: Enabled
     data: 1
     type: dword
+  notify: Restart W32Time
   when: rivermax | default(false)
 
 - name: Set PTP client as input provider
@@ -33,6 +35,7 @@
     name: InputProvider
     data: 1
     type: dword
+  notify: Restart W32Time
   when: rivermax | default(false)
 
 - name: Set PTP client DLL
@@ -41,6 +44,7 @@
     name: DllName
     data: "C:\\Windows\\System32\\ptpprov.dll"
     type: string
+  notify: Restart W32Time
   when: rivermax | default(false)
 
 - name: Set PTP DelayPollInterval
@@ -49,6 +53,7 @@
     name: DelayPollInterval
     data: 0x3e80
     type: dword
+  notify: Restart W32Time
   when: rivermax | default(false)
 
 - name: Set PTP AnnounceInterval
@@ -57,6 +62,7 @@
     name: AnnounceInterval
     data: 0x0fa0
     type: dword
+  notify: Restart W32Time
   when: rivermax | default(false)
 
 # --- Multicast and delay settings ---
@@ -67,6 +73,7 @@
     name: EnableMulticastRx
     data: 1
     type: dword
+  notify: Restart W32Time
   when: rivermax | default(false)
 
 - name: Enable PTP multicast TX
@@ -75,6 +82,7 @@
     name: EnableMulticastTx
     data: 1
     type: dword
+  notify: Restart W32Time
   when: rivermax | default(false)
 
 - name: Enable E2E delay correction
@@ -83,6 +91,7 @@
     name: UseE2ECorrection
     data: 1
     type: dword
+  notify: Restart W32Time
   when: rivermax | default(false)
 
 - name: Set PTP domain number
@@ -91,6 +100,7 @@
     name: DomainNumber
     data: "{{ ptp_domain }}"
     type: dword
+  notify: Restart W32Time
   when: rivermax | default(false)
 
 # --- Disable competing time providers (per Microsoft guide) ---
@@ -101,6 +111,7 @@
     name: Enabled
     data: 0
     type: dword
+  notify: Restart W32Time
   when: rivermax | default(false)
 
 - name: Disable Hyper-V VMIC time provider
@@ -109,6 +120,7 @@
     name: Enabled
     data: 0
     type: dword
+  notify: Restart W32Time
   when: rivermax | default(false)
 
 # --- High accuracy settings (Microsoft high-accuracy guide) ---
@@ -119,6 +131,7 @@
     name: MinPollInterval
     data: 6
     type: dword
+  notify: Restart W32Time
   when: rivermax | default(false)
 
 - name: Set MaxPollInterval to 64s (log2 = 6)
@@ -127,6 +140,7 @@
     name: MaxPollInterval
     data: 6
     type: dword
+  notify: Restart W32Time
   when: rivermax | default(false)
 
 - name: Set UpdateInterval to 100
@@ -135,6 +149,7 @@
     name: UpdateInterval
     data: 100
     type: dword
+  notify: Restart W32Time
   when: rivermax | default(false)
 
 - name: Set FrequencyCorrectRate to 2
@@ -143,6 +158,7 @@
     name: FrequencyCorrectRate
     data: 2
     type: dword
+  notify: Restart W32Time
   when: rivermax | default(false)
 
 - name: Disable Secure Time Seeding
@@ -151,6 +167,7 @@
     name: UtilizeSslTimeData
     data: 0
     type: dword
+  notify: Restart W32Time
   when: rivermax | default(false)
 
 # --- Firewall rules for PTP ---
@@ -269,24 +286,6 @@
     start_mode: auto
   when: rivermax | default(false)
 
-- name: Apply W32Time config
-  ansible.windows.win_command: w32tm /config /update
-  when: rivermax | default(false)
-
-- name: Restart W32Time service
-  ansible.windows.win_service:
-    name: w32time
-    state: restarted
-  when: rivermax | default(false)
-
-- name: Force W32Time resync
-  ansible.windows.win_command: w32tm /resync /force
-  register: resync_result
-  until: resync_result.rc == 0
-  retries: 3
-  delay: 2
-  when: rivermax | default(false)
-
 # --- Verify ---
 
 - name: Query W32Time PTP status
@@ -295,7 +294,7 @@
   changed_when: false
   when: rivermax | default(false)
 
-- name: Display W32Time status
+- name: Show W32Time status
   ansible.builtin.debug:
     msg: "{{ w32time_status.stdout_lines }}"
   when: rivermax | default(false)
