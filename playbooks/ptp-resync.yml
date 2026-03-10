@@ -1,0 +1,46 @@
+---
+# ptp-resync — Restart W32Time and force PTP resync, then verify lock
+#
+# Usage:
+#   ansible-playbook playbooks/ptp-resync.yml --limit ue_content_group_02
+
+- name: Force PTP resync and verify lock to grandmaster
+  hosts: all
+  gather_facts: false
+
+  tasks:
+    - name: Restart W32Time service
+      ansible.windows.win_service:
+        name: w32time
+        state: restarted
+
+    - name: Apply W32Time config update
+      ansible.windows.win_command: w32tm /config /update
+      changed_when: false
+
+    - name: Force W32Time resync
+      ansible.windows.win_command: w32tm /resync /force
+      register: resync_result
+      until: resync_result.rc == 0
+      retries: 3
+      delay: 2
+
+    - name: Wait for PTP lock (up to 60s)
+      ansible.windows.win_shell: |
+        $status = w32tm /query /status
+        if ($status -match 'Source:\s+10\.0\.0\.100') { exit 0 } else { exit 1 }
+      register: ptp_lock
+      until: ptp_lock.rc == 0
+      retries: 12
+      delay: 5
+      changed_when: false
+      ignore_errors: true
+
+    - name: Query final W32Time status
+      ansible.windows.win_command: w32tm /query /status /verbose
+      register: w32time_status
+      changed_when: false
+
+    - name: Display W32Time status
+      ansible.builtin.debug:
+        msg: "{{ w32time_status.stdout_lines }}"

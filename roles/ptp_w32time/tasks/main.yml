@@ -154,6 +154,10 @@
   when: rivermax | default(false)
 
 # --- Firewall rules for PTP ---
+# W32Time PTP joins 224.0.1.129 on ALL interfaces and receives duplicate
+# packets (one per NIC). The triplicated PTP messages corrupt the PTP state
+# machine on most nodes. Fix: block inbound PTP on non-media NICs using
+# InterfaceAlias (localip doesn't work — multicast dst is 224.0.1.129).
 
 - name: Allow PTP Event port (UDP 319)
   community.windows.win_firewall_rule:
@@ -175,6 +179,34 @@
     enabled: true
   when: rivermax | default(false)
 
+- name: Block inbound PTP on non-media NICs
+  ansible.windows.win_shell: |
+    $mac = ("{{ mac_2110 }}" -replace ":", "-")
+    $mediaNic = Get-NetAdapter | Where-Object { $_.MacAddress -eq $mac }
+    if (-not $mediaNic) { throw "No adapter with MAC {{ mac_2110 }}" }
+
+    $changed = $false
+    $otherNics = Get-NetAdapter | Where-Object {
+      $_.MacAddress -ne $mac -and $_.Status -eq "Up"
+    }
+
+    foreach ($nic in $otherNics) {
+      $ruleName = "Block PTP inbound on $($nic.Name)"
+      $existing = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
+      if (-not $existing) {
+        New-NetFirewallRule -DisplayName $ruleName `
+          -Direction Inbound -Protocol UDP -LocalPort 319,320 `
+          -Action Block -Enabled True `
+          -InterfaceAlias $nic.Name | Out-Null
+        $changed = $true
+      }
+    }
+
+    if ($changed) { "CHANGED" } else { "OK" }
+  register: ptp_inbound_block
+  changed_when: "'CHANGED' in ptp_inbound_block.stdout"
+  when: rivermax | default(false)
+
 - name: Block PTP on management NIC (outbound)
   community.windows.win_firewall_rule:
     name: Block PTP on management NIC
@@ -184,6 +216,49 @@
     action: block
     enabled: true
     localip: "{{ ansible_host }}"
+  when: rivermax | default(false)
+
+- name: Block PTP on storage NIC (outbound)
+  community.windows.win_firewall_rule:
+    name: Block PTP on storage NIC
+    direction: out
+    protocol: udp
+    localport: "319,320"
+    action: block
+    enabled: true
+    localip: "{{ ip_smb }}"
+  when:
+    - rivermax | default(false)
+    - ip_smb is defined
+
+# Ensure multicast route exists only on media NIC
+- name: Pin multicast route to media NIC
+  ansible.windows.win_shell: |
+    $mac = ("{{ mac_2110 }}" -replace ":", "-")
+    $nic = Get-NetAdapter | Where-Object { $_.MacAddress -eq $mac }
+    if (-not $nic) { throw "No adapter with MAC $mac" }
+    $idx = $nic.ifIndex
+
+    $changed = $false
+
+    # Remove 224.0.0.0/4 routes on non-media interfaces
+    Get-NetRoute -DestinationPrefix "224.0.0.0/4" -ErrorAction SilentlyContinue |
+      Where-Object { $_.InterfaceIndex -ne $idx } |
+      ForEach-Object {
+        Remove-NetRoute -InterfaceIndex $_.InterfaceIndex -DestinationPrefix "224.0.0.0/4" -Confirm:$false -ErrorAction SilentlyContinue
+        $changed = $true
+      }
+
+    # Add route on media NIC if missing
+    $existing = Get-NetRoute -DestinationPrefix "224.0.0.0/4" -InterfaceIndex $idx -ErrorAction SilentlyContinue
+    if (-not $existing) {
+      New-NetRoute -DestinationPrefix "224.0.0.0/4" -InterfaceIndex $idx -RouteMetric 1
+      $changed = $true
+    }
+
+    if ($changed) { "CHANGED" } else { "OK" }
+  register: mcast_route
+  changed_when: "'CHANGED' in mcast_route.stdout"
   when: rivermax | default(false)
 
 # --- Set W32Time to auto-start and restart ---
