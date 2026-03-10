@@ -1,5 +1,5 @@
 ---
-# Mirror workspace from NAS to destination UE nodes
+# Mirror workspace from NAS to content/previs nodes
 #
 # Robocopy /MIR from the deploy share (DMZ) to each destination node's
 # local workspace. Run mirror-staging-nas.yml first to ensure the NAS
@@ -14,7 +14,7 @@
 #   ansible-playbook playbooks/mirror-nas-cluster.yml -e "clean_copy=true"   # delete local workspace first (nuclear option)
 
 - name: Preflight — ensure UE is not running on destination nodes
-  hosts: ue_content:ue_previs:ue_editing
+  hosts: ue_content:ue_previs
   gather_facts: false
 
   tasks:
@@ -31,7 +31,7 @@
       when: "'RUNNING' in ue_proc_check.stdout"
 
 - name: Validate NAS workspace is accessible
-  hosts: ue_content:ue_previs:ue_editing
+  hosts: ue_content:ue_previs
   gather_facts: false
 
   tasks:
@@ -47,7 +47,7 @@
       when: "'MISSING' in nas_check.stdout"
 
 - name: Clean local workspace before copy
-  hosts: ue_content:ue_previs:ue_editing
+  hosts: ue_content:ue_previs
   serial: "{{ parallel_nodes | default(omit) }}"
   gather_facts: false
 
@@ -59,7 +59,7 @@
       when: clean_copy | default(false) | bool
 
 - name: Mirror workspace from NAS to local
-  hosts: ue_content:ue_previs:ue_editing
+  hosts: ue_content:ue_previs
   serial: "{{ parallel_nodes | default(omit) }}"
   gather_facts: false
 
