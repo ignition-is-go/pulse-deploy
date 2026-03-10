@@ -1,5 +1,5 @@
 ---
-# netbird_configure — Enroll Netbird client with management server
+# netbird_enroll — Enroll Netbird client with management server
 #
 # Requires (group_vars):
 #   netbird_setup_key: Setup key for enrollment (vault-encrypted)

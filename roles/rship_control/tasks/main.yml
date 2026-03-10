@@ -1,7 +1,0 @@
----
-# rship_control — Layer 3: rship control plane
-# TODO: Implement when provisioning rship control plane LXC
-
-- name: TODO
-  ansible.builtin.debug:
-    msg: "rship control plane role applied to {{ inventory_hostname }} — tasks pending implementation"

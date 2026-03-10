@@ -1,5 +1,5 @@
 ---
-# netbird_configure/tasks/linux.yml — Enroll Netbird on Linux
+# netbird_enroll/tasks/linux.yml — Enroll Netbird on Linux
 #
 # Always disconnects and re-enrolls with the correct setup key if connected.
 # If not connected, enrolls directly.

@@ -1,5 +1,5 @@
 ---
-# netbird_configure/tasks/windows.yml — Enroll Netbird on Windows
+# netbird_enroll/tasks/windows.yml — Enroll Netbird on Windows
 #
 # Always disconnects and re-enrolls with the correct setup key if connected.
 # If not connected, enrolls directly.

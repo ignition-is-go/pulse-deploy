@@ -61,7 +61,7 @@
       when: rivermax | default(false)
     - role: vf_2110_ptp
       when: rivermax | default(false)
-    - role: ptp_w32time
+    - role: win_ptp
       when: rivermax | default(false)
 
 - name: Netbird mesh VPN — all hosts
@@ -116,7 +116,7 @@
     - win_openssh_server
     - bun
     - gh_cli
-    - netbird_configure
+    - netbird_enroll
     - git
     - win_ue_build_deps
     - vscode

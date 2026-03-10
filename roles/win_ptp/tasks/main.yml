@@ -1,5 +1,5 @@
 ---
-# ptp_w32time — Configure W32Time PTP client on render nodes
+# win_ptp — Configure W32Time PTP client on render nodes
 #
 # Follows Microsoft's official PTP client configuration:
 #   https://github.com/microsoft/W32Time/blob/master/Precision%20Time%20Protocol/Windows%20Configuration%20Helpers/PTPClientConfig.txt
