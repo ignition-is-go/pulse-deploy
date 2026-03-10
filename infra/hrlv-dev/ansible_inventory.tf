@@ -147,7 +147,7 @@ resource "ansible_host" "ue_content_group_01" {
       ansible_host      = each.value.ip
       ip_2110           = each.value.ip_2110
       ndisplay_node     = each.value.ndisplay_node
-      concert_server_ip = values(var.ue_editing)[0].ip
+      concert_server_ip = var.ue_editing["ue-editing-01"].ip
     },
     each.value.ndisplay_primary == true ? { ndisplay_primary = "true" } : {},
     each.value.ip_smb != null ? { ip_smb = each.value.ip_smb } : {},
@@ -165,7 +165,7 @@ resource "ansible_host" "ue_content_group_02" {
       ansible_host      = each.value.ip
       ip_2110           = each.value.ip_2110
       ndisplay_node     = each.value.ndisplay_node
-      concert_server_ip = values(var.ue_editing)[0].ip
+      concert_server_ip = var.ue_editing["ue-editing-02"].ip
     },
     each.value.ndisplay_primary == true ? { ndisplay_primary = "true" } : {},
     each.value.ip_smb != null ? { ip_smb = each.value.ip_smb } : {},

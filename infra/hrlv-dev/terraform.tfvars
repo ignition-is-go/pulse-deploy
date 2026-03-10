@@ -613,7 +613,7 @@ ue_content = {
     cx6_vf_offsets   = [0, 1]
     numa_node        = 0
     cpu_affinity     = "0-15"
-    started          = false
+    started          = true
   }
   "ue-content-02" = {
     id               = 1162
@@ -630,7 +630,7 @@ ue_content = {
     cx6_vf_offsets   = [2, 3]
     numa_node        = 0
     cpu_affinity     = "16-31"
-    started          = false
+    started          = true
   }
   "ue-content-03" = {
     id               = 1163
@@ -647,7 +647,7 @@ ue_content = {
     cx6_vf_offsets   = [4, 5]
     numa_node        = 0
     cpu_affinity     = "32-47"
-    started          = false
+    started          = true
   }
   "ue-content-04" = {
     id               = 1164
@@ -664,7 +664,7 @@ ue_content = {
     cx6_vf_offsets   = [6, 7]
     numa_node        = 0
     cpu_affinity     = "48-63"
-    started          = false
+    started          = true
   }
   "ue-content-05" = {
     id               = 1165
@@ -681,7 +681,7 @@ ue_content = {
     cx6_vf_offsets   = [0, 1]
     numa_node        = 1
     cpu_affinity     = "64-79"
-    started          = false
+    started          = true
   }
   "ue-content-06" = {
     id               = 1166
@@ -698,7 +698,7 @@ ue_content = {
     cx6_vf_offsets   = [2, 3]
     numa_node        = 1
     cpu_affinity     = "80-95"
-    started          = false
+    started          = true
   }
   "ue-content-07" = {
     id               = 1167
@@ -715,7 +715,7 @@ ue_content = {
     cx6_vf_offsets   = [4, 5]
     numa_node        = 1
     cpu_affinity     = "96-111"
-    started          = false
+    started          = true
   }
   "ue-content-08" = {
     id               = 1168
@@ -732,7 +732,7 @@ ue_content = {
     cx6_vf_offsets   = [6, 7]
     numa_node        = 1
     cpu_affinity     = "112-127"
-    started          = false
+    started          = true
   }
   # --- nyc-prod-pve-02 (nodes 09-16) --- NUMA 0: slots 0-3, NUMA 1: slots 4-7
   "ue-content-09" = {
@@ -751,6 +751,7 @@ ue_content = {
     cx6_vf_offsets   = [0, 1]
     numa_node        = 0
     cpu_affinity     = "0-15"
+    started          = false
   }
   "ue-content-10" = {
     id               = 1170
@@ -767,6 +768,7 @@ ue_content = {
     cx6_vf_offsets   = [2, 3]
     numa_node        = 0
     cpu_affinity     = "16-31"
+    started          = false
   }
   "ue-content-11" = {
     id               = 1171
@@ -783,6 +785,7 @@ ue_content = {
     cx6_vf_offsets   = [4, 5]
     numa_node        = 0
     cpu_affinity     = "32-47"
+    started          = false
   }
   "ue-content-12" = {
     id               = 1172
@@ -799,6 +802,7 @@ ue_content = {
     cx6_vf_offsets   = [6, 7]
     numa_node        = 0
     cpu_affinity     = "48-63"
+    started          = false
   }
   "ue-content-13" = {
     id               = 1173
@@ -815,6 +819,7 @@ ue_content = {
     cx6_vf_offsets   = [0, 1]
     numa_node        = 1
     cpu_affinity     = "64-79"
+    started          = false
   }
   "ue-content-14" = {
     id               = 1174
@@ -831,6 +836,7 @@ ue_content = {
     cx6_vf_offsets   = [2, 3]
     numa_node        = 1
     cpu_affinity     = "80-95"
+    started          = false
   }
   "ue-content-15" = {
     id               = 1175
@@ -847,6 +853,7 @@ ue_content = {
     cx6_vf_offsets   = [4, 5]
     numa_node        = 1
     cpu_affinity     = "96-111"
+    started          = false
   }
   "ue-content-16" = {
     id               = 1176
@@ -863,6 +870,7 @@ ue_content = {
     cx6_vf_offsets   = [6, 7]
     numa_node        = 1
     cpu_affinity     = "112-127"
+    started          = false
   }
 }
 
@@ -872,17 +880,32 @@ ue_content = {
 
 ue_editing = {
   "ue-editing-01" = {
-    id         = 1177
-    ip         = "192.168.1.177"
-    ip_2110   = "10.0.0.177"
-    ip_smb = "10.0.1.177"
-    node       = "nyc-prod-pve-01"
-    cores     = 16
-    memory_mb = 98304
-    disk_gb   = 300
-    gpu_slots = [0]
+    id             = 1177
+    ip             = "192.168.1.177"
+    ip_2110        = "10.0.0.177"
+    ip_smb         = "10.0.1.177"
+    node           = "nyc-prod-pve-01"
+    cores          = 16
+    memory_mb      = 98304
+    disk_gb        = 300
+    gpu_slots      = [0]
     cx6_card       = 0
     cx6_vf_offsets = [0, 1]
+    started        = false
+  }
+  "ue-editing-02" = {
+    id             = 1178
+    ip             = "192.168.1.178"
+    ip_2110        = "10.0.0.178"
+    ip_smb         = "10.0.1.178"
+    node           = "nyc-prod-pve-02"
+    cores          = 16
+    memory_mb      = 98304
+    disk_gb        = 300
+    gpu_slots      = [2]
+    cx6_card       = 0
+    cx6_vf_offsets = [4, 5]
+    started        = true
   }
 }
 
@@ -892,16 +915,31 @@ ue_editing = {
 
 ue_previs = {
   "ue-previs-01" = {
-    id         = 1181
-    ip         = "192.168.1.181"
-    ip_2110   = "10.0.0.181"
-    ip_smb = "10.0.1.181"
-    node       = "nyc-prod-pve-01"
-    cores     = 16
-    memory_mb = 98304
-    disk_gb   = 300
-    gpu_slots = [4]
+    id             = 1181
+    ip             = "192.168.1.181"
+    ip_2110        = "10.0.0.181"
+    ip_smb         = "10.0.1.181"
+    node           = "nyc-prod-pve-01"
+    cores          = 16
+    memory_mb      = 98304
+    disk_gb        = 300
+    gpu_slots      = [4]
     cx6_card       = 0
     cx6_vf_offsets = [4, 5]
+    started        = false
+  }
+  "ue-previs-02" = {
+    id             = 1182
+    ip             = "192.168.1.182"
+    ip_2110        = "10.0.0.182"
+    ip_smb         = "10.0.1.182"
+    node           = "nyc-prod-pve-02"
+    cores          = 16
+    memory_mb      = 98304
+    disk_gb        = 300
+    gpu_slots      = [1]
+    cx6_card       = 0
+    cx6_vf_offsets = [2, 3]
+    started        = true
   }
 }
