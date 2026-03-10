@@ -13,6 +13,7 @@ ExecStart=/usr/bin/ovs-vsctl set bridge {{ card.bridge }} mcast_snooping_enable=
 ExecStart=/usr/bin/ovs-vsctl set bridge {{ card.bridge }} other_config:mcast-snooping-disable-flood-unregistered=true
 ExecStart=/usr/bin/ovs-vsctl set port {{ uplink }} other_config:mcast-snooping-flood=true
 ExecStart=/usr/bin/ovs-vsctl set port {{ uplink }} other_config:mcast-snooping-flood-reports=true
+ExecStart=/usr/bin/ovs-vsctl set bridge {{ card.bridge }} other_config:mcast-snooping-aging-time=3600
 {% endfor %}
 RemainAfterExit=yes
 
