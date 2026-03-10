@@ -116,7 +116,7 @@
   changed_when: false
   when: win_base_disable_hibernation
 
-- name: Check if RustDesk is installed
+- name: Check if RustDesk installed
   ansible.windows.win_stat:
     path: C:\Program Files\PulseRemoteDesktopVM
   register: rustdesk_check
@@ -138,7 +138,7 @@
     product_id: '{45EAF4E5-E9A3-4F44-A32B-D0A69208FC78}'
   when: not rustdesk_check.stat.exists
 
-- name: Verify RustDesk installed
+- name: Verify RustDesk installation
   ansible.windows.win_stat:
     path: C:\Program Files\PulseRemoteDesktopVM\PulseRemoteDesktopVM.exe
   register: rustdesk_post_check
@@ -189,7 +189,7 @@
     state: started
   when: rustdesk_current_id.stdout | trim != inventory_hostname
 
-- name: Check if PowerToys is installed
+- name: Check if PowerToys installed
   ansible.windows.win_stat:
     path: C:\Program Files\PowerToys
   register: powertoys_check
@@ -214,7 +214,7 @@
       - C:\Windows\Temp\powertoys_install.log
   when: not powertoys_check.stat.exists
 
-- name: Verify PowerToys installed
+- name: Verify PowerToys installation
   ansible.windows.win_stat:
     path: C:\Program Files\PowerToys\PowerToys.exe
   register: powertoys_post_check

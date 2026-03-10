@@ -511,7 +511,7 @@ touch = {
     disk_gb   = 300
     gpu_slots = [7]
     cx6_card       = 1
-    cx6_vf_offsets = [6, 7]
+    cx6_vf_offsets = [12, 13]
     started        = false
   }
 }
@@ -572,7 +572,7 @@ workstation = {
     disk_gb    = 300
     gpu_slots  = [5]
     cx6_card       = 1
-    cx6_vf_offsets = [0, 1]
+    cx6_vf_offsets = [8, 9]
     started        = false
   }
   "workstation-04" = {
@@ -586,7 +586,7 @@ workstation = {
     disk_gb    = 300
     gpu_slots  = [6]
     cx6_card       = 1
-    cx6_vf_offsets = [2, 3]
+    cx6_vf_offsets = [10, 11]
     started        = false
   }
 }
@@ -890,7 +890,7 @@ ue_editing = {
     disk_gb        = 300
     gpu_slots      = [0]
     cx6_card       = 0
-    cx6_vf_offsets = [0, 1]
+    cx6_vf_offsets = [8, 9]
     started        = false
   }
   "ue-editing-02" = {
@@ -904,7 +904,7 @@ ue_editing = {
     disk_gb        = 300
     gpu_slots      = [2]
     cx6_card       = 0
-    cx6_vf_offsets = [4, 5]
+    cx6_vf_offsets = [8, 9]
     started        = true
   }
 }
@@ -925,7 +925,7 @@ ue_previs = {
     disk_gb        = 300
     gpu_slots      = [4]
     cx6_card       = 0
-    cx6_vf_offsets = [4, 5]
+    cx6_vf_offsets = [10, 11]
     started        = false
   }
   "ue-previs-02" = {
@@ -939,7 +939,7 @@ ue_previs = {
     disk_gb        = 300
     gpu_slots      = [1]
     cx6_card       = 0
-    cx6_vf_offsets = [2, 3]
+    cx6_vf_offsets = [10, 11]
     started        = true
   }
 }

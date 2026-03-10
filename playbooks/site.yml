@@ -92,7 +92,7 @@
     - ndi_tools
     - unreal_engine
 
-- name: Previs nodes
+- name: Previs nodes — nDisplay render + worker
   hosts: ue_previs
   gather_facts: false
   roles:
@@ -100,14 +100,14 @@
     - unreal_engine
     - render_worker
 
-- name: Staging nodes
+- name: Staging nodes — UE project validation
   hosts: ue_staging
   gather_facts: false
   roles:
     - ndi_tools
     - unreal_engine
 
-- name: Plugin dev nodes
+- name: Plugin dev nodes — IDE, build tools, UE
   hosts: ue_plugin_dev
   gather_facts: false
   roles:
@@ -139,7 +139,7 @@
     - ndi_tools
     - unreal_engine
 
-- name: Workstation nodes
+- name: Workstation nodes — DCC apps + UE
   hosts: workstation
   gather_facts: false
   roles:
@@ -152,13 +152,13 @@
     - pureref
     - dropbox
 
-- name: Touch nodes
+- name: Touch nodes — TouchDesigner install
   hosts: touch
   gather_facts: false
   roles:
     - touchdesigner
 
-- name: Arnold/Fusion nodes
+- name: Arnold/Fusion nodes — render setup
   hosts: arnold_fusion
   gather_facts: false
   roles:
@@ -190,14 +190,14 @@
     - ip_smb
     - samba_server
 
-- name: Optik
+- name: Optik — GPU driver + service
   hosts: optik
   gather_facts: false
   roles:
     - nvidia_gpu_linux
     - optik
 
-- name: Rship server nodes
+- name: Rship — server node setup
   hosts: rship
   gather_facts: false
   roles:
