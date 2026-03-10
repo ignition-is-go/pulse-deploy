@@ -20,13 +20,14 @@ map_path: "{{ map_options[map] }}"
 
 # Available nDisplay configs — select with: -e "config=rivermax_4node"
 ndisplay_configs:
-  rivermax_8node: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_RM_FullRes_8Node.ndisplay"
+  rivermax_8node_prod1: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_RM_FullRes_8Node_Prod1.ndisplay"
+  rivermax_8node_prod2: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_RM_FullRes_8Node_Prod2.ndisplay"
   rivermax_4node: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_Rivermax_4Node.ndisplay"
   rivermax_1node: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_RM_1Node_7680.ndisplay"
   ndi_4node: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_NDI_4Node.ndisplay"
 
 # Default config (override with -e "config=...")
-config: rivermax_8node
+config: rivermax_8node_prod1
 ndisplay_config: "{{ ndisplay_configs[config] }}"
 
 # Concert (Multi-User Editing) — render nodes connect to this server
