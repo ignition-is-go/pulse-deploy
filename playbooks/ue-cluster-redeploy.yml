@@ -1,0 +1,26 @@
+---
+# Full cluster redeploy: stop → update Plastic → mirror to nodes → start
+#
+# Sequence:
+#   1. Stop UE on cluster nodes (ue_content + ue_previs)
+#   2. Update Plastic SCM on staging node (pull latest from cloud)
+#   3. Mirror staging → NAS → cluster nodes (robocopy)
+#   4. Start UE on cluster nodes (nDisplay + previs)
+#
+# Usage:
+#   ansible-playbook playbooks/ue-cluster-redeploy.yml
+#   ansible-playbook playbooks/ue-cluster-redeploy.yml -e "skip_preflight=true"
+#   ansible-playbook playbooks/ue-cluster-redeploy.yml -e "changeset=1646"
+#   ansible-playbook playbooks/ue-cluster-redeploy.yml -e "robocopy_dry_run=true"
+
+- name: "Phase 1 — Stop cluster"
+  ansible.builtin.import_playbook: ue-cluster-down.yml
+
+- name: "Phase 2 — Update Plastic SCM on staging"
+  ansible.builtin.import_playbook: plastic-update.yml
+
+- name: "Phase 3 — Mirror staging → NAS → cluster nodes"
+  ansible.builtin.import_playbook: mirror-staging-nas-cluster.yml
+
+- name: "Phase 4 — Start cluster"
+  ansible.builtin.import_playbook: ue-cluster-up.yml

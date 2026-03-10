@@ -1,26 +1,16 @@
 ---
-# Start the full content cluster (Concert + nDisplay)
-#
-# Sequence:
-#   1. Concert server  (ue_editing)  — multi-user server must be up first
-#   2. Concert editor  (ue_editing)  — editor joins Concert session
-#   3. nDisplay cluster (ue_content) — GPU check, OVS prime, render nodes launch
-#
-# All plays have any_errors_fatal: true — a failure at any phase aborts the run.
+# Start UE on all cluster nodes (ue_cluster = ue_content + ue_previs)
 #
 # Prerequisites:
 #   - Plastic SCM synced (playbooks/plastic-update.yml)
-#   - Firewall rules applied (playbooks/ue-firewall-rules.yml)
+#   - Content mirrored (playbooks/mirror-staging-nas-cluster.yml)
 #
 # Usage:
-#   ansible-playbook playbooks/cluster-up.yml
-#   ansible-playbook playbooks/cluster-up.yml -e skip_preflight=true  # fast relaunch
+#   ansible-playbook playbooks/ue-cluster-up.yml
+#   ansible-playbook playbooks/ue-cluster-up.yml -e skip_preflight=true
 
-- name: "Phase 1 — Start Concert server"
-  ansible.builtin.import_playbook: ue-concert-server-start.yml
-
-- name: "Phase 2 — Start Concert editor"
-  ansible.builtin.import_playbook: ue-concert-editor-start.yml
-
-- name: "Phase 3 — Start nDisplay cluster"
+- name: "Phase 1 — Start nDisplay content nodes"
   ansible.builtin.import_playbook: ue-content-start.yml
+
+- name: "Phase 2 — Start previs nodes"
+  ansible.builtin.import_playbook: ue-previs-start.yml

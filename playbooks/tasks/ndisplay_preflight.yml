@@ -1,0 +1,95 @@
+---
+# Validate nDisplay config before launch
+#
+# Single remote call that checks:
+#   - .ndisplay file exists
+#   - All play hosts have matching node entries
+#   - Node IPs match current inventory
+#   - Map file exists (if map_path is set)
+#   - Reads window config for launch args
+#
+# Required variables (from play context):
+#   ndisplay_config  — path to .ndisplay JSON file
+#   ndisplay_node    — this host's node ID (e.g. Node_1)
+#   ansible_host     — this host's management IP
+#
+# Sets facts:
+#   ndisplay_window  — dict with winx, winy, resx, resy, fullscreen, headless
+
+- name: Build node-to-IP mapping from inventory
+  ansible.builtin.set_fact:
+    ndisplay_ip_map: >-
+      {{ dict(ansible_play_hosts | map('extract', hostvars, 'ndisplay_node')
+              | zip(ansible_play_hosts | map('extract', hostvars, 'ansible_host'))) }}
+  run_once: true
+
+- name: Validate nDisplay config
+  ansible.windows.win_shell: |
+    $result = @{ status = 'OK'; errors = @(); window = $null }
+    $configPath = "{{ ndisplay_config }}"
+
+    if (!(Test-Path $configPath)) {
+      $result.status = 'FAIL'
+      $result.errors += "Config not found: $configPath"
+      $result | ConvertTo-Json -Compress
+      return
+    }
+
+    $cfg = (Get-Content $configPath -Raw) | ConvertFrom-Json
+
+    # Check node IPs
+    $expected = @{
+    {% for node, ip in ndisplay_ip_map.items() %}
+      "{{ node }}" = "{{ ip }}"
+    {% endfor %}
+    }
+    foreach ($nodeName in $expected.Keys) {
+      $node = $cfg.nDisplay.cluster.nodes.$nodeName
+      if (-not $node) {
+        $result.errors += "Node ${nodeName}: NOT FOUND in config"
+      } elseif ($node.host -ne $expected[$nodeName]) {
+        $result.errors += "Node ${nodeName}: config=$($node.host) expected=$($expected[$nodeName])"
+      }
+    }
+
+    # Read window config for this node
+    $myNode = $cfg.nDisplay.cluster.nodes."{{ ndisplay_node }}"
+    if ($myNode) {
+      $result.window = @{
+        winx = [int]$myNode.window.x
+        winy = [int]$myNode.window.y
+        resx = [int]$myNode.window.w
+        resy = [int]$myNode.window.h
+        fullscreen = [bool]$myNode.fullScreen
+        headless = [bool]$myNode.renderHeadless
+      }
+    }
+
+    {% if map_path is defined and map_path != 'None' %}
+    $mapPath = "{{ unreal_project | dirname }}/Content/{{ map_path | regex_replace('^/Game/', '') }}.umap"
+    if (!(Test-Path $mapPath)) {
+      $result.errors += "Map not found: $mapPath"
+    }
+    {% endif %}
+
+    if ($result.errors.Count -gt 0) { $result.status = 'FAIL' }
+    $result | ConvertTo-Json -Compress
+  register: ndisplay_check_result
+  changed_when: false
+
+- name: Parse nDisplay check results
+  ansible.builtin.set_fact:
+    ndisplay_check: "{{ ndisplay_check_result.stdout | from_json }}"
+
+- name: Fail if nDisplay config is invalid
+  ansible.builtin.fail:
+    msg: |-
+      nDisplay config validation failed on {{ inventory_hostname }}:
+      {% for err in ndisplay_check.errors %}
+        {{ err }}
+      {% endfor %}
+  when: ndisplay_check.status == 'FAIL'
+
+- name: Set node window config
+  ansible.builtin.set_fact:
+    ndisplay_window: "{{ ndisplay_check.window }}"
