@@ -25,7 +25,7 @@
 # === Windows VMs ===
 
 - name: VF network — Windows nodes with high-speed NIC passthrough
-  hosts: ue_content:ue_editing:ue_previs:ue_plugin_dev:ue_staging:arnold_fusion:workstation
+  hosts: ue_content:ue_editing:ue_previs:ue_plugindev:ue_staging:arnold_fusion:workstation
   gather_facts: true
   roles:
     - role: winof2
@@ -45,7 +45,7 @@
     - win_disable_watermark
 
 - name: GPU drivers — Windows nodes with GPUs
-  hosts: ue_content:ue_editing:ue_previs:ue_plugin_dev:arnold_fusion:workstation
+  hosts: ue_content:ue_editing:ue_previs:ue_plugindev:arnold_fusion:workstation
   gather_facts: false
   roles:
     - nvidia_gpu_win
@@ -71,7 +71,7 @@
     - netbird
 
 - name: Plastic SCM — staging, plugin dev, touch, and workstation nodes
-  hosts: ue_staging:ue_plugin_dev:touch:workstation
+  hosts: ue_staging:ue_plugindev:touch:workstation
   gather_facts: false
   roles:
     - plastic_scm
@@ -108,7 +108,7 @@
     - unreal_engine
 
 - name: Plugin dev nodes — IDE, build tools, UE
-  hosts: ue_plugin_dev
+  hosts: ue_plugindev
   gather_facts: false
   roles:
     - win_remove_edge

@@ -9,7 +9,7 @@ output "vm_summary" {
     ue_editing    = length(var.ue_editing)
     ue_previs     = length(var.ue_previs)
     ue_staging    = length(var.ue_staging)
-    ue_plugin_dev = length(var.ue_plugin_dev)
+    ue_plugindev = length(var.ue_plugindev)
     ue_runner     = length(var.ue_runner)
     touch         = length(var.touch)
     arnold_fusion = length(var.arnold_fusion)

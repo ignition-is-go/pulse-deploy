@@ -6,7 +6,7 @@ Ansible config for a multi-OS render farm (Proxmox). Windows UE/nDisplay render 
 
 ## Rules
 
-1. **NEVER run playbooks/ad-hoc commands unless user explicitly asks.** Always use `--limit`. Writing/editing playbooks is fine; executing is not your call.
+1. **Read-only Ansible commands are OK; state-changing ones need explicit permission.** Ad-hoc fact gathering, log retrieval, `win_ping`, `win_stat`, etc. are fine without asking. Playbook runs and ad-hoc commands that change state (install, copy, restart, configure) require the user to explicitly ask. Always use `--limit`.
 2. **NEVER connect to remote hosts directly** (ssh, winrs, Enter-PSSession). All remote work goes through Ansible.
 3. **Always use FQCN** (`ansible.windows.win_shell`, not `win_shell`). Never `ansible.builtin.*` on Windows or `ansible.windows.*` on Linux.
 4. **Prefer proper modules over `win_shell`/`shell`.** `win_package` for installers, `win_command` (with `argv:` list) for executables, `win_copy`/`win_file`/`win_stat` for file ops. Only `win_shell` for PowerShell features (pipes, cmdlets, control flow).
@@ -31,7 +31,7 @@ Layered roles: OS base → Drivers → Shared infra → Applications. Node ident
 |---|---|
 | `ue_content`/`ue_previs` | win_base → nvidia_gpu_win → rivermax(cond) → unreal_engine → render_worker |
 | `ue_staging` | win_base → plastic_scm → unreal_engine |
-| `ue_plugin_dev` | win_base → nvidia_gpu_win → plastic_scm → git → win_ue_build_deps → unreal_engine |
+| `ue_plugindev` | win_base → nvidia_gpu_win → plastic_scm → git → win_ue_build_deps → unreal_engine |
 | `ue_runner` | win_base → git → win_ue_build_deps → unreal_engine |
 | `workstation` | win_base → nvidia_gpu_win → chrome → unreal_engine |
 | `pulse_admin` | linux_common → samba_server |
@@ -49,7 +49,7 @@ windows (WinRM NTLM :5985, become: runas):
     ue_previs:      windows-unreal-render-05
     ue_editing:     windows-unreal-08
     ue_staging:     ue-staging-01          (terraform)
-    ue_plugin_dev:  ue-plugindev-01, ue-plugindev-02
+    ue_plugindev:  ue-plugindev-01, ue-plugindev-02
     ue_runner:  ue-runner-01
   touch:            windows-touch-01
 linux (SSH):

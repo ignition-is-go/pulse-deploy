@@ -247,7 +247,7 @@ variable "workstation" {
 # =============================================================================
 
 
-variable "ue_plugin_dev" {
+variable "ue_plugindev" {
   description = "UE plugin development nodes (Windows + GPU)"
   type = map(object({
     id           = number

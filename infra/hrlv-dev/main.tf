@@ -41,7 +41,7 @@ locals {
     keys(var.touch),
     keys(var.arnold_fusion),
     keys(var.workstation),
-    keys(var.ue_plugin_dev),
+    keys(var.ue_plugindev),
     keys(var.ue_runner),
     keys(var.ue_staging),
     keys(var.optik),

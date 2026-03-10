@@ -32,9 +32,8 @@ resource "ansible_group" "ue" {
     "ue_editing",
     "ue_previs",
     "ue_staging",
-    "ue_plugin_dev",
+    "ue_plugindev",
     "ue_runner",
-    "workstation",
   ]
 }
 
@@ -56,17 +55,32 @@ resource "ansible_group" "linux" {
 
 # --- Windows sub-groups ------------------------------------------------------
 
+resource "ansible_group" "ue_cluster" {
+  name     = "ue_cluster"
+  children = ["ue_cluster_a", "ue_cluster_b"]
+}
+
+resource "ansible_group" "ue_cluster_a" {
+  name     = "ue_cluster_a"
+  children = ["ue_content_prod_01", "ue_previs_prod_02"]
+}
+
+resource "ansible_group" "ue_cluster_b" {
+  name     = "ue_cluster_b"
+  children = ["ue_content_prod_02", "ue_previs_prod_01"]
+}
+
 resource "ansible_group" "ue_content" {
   name     = "ue_content"
-  children = ["ue_content_group_01", "ue_content_group_02"]
+  children = ["ue_content_prod_01", "ue_content_prod_02"]
 }
 
-resource "ansible_group" "ue_content_group_01" {
-  name = "ue_content_group_01"
+resource "ansible_group" "ue_content_prod_01" {
+  name = "ue_content_prod_01"
 }
 
-resource "ansible_group" "ue_content_group_02" {
-  name = "ue_content_group_02"
+resource "ansible_group" "ue_content_prod_02" {
+  name = "ue_content_prod_02"
 }
 
 resource "ansible_group" "ue_editing" {
@@ -74,15 +88,24 @@ resource "ansible_group" "ue_editing" {
 }
 
 resource "ansible_group" "ue_previs" {
-  name = "ue_previs"
+  name     = "ue_previs"
+  children = ["ue_previs_prod_01", "ue_previs_prod_02"]
+}
+
+resource "ansible_group" "ue_previs_prod_01" {
+  name = "ue_previs_prod_01"
+}
+
+resource "ansible_group" "ue_previs_prod_02" {
+  name = "ue_previs_prod_02"
 }
 
 resource "ansible_group" "ue_staging" {
   name = "ue_staging"
 }
 
-resource "ansible_group" "ue_plugin_dev" {
-  name = "ue_plugin_dev"
+resource "ansible_group" "ue_plugindev" {
+  name = "ue_plugindev"
 }
 
 resource "ansible_group" "ue_runner" {
@@ -134,14 +157,16 @@ resource "ansible_group" "pulse_admin" {
 # --- Windows GPU VMs ---------------------------------------------------------
 
 locals {
-  ue_content_group_01 = { for k, v in var.ue_content : k => v if v.node == "nyc-prod-pve-01" }
-  ue_content_group_02 = { for k, v in var.ue_content : k => v if v.node == "nyc-prod-pve-02" }
+  ue_content_prod_01 = { for k, v in var.ue_content : k => v if v.node == "nyc-prod-pve-01" }
+  ue_content_prod_02 = { for k, v in var.ue_content : k => v if v.node == "nyc-prod-pve-02" }
+  ue_previs_prod_01  = { for k, v in var.ue_previs : k => v if v.node == "nyc-prod-pve-01" }
+  ue_previs_prod_02  = { for k, v in var.ue_previs : k => v if v.node == "nyc-prod-pve-02" }
 }
 
-resource "ansible_host" "ue_content_group_01" {
-  for_each = local.ue_content_group_01
+resource "ansible_host" "ue_content_prod_01" {
+  for_each = local.ue_content_prod_01
   name     = each.key
-  groups   = ["ue_content_group_01"]
+  groups   = ["ue_content_prod_01"]
   variables = merge(
     {
       ansible_host      = each.value.ip
@@ -156,10 +181,10 @@ resource "ansible_host" "ue_content_group_01" {
   )
 }
 
-resource "ansible_host" "ue_content_group_02" {
-  for_each = local.ue_content_group_02
+resource "ansible_host" "ue_content_prod_02" {
+  for_each = local.ue_content_prod_02
   name     = each.key
-  groups   = ["ue_content_group_02"]
+  groups   = ["ue_content_prod_02"]
   variables = merge(
     {
       ansible_host      = each.value.ip
@@ -190,14 +215,29 @@ resource "ansible_host" "ue_editing" {
   )
 }
 
-resource "ansible_host" "ue_previs" {
-  for_each = var.ue_previs
+resource "ansible_host" "ue_previs_prod_01" {
+  for_each = local.ue_previs_prod_01
   name     = each.key
-  groups   = ["ue_previs"]
+  groups   = ["ue_previs_prod_01"]
   variables = merge(
     {
       ansible_host = each.value.ip
-      ip_2110    = each.value.ip_2110
+      ip_2110      = each.value.ip_2110
+    },
+    each.value.ip_smb != null ? { ip_smb = each.value.ip_smb } : {},
+    contains(keys(local.vm_mac_2110), each.key) ? { mac_2110 = local.vm_mac_2110[each.key] } : {},
+    contains(keys(local.vm_mac_smb), each.key) ? { mac_smb = local.vm_mac_smb[each.key] } : {},
+  )
+}
+
+resource "ansible_host" "ue_previs_prod_02" {
+  for_each = local.ue_previs_prod_02
+  name     = each.key
+  groups   = ["ue_previs_prod_02"]
+  variables = merge(
+    {
+      ansible_host = each.value.ip
+      ip_2110      = each.value.ip_2110
     },
     each.value.ip_smb != null ? { ip_smb = each.value.ip_smb } : {},
     contains(keys(local.vm_mac_2110), each.key) ? { mac_2110 = local.vm_mac_2110[each.key] } : {},
@@ -257,10 +297,10 @@ resource "ansible_host" "ue_staging" {
   )
 }
 
-resource "ansible_host" "ue_plugin_dev" {
-  for_each = var.ue_plugin_dev
+resource "ansible_host" "ue_plugindev" {
+  for_each = var.ue_plugindev
   name     = each.key
-  groups   = ["ue_plugin_dev"]
+  groups   = ["ue_plugindev"]
   variables = merge(
     { ansible_host = each.value.ip },
     each.value.ip_2110 != null ? { ip_2110 = each.value.ip_2110 } : {},
