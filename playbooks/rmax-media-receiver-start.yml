@@ -24,7 +24,7 @@
   tasks:
     - name: Ensure temp directory exists
       ansible.windows.win_file:
-        path: "C:\\temp"
+        path: "C:\\Windows\\Temp"
         state: directory
 
     - name: Write SDP file
@@ -39,13 +39,13 @@
           a=rtpmap:96 raw/90000
           a=fmtp:96 sampling={{ rmax_sampling }}; width={{ rmax_width }}; height={{ rmax_height }}; depth={{ rmax_depth }}; exactframerate={{ rmax_fps }}; colorimetry=BT709; PM=2110GPM; SSN=ST2110-20:2017; TP=2110TPN
           a=source-filter: incl IN IP4 {{ rmax_dst_ip }} {{ rmax_src_ip }}
-        dest: C:\temp\rmax-rx.sdp
+        dest: C:\Windows\Temp\rmax-rx.sdp
 
     - name: Write RX launch script
       ansible.windows.win_copy:
         content: |
-          & "{{ rmax_receiver }}" --sdp-file C:\temp\rmax-rx.sdp -i {{ ip_2110 }} 2>&1 | Tee-Object -FilePath C:\temp\rmax-rx.log
-        dest: C:\temp\rmax-rx.ps1
+          & "{{ rmax_receiver }}" --sdp-file C:\Windows\Temp\rmax-rx.sdp -i {{ ip_2110 }} 2>&1 | Tee-Object -FilePath C:\Windows\Temp\rmax-rx.log
+        dest: C:\Windows\Temp\rmax-rx.ps1
 
     - name: Create RX scheduled task
       community.windows.win_scheduled_task:
@@ -53,7 +53,7 @@
         description: Rivermax media_receiver
         actions:
           - path: powershell.exe
-            arguments: -ExecutionPolicy Bypass -File C:\temp\rmax-rx.ps1
+            arguments: -ExecutionPolicy Bypass -File C:\Windows\Temp\rmax-rx.ps1
         triggers: []
         username: "{{ ansible_user }}"
         password: "{{ ansible_password }}"
@@ -83,7 +83,7 @@
 
     - name: Read RX log on failure
       ansible.windows.win_shell: |
-        if (Test-Path C:\temp\rmax-rx.log) { Get-Content C:\temp\rmax-rx.log -Tail 20 } else { Write-Host "No log file" }
+        if (Test-Path C:\Windows\Temp\rmax-rx.log) { Get-Content C:\Windows\Temp\rmax-rx.log -Tail 20 } else { Write-Host "No log file" }
       register: rx_log
       changed_when: false
       when: rx_check.stdout | trim | length == 0

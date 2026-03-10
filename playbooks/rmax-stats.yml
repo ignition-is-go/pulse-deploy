@@ -29,19 +29,19 @@
 
     - name: Ensure temp directory exists
       ansible.windows.win_file:
-        path: "C:\\temp"
+        path: "C:\\Windows\\Temp"
         state: directory
 
     - name: Write rmax_stats script
       ansible.windows.win_copy:
         content: |
           @echo off
-          "{{ rmax_stats }}" --process-id {{ ue_pid.stdout | trim }} > C:\temp\rmax-stats.log 2>&1
-        dest: C:\temp\rmax-stats.bat
+          "{{ rmax_stats }}" --process-id {{ ue_pid.stdout | trim }} > C:\Windows\Temp\rmax-stats.log 2>&1
+        dest: C:\Windows\Temp\rmax-stats.bat
 
     - name: Remove old stats results
       ansible.windows.win_file:
-        path: "C:\\temp\\rmax-stats.log"
+        path: "C:\\Windows\\Temp\\rmax-stats.log"
         state: absent
 
     - name: Create rmax_stats scheduled task
@@ -49,7 +49,7 @@
         name: RmaxStats
         description: Rivermax stats check
         actions:
-          - path: C:\temp\rmax-stats.bat
+          - path: C:\Windows\Temp\rmax-stats.bat
         triggers: []
         username: "{{ ansible_user }}"
         password: "{{ ansible_password }}"
@@ -67,8 +67,8 @@
       ansible.windows.win_shell: |
         Start-Sleep -Seconds {{ rmax_stats_duration }}
         Stop-ScheduledTask -TaskName "RmaxStats" -ErrorAction SilentlyContinue
-        if (Test-Path C:\temp\rmax-stats.log) {
-          Get-Content C:\temp\rmax-stats.log
+        if (Test-Path C:\Windows\Temp\rmax-stats.log) {
+          Get-Content C:\Windows\Temp\rmax-stats.log
         } else {
           Write-Host "NO OUTPUT"
         }

@@ -16,7 +16,7 @@
       changed_when: false
 
     - name: Stop media_sender cmd wrapper
-      ansible.windows.win_command: taskkill /F /IM cmd.exe /FI "WINDOWTITLE eq C:\temp\rmax-tx.bat"
+      ansible.windows.win_command: taskkill /F /IM cmd.exe /FI "WINDOWTITLE eq C:\Windows\Temp\rmax-tx.bat"
       failed_when: false
       changed_when: false
 
