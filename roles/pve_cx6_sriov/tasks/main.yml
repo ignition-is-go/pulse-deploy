@@ -1,5 +1,5 @@
 ---
-# cx6_sriov — ConnectX-6 SR-IOV + OVS switchdev for Proxmox hosts
+# pve_cx6_sriov — ConnectX-6 SR-IOV + OVS switchdev for Proxmox hosts
 #
 # Writes all config (udev, OVS globals service, bridges, representors),
 # then verifies live runtime state. Only warns about reboot if the

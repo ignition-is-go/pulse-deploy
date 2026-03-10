@@ -172,7 +172,7 @@
   max_fail_percentage: 0
   gather_facts: true
   roles:
-    - role: cx6_sriov
+    - role: pve_cx6_sriov
       when: has_cx6 | bool
     - role: pve_bf2_sriov
       when: has_bf2 | bool

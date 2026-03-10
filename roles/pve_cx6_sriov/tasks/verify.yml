@@ -1,5 +1,5 @@
 ---
-# cx6_sriov/verify — Post-reboot runtime verification
+# pve_cx6_sriov/verify — Post-reboot runtime verification
 #
 # Validates that CX6 SR-IOV config written by main.yml is active after reboot:
 #   switchdev mode, VF count, OVS service + globals, bridges, bonds, MTU,
@@ -7,7 +7,7 @@
 #
 # Usage:
 #   ansible-playbook playbooks/apply-role.yml \
-#     -e target=HOST -e role_name=cx6_sriov -e tasks_from=verify
+#     -e target=HOST -e role_name=pve_cx6_sriov -e tasks_from=verify
 
 # --- Switchdev + VFs ---
 

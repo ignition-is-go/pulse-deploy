@@ -13,7 +13,7 @@
   gather_facts: false
   ignore_unreachable: true
   roles:
-    - build_pipeline
+    - ue_build
 
 - name: Distribute build to previs nodes
   hosts: ue_previs

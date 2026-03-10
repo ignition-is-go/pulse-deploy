@@ -1,5 +1,5 @@
 ---
-# build_pipeline defaults
+# ue_build defaults
 
 build_dir: "F:\\builds"
 build_log: "F:\\builds\\build.log"

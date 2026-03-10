@@ -120,7 +120,7 @@ bridge MDB entries are never offloaded to the Spectrum ASIC. The ASIC floods all
 multicast to all VLAN ports regardless of learned group memberships.
 
 Multicast filtering is handled per-VM by OVS IGMP snooping on each Proxmox host
-(see cx6_sriov role). The switch-level flooding wastes inter-switch bandwidth but
+(see pve_cx6_sriov role). The switch-level flooding wastes inter-switch bandwidth but
 does not affect VMs.
 
 CoPP IGMP trap is configured (`sonic_mcast` role) so the kernel bridge can see

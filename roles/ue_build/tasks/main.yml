@@ -1,5 +1,5 @@
 ---
-# build_pipeline — Build UE, stage to SMB, distribute
+# ue_build — Build UE, stage to SMB, distribute
 # Consolidates cl-build-unreal.yml, build-and-monitor.yml,
 # copy-build-to-nfs.yml, distribute-build-to-previs.yml
 #

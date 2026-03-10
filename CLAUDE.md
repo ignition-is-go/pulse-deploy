@@ -35,7 +35,7 @@ Layered roles: OS base → Drivers → Shared infra → Applications. Node ident
 | `ue_runner` | win_base → git → win_ue_build_deps → unreal_engine |
 | `workstation` | win_base → nvidia_gpu_win → chrome → unreal_engine |
 | `pulse_admin` | linux_common → samba_server |
-| `proxmox` | linux_common → cx6_sriov(cond) |
+| `proxmox` | linux_common → pve_cx6_sriov(cond) |
 | `rship` | linux_common → rship |
 
 ## Inventory
