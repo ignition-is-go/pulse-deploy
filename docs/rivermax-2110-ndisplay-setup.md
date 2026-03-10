@@ -102,7 +102,7 @@ WinRM runs in Session 0 (no GPU access). Launch requires:
 2. Scheduled task (`nDisplayLaunch`) with `interactive_token` logon (Session 1)
 3. Task triggered immediately, playbook waits for UnrealEditor process
 
-### nDisplay configs (selectable via `-e "ndisplay=..."`)
+### nDisplay configs (selectable via `-e "config=..."`)
 
 | Key              | Config file                                          |
 |------------------|------------------------------------------------------|

@@ -9,19 +9,25 @@ vdd_height: 1440
 
 unreal_project: "{{ plastic_workspace }}/ue/HRLV_Content/HRLV_Content.uproject"
 
-# Map/level to load
-ndisplay_map: "/Game/HRLV_Content/Maps/PL_ContentHostSend_v7"
+# Available maps — select with: -e "map=lookdev"
+map_options:
+  content: "/Game/HRLV_Content/Maps/PL_ContentHostSend_v7"
+  lookdev: "/Game/HRLV_Content/Maps/Dev/LookDev/ColorCharts_v3"
 
-# Available nDisplay configs — select with: -e "ndisplay=rivermax_4node"
+# Default map (override with -e "map=...")
+map: content
+map_path: "{{ map_options[map] }}"
+
+# Available nDisplay configs — select with: -e "config=rivermax_4node"
 ndisplay_configs:
   rivermax_8node: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_RM_FullRes_8Node.ndisplay"
   rivermax_4node: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_Rivermax_4Node.ndisplay"
-  rivermax_1node: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_Rivermax_1Node.ndisplay"
+  rivermax_1node: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_RM_1Node_7680.ndisplay"
   ndi_4node: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/nDisplayConfig_NDI_4Node.ndisplay"
 
-# Default config (override with -e "ndisplay=...")
-ndisplay: rivermax_8node
-ndisplay_config: "{{ ndisplay_configs[ndisplay] }}"
+# Default config (override with -e "config=...")
+config: rivermax_8node
+ndisplay_config: "{{ ndisplay_configs[config] }}"
 
 # Concert (Multi-User Editing) — render nodes connect to this server
 # concert_server_ip flows from Terraform via ansible_host variables

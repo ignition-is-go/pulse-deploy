@@ -14,15 +14,15 @@
 #     -RemoteControlIsHeadless -StageFriendlyName="Node_0" Log=Node_0.log
 #
 # Prerequisites:
-#   - Populate ndisplay_map and ndisplay_config in
+#   - Populate map_path and ndisplay_config in
 #     inventories/hrlv-dev/group_vars/ue_content.yml
 #   - Plastic SCM synced (playbooks/plastic-sync.yml)
 #   - Firewall rules applied (playbooks/ue-firewall-rules.yml)
 #
 # Usage:
 #   ansible-playbook playbooks/ue-content-start.yml
-#   ansible-playbook playbooks/ue-content-start.yml -e "ndisplay_map=/Game/Path/To/Map"
-#   ansible-playbook playbooks/ue-content-start.yml --limit windows-unreal-render-01 -e "ndisplay=rivermax_1node" -e "ndisplay_map=/Game/Path/To/Map"  # single node
+#   ansible-playbook playbooks/ue-content-start.yml -e "map=lookdev"
+#   ansible-playbook playbooks/ue-content-start.yml --limit ue-content-01 -e "config=rivermax_1node" -e "map=lookdev"  # single node
 #   ansible-playbook playbooks/ue-content-start.yml -e "skip_preflight=true"  # fast relaunch
 
 - name: Check for already-running UE instances
@@ -116,8 +116,8 @@
             headless = [bool]$node.renderHeadless
           }
         }
-        {% if ndisplay_map is defined and ndisplay_map != 'None' %}
-        $mapPath = "{{ unreal_project | dirname }}/Content/{{ ndisplay_map | regex_replace('^/Game/', '') }}.umap"
+        {% if map_path is defined and map_path != 'None' %}
+        $mapPath = "{{ unreal_project | dirname }}/Content/{{ map_path | regex_replace('^/Game/', '') }}.umap"
         if (!(Test-Path $mapPath)) { $result.map = 'MISSING' }
         {% endif %}
         $result | ConvertTo-Json -Compress
@@ -135,7 +135,7 @@
 
     - name: Fail if map not found
       ansible.builtin.fail:
-        msg: "Map not found: {{ ndisplay_map }} (looked for {{ unreal_project | dirname }}/Content/{{ ndisplay_map | regex_replace('^/Game/', '') }}.umap)"
+        msg: "Map not found: {{ map_path }} (looked for {{ unreal_project | dirname }}/Content/{{ map_path | regex_replace('^/Game/', '') }}.umap)"
       when: preflight.map == 'MISSING'
 
     - name: Set node window config
@@ -147,12 +147,12 @@
         ndisplay_args: >-
           "{{ unreal_project }}"
           -game
-          {{ ndisplay_map | default('None') }}
+          {{ map_path | default('None') }}
           -dc_cluster
           -dc_cfg="{{ ndisplay_config }}"
           -dc_node={{ ndisplay_node }}
           -dc_dev_mono
-          -ini:Engine:[/Script/Engine.Engine]:GameEngine=/Script/DisplayCluster.DisplayClusterGameEngine,[/Script/Engine.Engine]:GameViewportClientClassName=/Script/DisplayCluster.DisplayClusterViewportClient,[/Script/Engine.UserInterfaceSettings]:bAllowHighDPIInGameMode=True,[/Script/Engine.UserInterfaceSettings]:bAllowHighDpiWhenUnattended=True,[ConsoleVariables]:Rivermax.Output.EnableMultiSRD=1{% if concert_server_ip is defined %},[/Script/UdpMessaging.UdpMessagingSettings]:MulticastEndpoint=0.0.0.0:0,[/Script/UdpMessaging.UdpMessagingSettings]:MulticastTimeToLive=0,[/Script/QuicMessaging.QuicMessagingSettings]:EnableTransport=False{% endif %}
+          -ini:Engine:[/Script/Engine.Engine]:GameEngine=/Script/DisplayCluster.DisplayClusterGameEngine,[/Script/Engine.Engine]:GameViewportClientClassName=/Script/DisplayCluster.DisplayClusterViewportClient,[/Script/Engine.UserInterfaceSettings]:bAllowHighDPIInGameMode=True,[/Script/Engine.UserInterfaceSettings]:bAllowHighDpiWhenUnattended=True,[ConsoleVariables]:Rivermax.Output.EnableMultiSRD=1,[/Script/RivermaxCore.RivermaxSettings]:PTPInterfaceAddress=10.0.0.*{% if concert_server_ip is defined %},[/Script/UdpMessaging.UdpMessagingSettings]:MulticastEndpoint=0.0.0.0:0,[/Script/UdpMessaging.UdpMessagingSettings]:MulticastTimeToLive=0,[/Script/QuicMessaging.QuicMessagingSettings]:EnableTransport=False{% endif %}
           -ini:Game:[/Script/EngineSettings.GeneralProjectSettings]:bUseBorderlessWindow=True
           -ini:Input:[/Script/Engine.InputSettings]:DefaultPlayerInputClass=/Script/DisplayCluster.DisplayClusterPlayerInput
           -unattended

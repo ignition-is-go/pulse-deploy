@@ -1,6 +1,8 @@
 ---
 # Update Plastic SCM workspace to latest (day-to-day)
 # Usage: ansible-playbook playbooks/plastic-update.yml
+#        ansible-playbook playbooks/plastic-update.yml -e "changeset=1646"
+#        ansible-playbook playbooks/plastic-update.yml -e "branch=/main/feature"
 #        ansible-playbook playbooks/plastic-update.yml --limit ue-staging-01
 
 - name: Plastic SCM — update
