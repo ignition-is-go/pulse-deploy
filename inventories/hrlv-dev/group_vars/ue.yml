@@ -13,6 +13,9 @@ ndi_tools_installer_file: NDI 6 Tools.exe
 # Staging sync — NAS/DMZ workspace path (robocopy source for destination nodes)
 staging_workspace_unc: "\\\\10.0.1.31\\share\\P-0616-HRLV"
 
+# Shared DDC (Derived Data Cache) — all UE nodes cache to NAS over storage network
+shared_ddc_path: "{{ nas_share }}\\ddc"
+
 # Render worker (Rust binary)
 worker_path: C:\ue-render-farm
 worker_exe: worker.exe

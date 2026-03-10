@@ -10,12 +10,12 @@
 # Epic offline installer docs:
 #   https://dev.epicgames.com/documentation/en-us/unreal-engine/offline-installer-of-unreal-engine
 
-- name: Check if Unreal Engine installed
+- name: Check if installed
   ansible.windows.win_stat:
     path: "{{ unreal_exe }}"
   register: ue_check
 
-- name: Copy UE installer from NAS
+- name: Copy installer from NAS
   ansible.windows.win_command: >-
     robocopy "{{ ue_installer_source }}" "C:\Windows\Temp\ue-installer" /MIR /NDL /R:5 /W:10
   async: 1800
@@ -46,7 +46,7 @@
     - not ue_check.stat.exists
     - "'REBOOT_REQUIRED' in ue_reboot_check.stdout"
 
-- name: Install Unreal Engine (silent)
+- name: Install (silent)
   ansible.windows.win_shell: |
     $p = Start-Process -FilePath msiexec.exe -ArgumentList @(
       "/i", "C:\Windows\Temp\ue-installer\UnrealEngineInstaller.msi",
@@ -65,13 +65,13 @@
   async: 3600
   poll: 30
 
-- name: Verify Unreal Engine installed
+- name: Verify installation
   ansible.windows.win_stat:
     path: "{{ unreal_exe }}"
   register: ue_post_check
   failed_when: not ue_post_check.stat.exists
 
-- name: Install UE-bundled VC++ Redistributable
+- name: Install bundled VC++ Redistributable
   ansible.windows.win_package:
     path: "{{ unreal_engine_dir }}/Engine/Extras/Redist/en-us/vc_redist.x64.exe"
     product_id: '{d8bbe9f9-7c5b-42c6-b715-9ee898a2e515}'
@@ -90,10 +90,18 @@
     data: '"{{ unreal_exe | replace("/", "\\") }}" "%1"'
     type: string
 
-- name: Clean up UE installer cache
+- name: Clean up installer cache
   ansible.windows.win_file:
     path: C:\Windows\Temp\ue-installer
     state: absent
+
+- name: Set SharedDataCachePath environment variable
+  ansible.windows.win_environment:
+    name: UE-SharedDataCachePath
+    value: "{{ shared_ddc_path }}"
+    level: machine
+    state: present
+  when: shared_ddc_path is defined
 
 - name: Check project file exists
   ansible.windows.win_stat:

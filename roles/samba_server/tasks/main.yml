@@ -14,7 +14,7 @@
 #   https://wiki.samba.org/index.php/Setting_up_Samba_as_a_Standalone_Server
 #   https://www.samba.org/samba/docs/current/man-html/smb.conf.5.html
 
-- name: Ensure Samba is installed
+- name: Ensure installed
   ansible.builtin.apt:
     name: samba
     state: present
@@ -100,6 +100,13 @@
     - { option: directory mask, value: "0775" }
   notify: Reload smbd
 
+- name: Ensure shared DDC directory exists
+  ansible.builtin.file:
+    path: "{{ smb_share_path }}/ddc"
+    state: directory
+    owner: "{{ smb_force_user }}"
+    mode: "0775"
+
 - name: Validate smb.conf
   ansible.builtin.command:
     argv:
@@ -107,7 +114,7 @@
       - -s
   changed_when: false
 
-- name: Ensure Samba is running and enabled
+- name: Ensure service is running and enabled
   ansible.builtin.service:
     name: smbd
     state: started
