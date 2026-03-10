@@ -1,0 +1,8 @@
+---
+sonic_media_vlan: 20
+
+# Switch ports that need PTP multicast (224.0.1.129) forwarded.
+# These are the ports connected to Proxmox hosts running Rivermax VMs.
+sonic_ptp_mcast_ports:
+  - Ethernet0     # nyc-prod-pve-01
+  - Ethernet16    # nyc-prod-pve-02

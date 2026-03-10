@@ -42,3 +42,43 @@
   ansible.builtin.debug:
     msg: "IGMP CoPP trap NOT in APP_DB — ASIC will not trap IGMP to CPU. Reboot may be required."
   when: "'igmp_query' not in (copp_check.stdout | default(''))"
+
+# =================================================================
+# Static MDB — PTP multicast (224.0.1.129)
+#
+# SONiC IGMP snooping on Mellanox does not offload MDB to the ASIC,
+# so VMs behind OVS/switchdev hypervisors never receive PTP multicast
+# unless the switch port has an MDB entry. These static entries ensure
+# PTP reaches Proxmox hosts with Rivermax VMs.
+#
+# Runtime-only (bridge mdb is not persisted in config_db). Re-run the
+# role after switch reboot to re-apply.
+# =================================================================
+
+- name: Add static PTP multicast MDB entry for {{ item }}
+  ansible.builtin.command:
+    argv:
+      - bridge
+      - mdb
+      - replace
+      - dev
+      - Bridge
+      - port
+      - "{{ item }}"
+      - grp
+      - "224.0.1.129"
+      - permanent
+      - vid
+      - "{{ sonic_media_vlan }}"
+  loop: "{{ sonic_ptp_mcast_ports }}"
+  changed_when: true
+
+- name: Verify PTP MDB entries
+  ansible.builtin.command:
+    argv: [bridge, mdb, show]
+  register: mdb_show
+  changed_when: false
+
+- name: Display PTP MDB entries
+  ansible.builtin.debug:
+    msg: "{{ mdb_show.stdout_lines | select('search', '224.0.1.129') | list }}"
