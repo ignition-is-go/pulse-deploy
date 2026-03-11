@@ -6,6 +6,10 @@
 .env
 .vault_pass
 
+# Packer
+*.auto.pkrvars.hcl
+packer/*/manifests/
+
 # License files
 *.lic
 

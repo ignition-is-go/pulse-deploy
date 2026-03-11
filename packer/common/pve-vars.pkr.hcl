@@ -70,8 +70,8 @@ variable "http_port_max" {
 
 // PVE Variables //
 // Sensitive Variables to Pass as CLI Args or Env Vars
-variable "pve_token" {
-  description = "Proxmox API Token"
+variable "pve_password" {
+  description = "Proxmox login password"
   type        = string
   sensitive   = true
 }

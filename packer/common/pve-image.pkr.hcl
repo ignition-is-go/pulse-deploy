@@ -11,7 +11,7 @@ source "proxmox-iso" "image" {
   // PVE login
   proxmox_url              = var.pve_api_url
   username                 = var.pve_username
-  token                    = var.pve_token
+  password                 = var.pve_password
   node                     = var.pve_node
   insecure_skip_tls_verify = var.skip_tls_check
 

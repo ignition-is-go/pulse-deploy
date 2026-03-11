@@ -1,0 +1,19 @@
+// Proxmox connection
+pve_api_url  = "https://PROXMOX_HOST:8006/api2/json"
+pve_username = "root@pam"
+// pve_password via PKR_VAR_pve_password env var or -var flag
+pve_node = "PROXMOX_NODE_NAME"
+
+// SSH
+ssh_private_key_file = "~/.ssh/id_ed25519"
+ssh_public_key_file  = "~/.ssh/id_ed25519.pub"
+
+// Storage
+disk_storage_pool       = "zfs-nvme-05"
+disk_size               = "32G"
+cloud_init_storage_pool = "zfs-nvme-05"
+
+// Template VM ID
+vm_id = {
+  "ubuntu24" = 9001
+}
