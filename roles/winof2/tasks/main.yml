@@ -4,6 +4,8 @@
 # Provides the proper Mellanox network driver so TCP/IP binds to VF adapters.
 # Without this, BF2 VFs only get the generic mlx5Gen driver with netvsc_vfpp.
 #
+# When winof2_rivermax: true, installs with MT_RIVERMAX=1 for Rivermax SDK support.
+#
 # Requires:
 #   winof2_installer_dir:  UNC path to installer directory on NAS
 #   winof2_installer_file: installer filename
@@ -17,9 +19,25 @@
   register: winof2_check
   changed_when: false
 
+- name: Check Rivermax support in driver
+  ansible.windows.win_shell: |
+    $val = Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\mlx5\Parameters' -Name RiverMaxSetup -ErrorAction SilentlyContinue
+    if ($val -and $val.RiverMaxSetup -eq 1) { "enabled" } else { "disabled" }
+  register: winof2_rmax_check
+  changed_when: false
+  when: winof2_rivermax | bool
+
+- name: Set install needed fact
+  ansible.builtin.set_fact:
+    winof2_install_needed: >-
+      {{ winof2_check.stdout | trim != winof2_version or
+         (winof2_rivermax | bool and winof2_rmax_check.stdout | default('disabled') | trim == 'disabled') }}
+
 - name: Show installed version
   ansible.builtin.debug:
-    msg: "WinOF-2: {{ winof2_check.stdout | trim }} (expected {{ winof2_version }})"
+    msg: >-
+      WinOF-2: {{ winof2_check.stdout | trim }} (expected {{ winof2_version }})
+      {{ ', Rivermax: ' ~ (winof2_rmax_check.stdout | default('disabled') | trim) if winof2_rivermax | bool else '' }}
 
 - name: Copy installer from NAS
   ansible.builtin.include_role:
@@ -28,22 +46,26 @@
     win_robocopy_from_nas_src: "{{ winof2_installer_dir }}"
     win_robocopy_from_nas_file: "{{ winof2_installer_file }}"
     win_robocopy_from_nas_dest: C:\Windows\Temp
-  when: winof2_check.stdout | trim != winof2_version
+  when: winof2_install_needed | bool
 
 - name: Install driver (silent)
   ansible.windows.win_shell: |
+    $args = '/S /v/qn /v"/log C:\Windows\Temp\winof2_install.log"'
+    {% if winof2_rivermax | bool %}
+    $args = '/v"MT_RIVERMAX=1" /S /v/qn /v"/log C:\Windows\Temp\winof2_install.log"'
+    {% endif %}
     $p = Start-Process -FilePath "C:\Windows\Temp\{{ winof2_installer_file }}" `
-      -ArgumentList '/S /v/qn /v"/log C:\Windows\Temp\winof2_install.log"' `
+      -ArgumentList $args `
       -Wait -PassThru
     $p.ExitCode
   register: winof2_install
-  when: winof2_check.stdout | trim != winof2_version
+  when: winof2_install_needed | bool
 
 - name: Reboot after install
   ansible.builtin.include_role:
     name: win_reboot
   when:
-    - winof2_check.stdout | trim != winof2_version
+    - winof2_install_needed | bool
     - winof2_install is changed
 
 - name: Verify installed version
@@ -54,6 +76,15 @@
   register: winof2_verify
   changed_when: false
   failed_when: winof2_verify.stdout | trim != winof2_version
+
+- name: Verify Rivermax support enabled
+  ansible.windows.win_shell: |
+    $val = Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\mlx5\Parameters' -Name RiverMaxSetup -ErrorAction SilentlyContinue
+    if ($val -and $val.RiverMaxSetup -eq 1) { "enabled" } else { "disabled" }
+  register: winof2_rmax_verify
+  changed_when: false
+  failed_when: winof2_rmax_verify.stdout | trim != "enabled"
+  when: winof2_rivermax | bool
 
 - name: Clean up installer
   ansible.windows.win_file:

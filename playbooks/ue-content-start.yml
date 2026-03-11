@@ -55,6 +55,9 @@
   gather_facts: false
   any_errors_fatal: true
 
+  vars_files:
+    - ../roles/rivermax/defaults/main.yml
+
   tasks:
     - name: Check .uproject file exists
       ansible.windows.win_shell: |
@@ -72,8 +75,8 @@
     - name: Rivermax preflight check
       ansible.windows.win_shell: |
         $errors = @()
-        if (!(Test-Path 'C:\Program Files\Mellanox\Rivermax\lib\rivermax.dll')) { $errors += 'Rivermax DLL missing' }
-        if (!(Test-Path 'C:\Program Files\Mellanox\Rivermax\lib\rivermax.lic')) { $errors += 'License file missing' }
+        if (!(Test-Path '{{ rivermax_install_dir }}\lib\rivermax.dll')) { $errors += 'Rivermax DLL missing' }
+        if (!(Test-Path '{{ rivermax_install_dir }}\lib\{{ rivermax_license_file }}')) { $errors += 'License file missing' }
         $env = [System.Environment]::GetEnvironmentVariable('RIVERMAX_LICENSE_PATH', 'Machine')
         if (!$env) { $errors += 'RIVERMAX_LICENSE_PATH env var not set' }
         $adapter = Get-NetAdapter | Where-Object { $_.InterfaceDescription -like '*Mellanox*' -or $_.InterfaceDescription -like '*ConnectX*' }

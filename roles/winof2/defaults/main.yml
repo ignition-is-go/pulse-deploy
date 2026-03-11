@@ -1,3 +1,7 @@
 ---
 # winof2 — Mellanox WinOF-2 driver
 winof2_version: "24.10.50010"
+
+# Install with Rivermax SDK support (MT_RIVERMAX=1)
+# Set true for nodes that will run Rivermax (rivermax: true hosts)
+winof2_rivermax: false

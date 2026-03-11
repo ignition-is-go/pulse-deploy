@@ -32,7 +32,11 @@
       "WebFetch(domain:www.openvswitch.org)",
       "WebFetch(domain:sonic-build.azurewebsites.net)",
       "WebFetch(domain:community.tp-link.com)",
-      "WebFetch(domain:www.tp-link.com)"
+      "WebFetch(domain:www.tp-link.com)",
+      "WebFetch(domain:docs.semaphoreui.com)",
+      "WebFetch(domain:semaphoreui.com)",
+      "WebFetch(domain:salsa.debian.org)",
+      "WebFetch(domain:wiki.samba.org)"
     ]
   }
 }

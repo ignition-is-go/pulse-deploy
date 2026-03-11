@@ -2,22 +2,23 @@
 # Start Rivermax media_sender (persistent, runs until stopped)
 # Sends a test 2110-20 stream from the node's ip_2110.
 #
-# Usage:
-#   ansible-playbook playbooks/rmax-media-sender-start.yml --limit ue-content-09
-#   ansible-playbook playbooks/rmax-media-sender-start.yml --limit ue-content-09 -e "rmax_dst_ip=239.0.0.1"
-#   ansible-playbook playbooks/rmax-media-sender-start.yml --limit ue-content-09 -e '{"rmax_dst_ip":"239.0.0.1","rmax_width":"3840","rmax_height":"2160","rmax_fps":"60","rmax_depth":"10"}'
-
-# TODO: Disabled — verify if OVS FDB priming is still needed with tc-policy=none
-# - name: Prime OVS FDB for Rivermax hardware offload
-#   ansible.builtin.import_playbook: rmax-arp-prime.yml
+# SAFETY: Multicast destinations (224.0.0.0/4) are BLOCKED until IGMP snooping
+# is confirmed working on the switch. Multicast without snooping floods all
+# ports including management, risking total loss of SSH/WinRM connectivity.
+#
+# Usage (unicast only):
+#   ansible-playbook playbooks/rmax-media-sender-start.yml --limit ue-content-01 -e "rmax_dst_ip=10.0.0.162"
 
 - name: Start Rivermax media_sender
   hosts: windows
   gather_facts: false
 
+  vars_files:
+    - ../roles/rivermax/defaults/main.yml
+
   vars:
-    rmax_sender: 'C:\Program Files\Mellanox\Rivermax\apps\media_sender\media_sender.exe'
-    rmax_dst_ip: "10.0.0.5"
+    rmax_sender: '{{ rivermax_install_dir }}\apps\media_sender\media_sender.exe'
+    rmax_dst_ip: ""
     rmax_dst_port: 50000
     rmax_width: "1920"
     rmax_height: "1080"
@@ -26,6 +27,19 @@
     rmax_sampling: "YCbCr-4:2:2"
 
   tasks:
+    - name: Fail if destination IP not specified
+      ansible.builtin.fail:
+        msg: "rmax_dst_ip is required — pass via -e rmax_dst_ip=<receiver_ip_2110>"
+      when: rmax_dst_ip == ""
+
+    - name: Block multicast destinations (IGMP snooping not verified)
+      ansible.builtin.fail:
+        msg: >-
+          BLOCKED: {{ rmax_dst_ip }} is a multicast address (224.0.0.0/4).
+          Multicast without confirmed IGMP snooping floods all switch ports
+          including management, causing total network loss. Use unicast for testing.
+      when: rmax_dst_ip | ansible.utils.ipaddr('224.0.0.0/4')
+
     - name: Ensure temp directory exists
       ansible.windows.win_file:
         path: "C:\\Windows\\Temp"

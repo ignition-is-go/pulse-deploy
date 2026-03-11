@@ -2,62 +2,37 @@
 # rivermax — Rivermax SDK + license on top of WinOF-2
 # Only applied when host var `rivermax: true` is set.
 #
-# WinOF-2 driver is installed separately via the winof2 role (in site.yml VF
-# network play). This role reinstalls WinOF-2 with Rivermax support enabled
-# if needed, then adds the SDK and license.
+# WinOF-2 driver with Rivermax support (MT_RIVERMAX=1) is handled by the
+# winof2 role via winof2_rivermax variable. This role installs the SDK and license.
 
-# --- WinOF-2 with Rivermax support ---
+# --- Preflight: verify WinOF-2 has Rivermax support ---
 
-- name: Check if WinOF-2 was installed with Rivermax support
+- name: Verify WinOF-2 has Rivermax support enabled
   ansible.windows.win_shell: |
     $val = Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\mlx5\Parameters' -Name RiverMaxSetup -ErrorAction SilentlyContinue
-    if ($val -and $val.RiverMaxSetup -eq 1) { "installed" } else { "not_installed" }
-  register: winof2_rmax_check
+    if ($val -and $val.RiverMaxSetup -eq 1) { "enabled" } else { "disabled" }
+  register: winof2_rmax_preflight
   changed_when: false
-
-- name: Copy WinOF-2 installer for Rivermax reinstall
-  ansible.builtin.include_role:
-    name: win_robocopy_from_nas
-  vars:
-    win_robocopy_from_nas_src: "{{ winof2_installer_dir }}"
-    win_robocopy_from_nas_file: "{{ winof2_installer_file }}"
-    win_robocopy_from_nas_dest: C:\Windows\Temp
-  when: winof2_rmax_check.stdout | trim == "not_installed"
-
-- name: Reinstall WinOF-2 with Rivermax support
-  ansible.windows.win_shell: |
-    $p = Start-Process -FilePath "C:\Windows\Temp\{{ winof2_installer_file }}" `
-      -ArgumentList '/v"MT_RIVERMAX=1" /S /v/qn /v"/log C:\Windows\Temp\winof2_rmax_install.log"' `
-      -Wait -PassThru
-    $p.ExitCode
-  register: winof2_rmax_install
-  when: winof2_rmax_check.stdout | trim == "not_installed"
-
-- name: Reboot after WinOF-2 Rivermax reinstall
-  ansible.builtin.include_role:
-    name: win_reboot
-  when:
-    - winof2_rmax_check.stdout | trim == "not_installed"
-    - winof2_rmax_install is changed
-
-- name: Clean up WinOF-2 installer
-  ansible.windows.win_file:
-    path: "C:\\Windows\\Temp\\{{ winof2_installer_file }}"
-    state: absent
+  failed_when: winof2_rmax_preflight.stdout | trim != "enabled"
 
 # --- Rivermax SDK ---
 
-- name: Get Rivermax SDK version
+- name: Get installed Rivermax SDK version and product ID
   ansible.windows.win_shell: |
     $reg = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' |
       Where-Object { $_.DisplayName -like '*Rivermax*' }
-    if ($reg) { $reg.DisplayVersion } else { "not_installed" }
-  register: rivermax_sdk_check
+    if ($reg) { "$($reg.DisplayVersion)|$($reg.PSChildName)" } else { "not_installed|" }
+  register: rivermax_sdk_check_raw
   changed_when: false
+
+- name: Parse Rivermax SDK check result
+  ansible.builtin.set_fact:
+    rivermax_installed_version: "{{ rivermax_sdk_check_raw.stdout | trim | split('|') | first }}"
+    rivermax_installed_product_id: "{{ rivermax_sdk_check_raw.stdout | trim | split('|') | last }}"
 
 - name: Show current SDK version
   ansible.builtin.debug:
-    msg: "Rivermax SDK: {{ rivermax_sdk_check.stdout | trim }} (expected {{ rivermax_sdk_version_dotted }})"
+    msg: "Rivermax SDK: {{ rivermax_installed_version }} (expected {{ rivermax_version }})"
 
 - name: Copy Rivermax SDK archive to node
   ansible.builtin.include_role:
@@ -66,20 +41,28 @@
     win_robocopy_from_nas_src: "{{ rivermax_installer_dir }}"
     win_robocopy_from_nas_file: "{{ rivermax_sdk_file }}"
     win_robocopy_from_nas_dest: C:\Windows\Temp
-  when: rivermax_sdk_check.stdout | trim != rivermax_sdk_version_dotted
+  when: rivermax_installed_version != rivermax_version
 
 - name: Extract Rivermax SDK archive
   community.windows.win_unzip:
     src: "C:\\Windows\\Temp\\{{ rivermax_sdk_file }}"
     dest: "C:\\Windows\\Temp\\rivermax_sdk"
-  when: rivermax_sdk_check.stdout | trim != rivermax_sdk_version_dotted
+  when: rivermax_installed_version != rivermax_version
+
+- name: Uninstall previous Rivermax SDK
+  ansible.windows.win_package:
+    product_id: "{{ rivermax_installed_product_id }}"
+    state: absent
+  when:
+    - rivermax_installed_version != rivermax_version
+    - rivermax_installed_version != "not_installed"
 
 - name: Install Rivermax SDK via MSI
   ansible.windows.win_package:
-    path: "C:\\Windows\\Temp\\rivermax_sdk\\Rivermax_Windows_{{ rivermax_sdk_version_dotted }}\\Rivermax-{{ rivermax_sdk_version_dotted }}-win64.msi"
+    path: "C:\\Windows\\Temp\\rivermax_sdk\\Rivermax_Windows_{{ rivermax_version }}\\Rivermax-{{ rivermax_version }}-win64.msi"
     state: present
   register: rivermax_sdk_install
-  when: rivermax_sdk_check.stdout | trim != rivermax_sdk_version_dotted
+  when: rivermax_installed_version != rivermax_version
 
 # --- License ---
 
@@ -92,7 +75,7 @@
   ansible.builtin.include_role:
     name: win_robocopy_from_nas
   vars:
-    win_robocopy_from_nas_src: "{{ rivermax_installer_dir }}"
+    win_robocopy_from_nas_src: "{{ rivermax_license_dir }}"
     win_robocopy_from_nas_file: "{{ rivermax_license_file }}"
     win_robocopy_from_nas_dest: "{{ rivermax_install_dir }}\\lib"
 
@@ -103,12 +86,19 @@
     level: machine
     state: present
 
-- name: "Set RIVERMAX_PATH system environment variable — {{ rivermax_sdk_version }}"
+- name: Set RIVERMAX_PATH system environment variable
   ansible.windows.win_environment:
-    name: "RIVERMAX_PATH_{{ rivermax_sdk_version }}"
+    name: RIVERMAX_PATH
     value: "{{ rivermax_install_dir }}"
     level: machine
     state: present
+
+# TODO: Remove after all nodes upgraded from 1.71.30
+- name: Clean up legacy RIVERMAX_PATH_1_71_30 environment variable
+  ansible.windows.win_environment:
+    name: RIVERMAX_PATH_1_71_30
+    state: absent
+    level: machine
 
 - name: Set RIVERMAX_ENABLE_CUDA system environment variable
   ansible.windows.win_environment:
@@ -129,8 +119,8 @@
 
 - name: Fail if Rivermax SDK version mismatch
   ansible.builtin.fail:
-    msg: "Rivermax SDK version {{ final_sdk_check.stdout | trim }} does not match expected {{ rivermax_sdk_version_dotted }}"
-  when: final_sdk_check.stdout | trim != rivermax_sdk_version_dotted
+    msg: "Rivermax SDK version {{ final_sdk_check.stdout | trim }} does not match expected {{ rivermax_version }}"
+  when: final_sdk_check.stdout | trim != rivermax_version
 
 - name: Verify Rivermax DLL exists
   ansible.windows.win_stat:
@@ -164,7 +154,7 @@
 - name: Show final status
   ansible.builtin.debug:
     msg: |
-      Rivermax SDK: {{ final_sdk_check.stdout | trim }} (expected {{ rivermax_sdk_version_dotted }})
+      Rivermax SDK: {{ final_sdk_check.stdout | trim }} (expected {{ rivermax_version }})
       Rivermax DLL: OK
       License file: OK
       Adapters:

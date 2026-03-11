@@ -29,6 +29,8 @@
   gather_facts: true
   roles:
     - role: winof2
+      vars:
+        winof2_rivermax: "{{ rivermax | default(false) }}"
       when: mac_2110 is defined or mac_smb is defined
     - role: ip_2110
       when: mac_2110 is defined

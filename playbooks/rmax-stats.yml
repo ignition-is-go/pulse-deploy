@@ -10,8 +10,11 @@
   hosts: windows
   gather_facts: false
 
+  vars_files:
+    - ../roles/rivermax/defaults/main.yml
+
   vars:
-    rmax_stats: 'C:\Program Files\Mellanox\Rivermax\bin\rmax_stats.exe'
+    rmax_stats: '{{ rivermax_install_dir }}\bin\rmax_stats.exe'
     rmax_stats_duration: 5
 
   tasks:

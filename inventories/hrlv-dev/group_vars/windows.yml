@@ -14,8 +14,7 @@ winof2_installer_dir: "{{ nas_share_mgmt }}\\installers\\winof2\\24.10.50010"
 winof2_installer_file: MLNX_WinOF2-24_10_50010_All_x64.exe
 
 # Rivermax (applied when rivermax: true)
-rivermax_installer_dir: "{{ nas_share }}\\installers\\rivermax\\1.71.30"
-rivermax_sdk_file: Rivermax_Windows_1.71.30.zip
+rivermax_version: "1.81.21"
 rivermax_license_file: Rivermax-12022026-qty3-1a7da843cfd1.lic
 
 # Plastic SCM

@@ -2,9 +2,14 @@
 # rivermax defaults
 # Ref: https://dev.epicgames.com/documentation/en-us/unreal-engine/setting-up-smpte-2110-in-unreal-engine
 
-rivermax_install_dir: 'C:\Program Files\Mellanox\Rivermax'
-rivermax_sdk_version: "1_71_30"
-rivermax_sdk_version_dotted: "1.71.30"
+# Version — set per-inventory in group_vars/windows.yml, this is the fallback
+rivermax_version: "1.81.21"
 
-# GPUDirect RDMA — requires PF passthrough or bare metal (not supported on SR-IOV VFs)
+# Derived paths — do not override individually
+rivermax_install_dir: 'C:\Program Files\Mellanox\Rivermax'
+rivermax_installer_dir: "{{ nas_share }}\\installers\\rivermax\\{{ rivermax_version }}"
+rivermax_sdk_file: "Rivermax_Windows_{{ rivermax_version }}.zip"
+rivermax_license_dir: "{{ nas_share }}\\installers\\rivermax\\license"
+
+# GPUDirect RDMA — untested on SR-IOV VFs, may require ACS/IOMMU changes
 rivermax_gpudirect: false
