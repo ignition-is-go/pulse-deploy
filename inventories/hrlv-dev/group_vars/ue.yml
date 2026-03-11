@@ -1,6 +1,9 @@
 ---
 # UE render node configuration
 
+# Rivermax SDK — all UE nodes have CX6 VFs
+rivermax: true
+
 # Unreal Engine paths
 unreal_engine_dir: "C:/Program Files/Epic Games/5.7"
 unreal_exe: "{{ unreal_engine_dir }}/Engine/Binaries/Win64/UnrealEditor.exe"

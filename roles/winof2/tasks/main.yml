@@ -27,11 +27,21 @@
   changed_when: false
   when: winof2_rivermax | bool
 
-- name: Set install needed fact
+- name: Set install needed — default false
   ansible.builtin.set_fact:
-    winof2_install_needed: >-
-      {{ winof2_check.stdout | trim != winof2_version or
-         (winof2_rivermax | bool and winof2_rmax_check.stdout | default('disabled') | trim == 'disabled') }}
+    winof2_install_needed: false
+
+- name: Set install needed — version mismatch
+  ansible.builtin.set_fact:
+    winof2_install_needed: true
+  when: winof2_check.stdout | trim != winof2_version
+
+- name: Set install needed — Rivermax support missing
+  ansible.builtin.set_fact:
+    winof2_install_needed: true
+  when:
+    - winof2_rivermax | bool
+    - winof2_rmax_check.stdout | default('disabled') | trim == 'disabled'
 
 - name: Show installed version
   ansible.builtin.debug:
@@ -47,6 +57,23 @@
     win_robocopy_from_nas_file: "{{ winof2_installer_file }}"
     win_robocopy_from_nas_dest: C:\Windows\Temp
   when: winof2_install_needed | bool
+
+- name: Uninstall driver before reinstall with new options
+  ansible.windows.win_shell: |
+    $p = Start-Process -FilePath "C:\Windows\Temp\{{ winof2_installer_file }}" `
+      -ArgumentList '/S /x /v/qn /v"/log C:\Windows\Temp\winof2_uninstall.log"' `
+      -Wait -PassThru
+    $p.ExitCode
+  when:
+    - winof2_install_needed | bool
+    - winof2_check.stdout | trim == winof2_version
+
+- name: Reboot after uninstall
+  ansible.builtin.include_role:
+    name: win_reboot
+  when:
+    - winof2_install_needed | bool
+    - winof2_check.stdout | trim == winof2_version
 
 - name: Install driver (silent)
   ansible.windows.win_shell: |

@@ -1,8 +1,6 @@
 ---
 # nDisplay cluster configuration
 
-rivermax: true
-
 nvidia_supported_gpus: ["RTX 6000 Ada"]
 vdd_width: 2560
 vdd_height: 1440

@@ -76,7 +76,7 @@
     path: "{{ unreal_engine_dir }}/Engine/Extras/Redist/en-us/vc_redist.x64.exe"
     product_id: '{d8bbe9f9-7c5b-42c6-b715-9ee898a2e515}'
     arguments: /install /quiet /norestart
-    expected_return_code: [0, 3010]
+    expected_return_code: [0, 1638, 3010]
 
 - name: Associate .uproject extension with Unreal.ProjectFile class
   ansible.windows.win_regedit:
