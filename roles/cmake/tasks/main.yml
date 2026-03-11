@@ -1,0 +1,53 @@
+---
+# cmake — Install CMake build system on Windows
+#
+# Requires:
+#   cmake_version:        version string (default in defaults/main.yml)
+#   cmake_installer_dir:  UNC path to installer directory on NAS
+#   cmake_installer_file: MSI filename
+
+- name: Get installed version
+  ansible.windows.win_shell: |
+    $cmake = "{{ cmake_install_dir }}\bin\cmake.exe"
+    if (Test-Path $cmake) {
+      $v = & $cmake --version | Select-Object -First 1
+      ($v -replace 'cmake version ','').Trim()
+    } else { "not_installed" }
+  register: cmake_check
+  changed_when: false
+
+- name: Show installed version
+  ansible.builtin.debug:
+    msg: "CMake: {{ cmake_check.stdout | trim }} (expected {{ cmake_version }})"
+
+- name: Copy installer from NAS
+  ansible.builtin.include_role:
+    name: win_robocopy_from_nas
+  vars:
+    win_robocopy_from_nas_src: "{{ cmake_installer_dir }}"
+    win_robocopy_from_nas_file: "{{ cmake_installer_file }}"
+    win_robocopy_from_nas_dest: C:\Windows\Temp
+  when: cmake_check.stdout | trim != cmake_version
+
+- name: Install CMake via MSI
+  ansible.windows.win_package:
+    path: "C:\\Windows\\Temp\\{{ cmake_installer_file }}"
+    arguments: ADD_CMAKE_TO_PATH=System
+    state: present
+  when: cmake_check.stdout | trim != cmake_version
+
+- name: Verify installation
+  ansible.windows.win_shell: |
+    $cmake = "{{ cmake_install_dir }}\bin\cmake.exe"
+    if (Test-Path $cmake) {
+      $v = & $cmake --version | Select-Object -First 1
+      ($v -replace 'cmake version ','').Trim()
+    } else { "not_installed" }
+  register: cmake_verify
+  changed_when: false
+  failed_when: cmake_verify.stdout | trim != cmake_version
+
+- name: Clean up installer
+  ansible.windows.win_file:
+    path: "C:\\Windows\\Temp\\{{ cmake_installer_file }}"
+    state: absent

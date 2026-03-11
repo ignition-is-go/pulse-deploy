@@ -1,0 +1,6 @@
+---
+# cmake — CMake build system
+cmake_version: "4.3.0-rc3"
+cmake_installer_dir: "{{ nas_share }}\\installers\\cmake\\{{ cmake_version }}"
+cmake_installer_file: "cmake-{{ cmake_version }}-windows-x86_64.msi"
+cmake_install_dir: 'C:\Program Files\CMake'

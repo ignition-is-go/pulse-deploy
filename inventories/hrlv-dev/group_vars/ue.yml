@@ -19,6 +19,12 @@ staging_workspace_unc: "\\\\10.0.1.31\\share\\P-0616-HRLV"
 # Shared DDC (Derived Data Cache) — all UE nodes cache to NAS over storage network
 shared_ddc_path: "{{ nas_share }}\\ddc"
 
+# Rivermax SDK install path
+rivermax_install_dir: 'C:\Program Files\Mellanox\Rivermax'
+
+# CUDA Toolkit install path
+cuda_install_dir: 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v13.2'
+
 # Render worker (Rust binary)
 worker_path: C:\ue-render-farm
 worker_exe: worker.exe

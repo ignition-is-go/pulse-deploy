@@ -1,0 +1,5 @@
+---
+# rivermax_devkit — Build Rivermax Dev Kit CLI apps from source
+rivermax_devkit_src: '{{ rivermax_install_dir }}\dev-kit'
+rivermax_devkit_build_dir: '{{ rivermax_install_dir }}\dev-kit\build'
+rivermax_devkit_cuda: false

@@ -1,0 +1,54 @@
+---
+# rivermax_devkit — Build Rivermax Dev Kit from source
+#
+# Builds CLI apps (rdk_ipo_receiver, rdk_media_sender, etc.) with optional
+# CUDA/GPUDirect support. Follows official build instructions from README.md.
+#
+# Requires:
+#   rivermax role applied (SDK installed)
+#   cmake role applied
+#   cuda_toolkit role applied (when rivermax_devkit_cuda: true)
+
+- name: Check for built rdk_ipo_receiver
+  ansible.windows.win_shell: |
+    Get-ChildItem "{{ rivermax_devkit_build_dir }}\binaries" -Recurse -Filter rdk_ipo_receiver.exe |
+      Select-Object -First 1 -ExpandProperty FullName
+  register: devkit_bin_check
+  changed_when: false
+  failed_when: false
+
+- name: Show build status
+  ansible.builtin.debug:
+    msg: >-
+      Rivermax Dev Kit:
+      {{ devkit_bin_check.stdout | trim | default('not built', true) }}
+
+- name: Configure with CMake
+  ansible.windows.win_shell: |
+    $env:PATH = "{{ cuda_install_dir }}\bin;$env:PATH"
+    & "C:\Program Files\CMake\bin\cmake.exe" `
+      -S "{{ rivermax_devkit_src }}" `
+      -B "{{ rivermax_devkit_build_dir }}" `
+      {% if rivermax_devkit_cuda | bool %}-DRMAX_CUDA=ON{% endif %}
+
+  register: devkit_configure
+  changed_when: false
+  when: devkit_bin_check.stdout | trim | length == 0
+
+- name: Build dev kit
+  ansible.windows.win_shell: |
+    & "C:\Program Files\CMake\bin\cmake.exe" `
+      --build "{{ rivermax_devkit_build_dir }}" `
+      --config Release --parallel
+  async: 86400
+  poll: 30
+  register: devkit_build
+  when: devkit_bin_check.stdout | trim | length == 0
+
+- name: Verify built rdk_ipo_receiver
+  ansible.windows.win_shell: |
+    Get-ChildItem "{{ rivermax_devkit_build_dir }}\binaries" -Recurse -Filter rdk_ipo_receiver.exe |
+      Select-Object -First 1 -ExpandProperty FullName
+  register: devkit_verify
+  changed_when: false
+  failed_when: devkit_verify.stdout | trim | length == 0

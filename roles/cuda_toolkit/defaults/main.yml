@@ -1,0 +1,6 @@
+---
+# cuda_toolkit — NVIDIA CUDA Toolkit
+cuda_version: "13.2"
+cuda_installer_dir: "{{ nas_share }}\\installers\\cuda\\{{ cuda_version }}"
+cuda_installer_file: "cuda_{{ cuda_version }}.0_windows.exe"
+cuda_install_dir: 'C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v{{ cuda_version }}'
