@@ -17,6 +17,7 @@
   hosts: "{{ gpu_check_hosts | default('ue') }}"
   gather_facts: false
   any_errors_fatal: true
+  ignore_unreachable: true
 
   tasks:
     - name: Skip if preflight disabled

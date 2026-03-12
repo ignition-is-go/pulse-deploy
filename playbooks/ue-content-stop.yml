@@ -9,6 +9,7 @@
 - name: Stop nDisplay cluster
   hosts: ue_content
   gather_facts: false
+  ignore_unreachable: true
 
   tasks:
     - name: Check if UnrealEditor is running

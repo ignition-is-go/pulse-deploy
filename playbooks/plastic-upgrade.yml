@@ -12,6 +12,7 @@
 - name: Plastic SCM — upgrade
   hosts: "{{ plastic_upgrade_hosts | default('ue') }}"
   gather_facts: true
+  ignore_unreachable: true
   serial: "{{ parallel_nodes | default(omit) }}"
 
   tasks:

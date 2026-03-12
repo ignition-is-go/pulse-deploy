@@ -5,6 +5,7 @@
 - name: Start Previs
   hosts: ue_previs
   gather_facts: false
+  ignore_unreachable: true
   tasks:
     - name: Check .uproject file exists
       ansible.windows.win_shell: |

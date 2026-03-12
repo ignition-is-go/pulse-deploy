@@ -17,6 +17,7 @@
 - name: Create VS Build Tools offline layout
   hosts: windows
   gather_facts: false
+  ignore_unreachable: true
   vars:
     layout_local: C:\vs_BuildTools_layout
     layout_nas: "{{ nas_share }}\\installers\\vs-buildtools\\17.14"

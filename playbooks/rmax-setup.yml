@@ -10,6 +10,7 @@
 - name: Rivermax — WinOF-2 + SDK + license
   hosts: windows
   gather_facts: false
+  ignore_unreachable: true
   roles:
     - role: rivermax
       when: rivermax | default(false)

@@ -5,6 +5,7 @@
 - name: Renew DHCP lease
   hosts: windows
   gather_facts: false
+  ignore_unreachable: true
 
   tasks:
     - name: Run ipconfig /renew

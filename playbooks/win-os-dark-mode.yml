@@ -8,6 +8,7 @@
 - name: Windows — apply OS dark mode
   hosts: windows
   gather_facts: false
+  ignore_unreachable: true
 
   tasks:
     - name: Write Windows dark-mode script

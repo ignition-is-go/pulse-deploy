@@ -8,6 +8,7 @@
 - name: Stop Rivermax media_sender
   hosts: windows
   gather_facts: false
+  ignore_unreachable: true
 
   tasks:
     - name: Stop media_sender process

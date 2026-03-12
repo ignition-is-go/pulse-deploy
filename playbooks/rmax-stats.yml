@@ -9,6 +9,7 @@
 - name: Rivermax stats check
   hosts: windows
   gather_facts: false
+  ignore_unreachable: true
 
   vars_files:
     - ../roles/rivermax/defaults/main.yml

@@ -13,8 +13,32 @@
 #   ansible-playbook playbooks/mirror-nas-cluster.yml -e "force_recopy=true"  # re-copy even if size+timestamp match
 #   ansible-playbook playbooks/mirror-nas-cluster.yml -e "clean_copy=true"   # delete local workspace first (nuclear option)
 
-- name: Preflight — ensure UE is not running on destination nodes
+- name: Reachability gate — identify online nodes
   hosts: ue_cluster
+  gather_facts: false
+  ignore_unreachable: true
+
+  tasks:
+    - name: Check WinRM connectivity
+      ansible.windows.win_ping:
+
+    - name: Add reachable hosts to dynamic group
+      ansible.builtin.group_by:
+        key: ue_node_reachable
+
+- name: Report reachability results
+  hosts: ue_node_reachable
+  gather_facts: false
+  tasks:
+    - name: Show skipped (unreachable) hosts
+      ansible.builtin.debug:
+        msg: >-
+          Reachable: {{ groups['ue_node_reachable'] | join(', ') }}
+          — Skipped: {{ groups['ue_cluster'] | difference(groups['ue_node_reachable']) | join(', ') | default('none', true) }}
+      run_once: true
+
+- name: Preflight — ensure UE is not running on destination nodes
+  hosts: ue_node_reachable
   gather_facts: false
 
   tasks:
@@ -31,7 +55,7 @@
       when: "'RUNNING' in ue_proc_check.stdout"
 
 - name: Validate NAS workspace is accessible
-  hosts: ue_cluster
+  hosts: ue_node_reachable
   gather_facts: false
 
   tasks:
@@ -47,7 +71,7 @@
       when: "'MISSING' in nas_check.stdout"
 
 - name: Clean local workspace before copy
-  hosts: ue_cluster
+  hosts: ue_node_reachable
   serial: "{{ parallel_nodes | default(omit) }}"
   gather_facts: false
 
@@ -59,7 +83,7 @@
       when: clean_copy | default(false) | bool
 
 - name: Mirror workspace from NAS to local
-  hosts: ue_cluster
+  hosts: ue_node_reachable
   serial: "{{ parallel_nodes | default(omit) }}"
   gather_facts: false
 

@@ -4,8 +4,32 @@
 # Usage:
 #   ansible-playbook playbooks/ue-firewall-rules.yml
 
+- name: Reachability gate — identify online nodes
+  hosts: ue_content:ue_editing
+  gather_facts: false
+  ignore_unreachable: true
+
+  tasks:
+    - name: Check WinRM connectivity
+      ansible.windows.win_ping:
+
+    - name: Add reachable hosts to dynamic group
+      ansible.builtin.group_by:
+        key: ue_node_reachable
+
+- name: Report reachability results
+  hosts: ue_node_reachable
+  gather_facts: false
+  tasks:
+    - name: Show skipped (unreachable) hosts
+      ansible.builtin.debug:
+        msg: >-
+          Reachable: {{ groups['ue_node_reachable'] | join(', ') }}
+          — Skipped: {{ groups['ue_content'] | union(groups['ue_editing']) | difference(groups['ue_node_reachable']) | join(', ') | default('none', true) }}
+      run_once: true
+
 - name: UE nDisplay firewall rules
-  hosts: ue_content
+  hosts: ue_node_reachable:&ue_content
   gather_facts: false
 
   tasks:
@@ -19,7 +43,7 @@
         enabled: true
 
 - name: Concert server firewall rules
-  hosts: ue_editing
+  hosts: ue_node_reachable:&ue_editing
   gather_facts: false
 
   tasks:

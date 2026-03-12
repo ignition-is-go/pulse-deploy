@@ -12,6 +12,7 @@
 - name: Set VDD resolution
   hosts: windows
   gather_facts: false
+  ignore_unreachable: true
   vars:
     vdd_width: 2560
     vdd_height: 1440

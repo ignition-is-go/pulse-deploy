@@ -13,8 +13,32 @@
 
 # === Preflight ===
 
-- name: Preflight — wait for Windows boot stability
+- name: Reachability gate — identify online Windows nodes
   hosts: windows
+  gather_facts: false
+  ignore_unreachable: true
+
+  tasks:
+    - name: Check WinRM connectivity
+      ansible.windows.win_ping:
+
+    - name: Add reachable hosts to dynamic group
+      ansible.builtin.group_by:
+        key: ue_node_reachable
+
+- name: Report reachability results
+  hosts: ue_node_reachable
+  gather_facts: false
+  tasks:
+    - name: Show skipped (unreachable) hosts
+      ansible.builtin.debug:
+        msg: >-
+          Reachable: {{ groups['ue_node_reachable'] | join(', ') }}
+          — Skipped: {{ groups['windows'] | difference(groups['ue_node_reachable']) | join(', ') | default('none', true) }}
+      run_once: true
+
+- name: Preflight — wait for Windows boot stability
+  hosts: ue_node_reachable
   gather_facts: false
   tasks:
     - name: Wait for OS boot to stabilize
@@ -25,8 +49,9 @@
 # === Windows VMs ===
 
 - name: VF network — Windows nodes with high-speed NIC passthrough
-  hosts: ue_content:ue_editing:ue_previs:ue_plugindev:ue_staging:arnold_fusion:workstation
+  hosts: ue_content:ue_editing:ue_previs:ue_plugindev:ue_staging:arnold_fusion:workstation:touch
   gather_facts: true
+  ignore_unreachable: true
   roles:
     - role: winof2
       vars:
@@ -40,6 +65,7 @@
 - name: Base config — all Windows
   hosts: windows
   gather_facts: true
+  ignore_unreachable: true
   roles:
     - win_base
     - win_theme
@@ -47,8 +73,9 @@
     - win_disable_watermark
 
 - name: GPU drivers — Windows nodes with GPUs
-  hosts: ue_content:ue_editing:ue_previs:ue_plugindev:arnold_fusion:workstation
+  hosts: ue_content:ue_editing:ue_previs:ue_plugindev:arnold_fusion:workstation:touch
   gather_facts: false
+  ignore_unreachable: true
   roles:
     - nvidia_gpu_win
     - virtual_display_driver
@@ -56,6 +83,7 @@
 - name: Rivermax — all Windows nodes with rivermax enabled
   hosts: windows
   gather_facts: false
+  ignore_unreachable: true
   roles:
     - role: rivermax
       when: rivermax | default(false)
@@ -69,18 +97,21 @@
 - name: Netbird mesh VPN — all hosts
   hosts: all
   gather_facts: true
+  ignore_unreachable: true
   roles:
     - netbird
 
 - name: Plastic SCM — staging, plugin dev, touch, and workstation nodes
   hosts: ue_staging:ue_plugindev:touch:workstation
   gather_facts: false
+  ignore_unreachable: true
   roles:
     - plastic_scm
 
 - name: Content nodes — nDisplay cluster
   hosts: ue_content
   gather_facts: false
+  ignore_unreachable: true
   roles:
     - ndi_tools
     - unreal_engine
@@ -89,6 +120,7 @@
 - name: Editing nodes — Concert multi-user editor
   hosts: ue_editing
   gather_facts: false
+  ignore_unreachable: true
   roles:
     - plastic_scm
     - ndi_tools
@@ -97,6 +129,7 @@
 - name: Previs nodes — nDisplay render + worker
   hosts: ue_previs
   gather_facts: false
+  ignore_unreachable: true
   roles:
     - ndi_tools
     - unreal_engine
@@ -105,6 +138,7 @@
 - name: Staging nodes — UE project validation
   hosts: ue_staging
   gather_facts: false
+  ignore_unreachable: true
   roles:
     - ndi_tools
     - unreal_engine
@@ -112,6 +146,7 @@
 - name: Plugin dev nodes — IDE, build tools, UE
   hosts: ue_plugindev
   gather_facts: false
+  ignore_unreachable: true
   roles:
     - win_remove_edge
     - win_chrome
@@ -135,6 +170,7 @@
 - name: UE automation runners
   hosts: ue_runner
   gather_facts: false
+  ignore_unreachable: true
   roles:
     - git
     - win_ue_build_deps
@@ -144,6 +180,7 @@
 - name: Workstation nodes — DCC apps + UE
   hosts: workstation
   gather_facts: false
+  ignore_unreachable: true
   roles:
     - win_remove_edge
     - win_chrome
@@ -157,12 +194,14 @@
 - name: Touch nodes — TouchDesigner install
   hosts: touch
   gather_facts: false
+  ignore_unreachable: true
   roles:
     - touchdesigner
 
 - name: Arnold/Fusion nodes — render setup
   hosts: arnold_fusion
   gather_facts: false
+  ignore_unreachable: true
   roles:
     - arnold
 
@@ -188,6 +227,7 @@
 - name: PBS — deploy share
   hosts: pbs
   gather_facts: true
+  ignore_unreachable: true
   roles:
     - ip_smb
     - samba_server
@@ -195,6 +235,7 @@
 - name: Optik — GPU driver + service
   hosts: optik
   gather_facts: false
+  ignore_unreachable: true
   roles:
     - nvidia_gpu_linux
     - optik
@@ -202,6 +243,7 @@
 - name: Rship — server node setup
   hosts: rship
   gather_facts: false
+  ignore_unreachable: true
   roles:
     - rship
 

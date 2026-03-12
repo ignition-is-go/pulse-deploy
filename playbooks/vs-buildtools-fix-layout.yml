@@ -15,6 +15,7 @@
 - name: Fix VS Build Tools offline layout
   hosts: windows
   gather_facts: false
+  ignore_unreachable: true
   vars:
     layout_nas: "{{ nas_share }}\\installers\\vs-buildtools\\17.14"
     fix_packages:

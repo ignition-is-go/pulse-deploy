@@ -5,6 +5,7 @@
 - name: Plastic SCM — install
   hosts: "{{ plastic_install_hosts | default('ue') }}"
   gather_facts: true
+  ignore_unreachable: true
   tasks:
     - name: Include Plastic SCM install tasks
       ansible.builtin.include_role:

@@ -10,6 +10,7 @@
 - name: Stop Concert server
   hosts: ue_editing
   gather_facts: false
+  ignore_unreachable: true
 
   tasks:
     - name: Check if UnrealMultiUserServer is running

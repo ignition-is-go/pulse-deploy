@@ -7,6 +7,7 @@
 - name: Force PTP resync and verify lock to grandmaster
   hosts: all
   gather_facts: false
+  ignore_unreachable: true
 
   tasks:
     - name: Restart W32Time service

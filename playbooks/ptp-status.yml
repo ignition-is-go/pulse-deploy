@@ -9,6 +9,7 @@
 - name: Verify W32Time PTP status
   hosts: ue:touch
   gather_facts: false
+  ignore_unreachable: true
 
   tasks:
     - name: Query W32Time sync status
