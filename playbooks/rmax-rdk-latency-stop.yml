@@ -8,9 +8,11 @@
 - name: Stop Rivermax Dev Kit rdk_latency
   hosts: windows
   gather_facts: false
-  ignore_unreachable: true
 
   tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
+
     - name: Stop rdk_latency process
       ansible.windows.win_shell: |
         Get-Process -Name rdk_latency -ErrorAction SilentlyContinue | Stop-Process -Force

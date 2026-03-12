@@ -15,7 +15,6 @@
 - name: Fix VS Build Tools offline layout
   hosts: windows
   gather_facts: false
-  ignore_unreachable: true
   vars:
     layout_nas: "{{ nas_share }}\\installers\\vs-buildtools\\17.14"
     fix_packages:
@@ -23,6 +22,9 @@
       - Microsoft.Net.4.6.2.TargetingPack.Resources
 
   tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
+
     - name: Download missing packages to layout
       ansible.windows.win_shell: |
         $catalog = Get-Content "{{ layout_nas }}\Catalog.json" -Raw | ConvertFrom-Json

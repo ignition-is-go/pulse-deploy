@@ -1,0 +1,18 @@
+---
+# Skip offline hosts — removes unreachable hosts from the rest of this play.
+#
+# Include at the top of any single-play playbook:
+#   - name: Skip offline hosts
+#     ansible.builtin.include_tasks: tasks/skip_offline.yml
+#
+# For multi-play playbooks that need cross-play state, use the gate play +
+# group_by pattern instead (see mirror-nas-cluster.yml, site.yml).
+
+- name: Check WinRM connectivity
+  ansible.windows.win_ping:
+  ignore_unreachable: true
+  register: _ping_result
+
+- name: Skip unreachable host
+  ansible.builtin.meta: end_host
+  when: _ping_result.unreachable | default(false)

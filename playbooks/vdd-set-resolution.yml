@@ -12,11 +12,13 @@
 - name: Set VDD resolution
   hosts: windows
   gather_facts: false
-  ignore_unreachable: true
   vars:
     vdd_width: 2560
     vdd_height: 1440
   tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
+
     - name: Write resolution script
       ansible.windows.win_copy:
         dest: C:\Windows\Temp\set-vdd-res.ps1

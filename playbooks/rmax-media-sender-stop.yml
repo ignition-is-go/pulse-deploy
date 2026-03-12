@@ -8,9 +8,11 @@
 - name: Stop Rivermax media_sender
   hosts: windows
   gather_facts: false
-  ignore_unreachable: true
 
   tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
+
     - name: Stop media_sender process
       ansible.windows.win_command: taskkill /F /IM media_sender.exe
       failed_when: false

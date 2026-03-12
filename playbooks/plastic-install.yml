@@ -5,8 +5,10 @@
 - name: Plastic SCM — install
   hosts: "{{ plastic_install_hosts | default('ue') }}"
   gather_facts: true
-  ignore_unreachable: true
   tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
+
     - name: Include Plastic SCM install tasks
       ansible.builtin.include_role:
         name: plastic_scm

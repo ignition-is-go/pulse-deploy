@@ -8,9 +8,11 @@
 - name: Windows — apply OS dark mode
   hosts: windows
   gather_facts: false
-  ignore_unreachable: true
 
   tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
+
     - name: Write Windows dark-mode script
       ansible.windows.win_copy:
         dest: C:\Windows\Temp\win-os-dark-mode.ps1

@@ -7,8 +7,10 @@
 - name: Restart RustDesk
   hosts: windows
   gather_facts: false
-  ignore_unreachable: true
   tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
+
     - name: Stop RustDesk service
       ansible.windows.win_service:
         name: PulseRemoteDesktopVM

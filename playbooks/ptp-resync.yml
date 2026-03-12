@@ -7,9 +7,11 @@
 - name: Force PTP resync and verify lock to grandmaster
   hosts: all
   gather_facts: false
-  ignore_unreachable: true
 
   tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
+
     - name: Restart W32Time service
       ansible.windows.win_service:
         name: w32time

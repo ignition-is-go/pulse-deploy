@@ -12,10 +12,12 @@
 - name: Plastic SCM — upgrade
   hosts: "{{ plastic_upgrade_hosts | default('ue') }}"
   gather_facts: true
-  ignore_unreachable: true
   serial: "{{ parallel_nodes | default(omit) }}"
 
   tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
+
     - name: Include Plastic SCM upgrade tasks
       ansible.builtin.include_role:
         name: plastic_scm

@@ -17,9 +17,11 @@
   hosts: "{{ gpu_check_hosts | default('ue') }}"
   gather_facts: false
   any_errors_fatal: true
-  ignore_unreachable: true
 
   tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
+
     - name: Skip if preflight disabled
       ansible.builtin.meta: end_host
       when: skip_preflight | default(false) | bool

@@ -10,9 +10,11 @@
 - name: Stop Concert server
   hosts: ue_editing
   gather_facts: false
-  ignore_unreachable: true
 
   tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
+
     - name: Check if UnrealMultiUserServer is running
       ansible.windows.win_command: tasklist /FI "IMAGENAME eq UnrealMultiUserServer.exe" /NH
       register: server_check

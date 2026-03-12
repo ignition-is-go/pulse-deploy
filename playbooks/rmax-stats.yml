@@ -9,7 +9,6 @@
 - name: Rivermax stats check
   hosts: windows
   gather_facts: false
-  ignore_unreachable: true
 
   vars_files:
     - ../roles/rivermax/defaults/main.yml
@@ -19,6 +18,9 @@
     rmax_stats_duration: 5
 
   tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
+
     - name: Check for running UE process
       ansible.windows.win_shell: |
         $p = Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue

@@ -5,8 +5,10 @@
 - name: Renew DHCP lease
   hosts: windows
   gather_facts: false
-  ignore_unreachable: true
 
   tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
+
     - name: Run ipconfig /renew
       ansible.windows.win_shell: ipconfig /renew

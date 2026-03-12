@@ -10,7 +10,9 @@
 - name: Rivermax — WinOF-2 + SDK + license
   hosts: windows
   gather_facts: false
-  ignore_unreachable: true
+  pre_tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
   roles:
     - role: rivermax
       when: rivermax | default(false)

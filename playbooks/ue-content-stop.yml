@@ -9,9 +9,11 @@
 - name: Stop nDisplay cluster
   hosts: ue_content
   gather_facts: false
-  ignore_unreachable: true
 
   tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
+
     - name: Check if UnrealEditor is running
       ansible.windows.win_command: tasklist /FI "IMAGENAME eq UnrealEditor.exe" /NH
       register: ue_check

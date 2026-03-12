@@ -17,13 +17,15 @@
 - name: Create VS Build Tools offline layout
   hosts: windows
   gather_facts: false
-  ignore_unreachable: true
   vars:
     layout_local: C:\vs_BuildTools_layout
     layout_nas: "{{ nas_share }}\\installers\\vs-buildtools\\17.14"
     bootstrapper_url: "https://aka.ms/vs/17/release/vs_buildtools.exe"
 
   tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
+
     - name: Sync existing layout from NAS to local
       ansible.windows.win_command: >-
         robocopy "{{ layout_nas }}" "{{ layout_local }}" /MIR /NDL /R:5 /W:10
