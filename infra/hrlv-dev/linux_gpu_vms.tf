@@ -25,7 +25,7 @@ module "linux_gpu_vm" {
   description    = local.linux_gpu_vm_descriptions[each.key]
   node_name      = each.value.node
   tags           = sort(local.linux_gpu_vm_tags[each.key])
-  template_id    = var.linux_template_id
+  template_id    = var.linux_template_ids[each.value.node]
   cores          = each.value.cores
   memory_mb      = each.value.memory_mb
   disk_gb        = each.value.disk_gb

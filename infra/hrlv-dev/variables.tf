@@ -79,9 +79,9 @@ variable "windows_template_ids" {
   type        = map(number)
 }
 
-variable "linux_template_id" {
-  description = "VM ID of the Linux (Debian/Ubuntu) cloud-init template"
-  type        = number
+variable "linux_template_ids" {
+  description = "Linux cloud-init template VM ID per Proxmox node (keyed by node name)"
+  type        = map(number)
 }
 
 variable "lxc_template" {

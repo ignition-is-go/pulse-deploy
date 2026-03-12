@@ -54,6 +54,7 @@
 # VM ID = 1000 + last octet
 #
 # Dev guests (.100-.159):
+#   .101-.109   optik
 #   .111-.114   ue-staging
 #   .121-.124   ue-editing
 #   .126-.129   workstation
@@ -368,7 +369,12 @@ windows_template_ids = {
   "nyc-dev-pve-02"  = 6009 # win25-9474f-cloudinit-02
   "nyc-dev-pve-03"  = 6008 # win25-9474f-cloudinit-03
 }
-linux_template_id   = 9001
+linux_template_ids = {
+  "nyc-prod-pve-01" = 0    # TBD
+  "nyc-prod-pve-02" = 0    # TBD
+  "nyc-dev-pve-02"  = 6508 # ubuntu-desktop-cloudinit-02
+  "nyc-dev-pve-03"  = 6509 # ubuntu-desktop-cloudinit-03
+}
 lxc_template        = "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
 
 # -----------------------------------------------------------------------------
@@ -385,7 +391,7 @@ dns_servers     = ["192.168.1.1"]
 # SSH key for Linux targets
 # -----------------------------------------------------------------------------
 
-ssh_public_key = "ssh-ed25519 AAAA... user@control-plane"
+ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJXsqKssyL5gDAe/uUE+z3Lt+rb9vqgi1Y6YT4wsQBHI"
 
 # =============================================================================
 # Node definitions — gpu_slots index into proxmox_hosts[node].gpus,
@@ -444,6 +450,7 @@ ue_plugindev = {
     gpu_slots = [0]
     cx6_card       = 0
     cx6_vf_offsets = [0, 1]
+    extra_tags = ["canary"]
   }
   "ue-plugindev-02" = {
     id        = 1132
@@ -457,6 +464,7 @@ ue_plugindev = {
     gpu_slots = [1]
     cx6_card       = 0
     cx6_vf_offsets = [2, 3]
+    extra_tags = ["trev-dev"]
   }
 }
 
@@ -520,7 +528,20 @@ touch = {
 # optik (Linux + GPU)                                                  .191-.199
 # -----------------------------------------------------------------------------
 
-optik = {}
+optik = {
+  "optik-dev-01" = {
+    id             = 1101
+    ip             = "192.168.1.101"
+    node           = "nyc-dev-pve-03"
+    cores          = 32
+    memory_mb      = 49152
+    disk_gb        = 256
+    gpu_slots      = [2, 3, 4, 5]
+    cx6_card       = 0
+    cx6_vf_offsets = [5, 6]
+    started        = true
+  }
+}
 
 # -----------------------------------------------------------------------------
 # rship (LXC)                                                         .xxx
