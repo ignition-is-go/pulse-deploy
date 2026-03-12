@@ -11,5 +11,5 @@ rivermax_installer_dir: "{{ nas_share }}\\installers\\rivermax\\{{ rivermax_vers
 rivermax_sdk_file: "Rivermax_Windows_{{ rivermax_version }}.zip"
 rivermax_license_dir: "{{ nas_share }}\\installers\\rivermax\\license"
 
-# GPUDirect RDMA — untested on SR-IOV VFs, may require ACS/IOMMU changes
+# GPUDirect RDMA — works on CX6 VFs + RTX 6000 Ada (RIVERMAX_ENABLE_CUDA env var)
 rivermax_gpudirect: false

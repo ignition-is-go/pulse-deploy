@@ -35,7 +35,9 @@ Conditionally applied when `rivermax: true` (set in group vars).
 
 5. Strict validation — fails if versions mismatch, DLL missing, license missing, or no CX6 adapter
 
-GPUDirect RDMA not supported on SR-IOV VFs — `rivermax_gpudirect: false`.
+GPUDirect RDMA works on CX6 SR-IOV VFs with RTX 6000 Ada (tested 2026-03-11).
+Requires `rivermax_gpudirect: true` → sets `RIVERMAX_ENABLE_CUDA=1`.
+No separate peermem driver needed on Windows — handled by Rivermax SDK + WinOF-2 + NVIDIA driver.
 
 Installers on deploy share:
 ```
