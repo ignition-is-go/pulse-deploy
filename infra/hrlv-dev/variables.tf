@@ -98,6 +98,17 @@ variable "ssh_public_key" {
   type        = string
 }
 
+variable "linux_vm_user" {
+  description = "Default user for Linux VM cloud-init"
+  type        = string
+}
+
+variable "linux_vm_password" {
+  description = "Default password for Linux VM cloud-init"
+  type        = string
+  sensitive   = true
+}
+
 variable "windows_admin_password" {
   description = "Administrator password for Windows VMs (set via cloudbase-init)"
   type        = string

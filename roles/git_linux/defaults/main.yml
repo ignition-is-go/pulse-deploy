@@ -1,0 +1,5 @@
+---
+# git_linux — Git installation and SSH deploy key for Linux
+#
+# Required variables (set in group_vars):
+#   git_deploy_key  — SSH private key for GitHub auth (optional)

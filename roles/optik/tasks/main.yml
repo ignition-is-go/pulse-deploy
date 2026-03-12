@@ -1,7 +1,43 @@
 ---
-# optik — Layer 3: Optik computer vision service
-# TODO: Implement when provisioning Optik VM
+# optik — Clone optik repository
+#
+# Requires:
+#   optik_repo  — Git SSH URL (e.g. git@github.com:ignition-is-go/optik.git)
+#   optik_dest  — Clone destination (e.g. /opt/optik)
 
-- name: TODO
+- name: Check if optik repo exists
+  ansible.builtin.stat:
+    path: "{{ optik_dest }}/.git"
+  register: optik_repo_check
+
+- name: Create optik directory
+  ansible.builtin.file:
+    path: "{{ optik_dest }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+  when: not optik_repo_check.stat.exists
+
+- name: Clone optik repo
+  ansible.builtin.git:
+    repo: "{{ optik_repo }}"
+    dest: "{{ optik_dest }}"
+    version: main
+    key_file: "/home/{{ ansible_user }}/.ssh/id_ed25519"
+    accept_hostkey: true
+  become: true
+  become_user: "{{ ansible_user }}"
+  when: not optik_repo_check.stat.exists
+
+- name: Verify optik repo
+  ansible.builtin.command:
+    cmd: git -C {{ optik_dest }} rev-parse --short HEAD
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: optik_head
+  changed_when: false
+
+- name: Show optik commit
   ansible.builtin.debug:
-    msg: "Optik role applied to {{ inventory_hostname }} — tasks pending implementation"
+    msg: "optik @ {{ optik_head.stdout }}"

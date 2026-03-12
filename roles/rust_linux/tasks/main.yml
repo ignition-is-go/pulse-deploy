@@ -1,0 +1,41 @@
+---
+# rust_linux — Rust toolchain (rustup + cargo) for Linux
+#
+# Installs rustup and cargo for ansible_user.
+
+- name: Check if cargo is installed
+  ansible.builtin.command:
+    cmd: "/home/{{ ansible_user }}/.cargo/bin/cargo --version"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: cargo_check
+  changed_when: false
+  failed_when: false
+
+- name: Download rustup installer
+  ansible.builtin.get_url:
+    url: https://sh.rustup.rs
+    dest: /tmp/rustup-init.sh
+    mode: "0755"
+  when: cargo_check.rc != 0
+
+- name: Install Rust via rustup
+  ansible.builtin.command:
+    cmd: /tmp/rustup-init.sh -y --no-modify-path
+  become: true
+  become_user: "{{ ansible_user }}"
+  when: cargo_check.rc != 0
+  changed_when: true
+
+- name: Verify cargo installation
+  ansible.builtin.command:
+    cmd: "/home/{{ ansible_user }}/.cargo/bin/cargo --version"
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: cargo_verify
+  changed_when: false
+  failed_when: cargo_verify.rc != 0
+
+- name: Show Rust version
+  ansible.builtin.debug:
+    msg: "{{ cargo_verify.stdout }}"

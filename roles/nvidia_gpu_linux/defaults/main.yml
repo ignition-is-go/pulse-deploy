@@ -1,6 +1,6 @@
 ---
-# nvidia_gpu_linux defaults
-
-# TODO: Set CUDA version and driver version when provisioning
-# cuda_version: "12.4"
-# nvidia_driver_version: "550"
+# nvidia_gpu_linux — NVIDIA driver + CUDA for Linux GPU VMs
+#
+# Required variables (set in group_vars):
+#   nvidia_driver_version: "570.133.20"
+#   cuda_toolkit_version: "12-8"

@@ -1,0 +1,4 @@
+---
+# linux_x11 — Force X11 display server (disable Wayland)
+#
+# No required variables.

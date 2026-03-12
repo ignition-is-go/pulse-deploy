@@ -1,7 +1,20 @@
 ---
 # Optik (computer vision) VM configuration
 
-# TODO: Set when provisioning Optik
-# optik_install_dir: "/opt/optik"
-# optik_model_path: "/data/models"
-# cuda_version: "12.x"
+ansible_user: lucid
+ansible_become: true
+
+# NVIDIA driver + CUDA (pinned for DeepStream 8.0)
+nvidia_driver_version: "570.133.20"
+cuda_toolkit_version: "12-8"
+
+# Git deploy key (optik repo)
+git_deploy_key: "{{ vault_optik_deploy_key }}"
+
+# Optik repo
+optik_repo: "git@github.com:ignition-is-go/optik.git"
+optik_dest: "/opt/optik"
+
+# PulseRemoteDesktopVM (RustDesk custom client)
+rustdesk_installer_dir: "/mnt/datastore/tank/share/installers/rustdesk/1.4.6"
+rustdesk_installer_file: "pulseremotedesktopvm-x86_64.deb"

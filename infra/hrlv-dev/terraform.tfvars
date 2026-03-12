@@ -385,7 +385,7 @@ lxc_template        = "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
 
 network_bridge  = "vmbr0"
 network_gateway = "192.168.1.1"
-dns_servers     = ["192.168.1.1"]
+dns_servers     = ["8.8.8.8"]
 
 # -----------------------------------------------------------------------------
 # SSH key for Linux targets

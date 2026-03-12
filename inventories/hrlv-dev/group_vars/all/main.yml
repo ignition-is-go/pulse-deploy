@@ -18,9 +18,6 @@ nvidia_driver_file: 582.16-nvidia-rtx-winserv-2022-2025-64bit-international-dch-
 chrome_installer_dir: "{{ nas_share }}\\installers\\chrome\\latest"
 chrome_installer_file: ChromeSetup.exe
 
-# Git deploy key (SSH)
-git_deploy_key: "{{ vault_git_deploy_key }}"
-
 # Netbird mesh VPN
 netbird_management_url: "https://net.rship.io"
 netbird_admin_url: "https://net.rship.io"
@@ -30,6 +27,10 @@ netbird_setup_key: "{{ vault_netbird_setup_key }}"
 proxmox_api_url: "{{ vault_proxmox_api_url }}"
 proxmox_api_user: "{{ vault_proxmox_api_user }}"
 proxmox_api_password: "{{ vault_proxmox_api_password }}"
+
+# Linux VM credentials (cloud-init)
+linux_vm_user: "{{ vault_linux_vm_user }}"
+linux_vm_password: "{{ vault_linux_vm_password }}"
 
 # RustDesk (PulseRemoteDesktopVM) — encrypted config string from desk.rship.io
 rustdesk_config: "{{ vault_rustdesk_config }}"

@@ -20,6 +20,7 @@ vs_community_installer_file: VisualStudioSetup.exe
 vs_community_workloads:
   - Microsoft.VisualStudio.Workload.NativeDesktop
   - Microsoft.VisualStudio.Workload.NativeGame
+git_deploy_key: "{{ vault_pulse_unreal_deploy_key }}"
 git_repos:
   - repo: "git@github.com:ignition-is-go/pulse-unreal.git"
     dest: "C:/pulse-unreal"

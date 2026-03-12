@@ -1,0 +1,7 @@
+---
+# rustdesk_linux — PulseRemoteDesktopVM client for Linux
+#
+# Required variables (set in group_vars):
+#   rustdesk_config         — encrypted config string from relay server
+#   rustdesk_installer_dir  — NAS path to deb, e.g. "/mnt/datastore/tank/share/installers/rustdesk/1.4.6"
+#   rustdesk_installer_file — deb filename, e.g. "pulseremotedesktopvm-x86_64.deb"

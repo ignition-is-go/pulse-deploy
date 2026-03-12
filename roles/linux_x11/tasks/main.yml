@@ -1,0 +1,19 @@
+---
+# linux_x11 — Force X11 display server (disable Wayland)
+#
+# GDM defaults to Wayland on Ubuntu 24.04. RustDesk and some GPU
+# tools require X11. This role disables Wayland in GDM config.
+
+- name: Disable Wayland in GDM
+  ansible.builtin.lineinfile:
+    path: /etc/gdm3/custom.conf
+    regexp: '^#?WaylandEnable='
+    line: 'WaylandEnable=false'
+    backup: true
+  register: gdm_wayland
+
+- name: Restart GDM to switch to X11
+  ansible.builtin.systemd:
+    name: gdm3
+    state: restarted
+  when: gdm_wayland is changed

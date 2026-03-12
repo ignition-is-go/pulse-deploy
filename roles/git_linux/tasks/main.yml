@@ -1,0 +1,63 @@
+---
+# git_linux — Git installation and SSH deploy key for Linux
+#
+# Installs git via apt, deploys SSH key for GitHub auth.
+#
+# Requires:
+#   git_deploy_key  — SSH private key (optional)
+
+- name: Install git
+  ansible.builtin.apt:
+    name: git
+    state: present
+    update_cache: true
+
+- name: Verify git installation
+  ansible.builtin.command:
+    cmd: git --version
+  changed_when: false
+
+- name: Create .ssh directory for {{ ansible_user }}
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/.ssh"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0700"
+  when: git_deploy_key is defined
+
+- name: Deploy SSH key
+  ansible.builtin.copy:
+    content: "{{ git_deploy_key }}\n"
+    dest: "/home/{{ ansible_user }}/.ssh/id_ed25519"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
+  when: git_deploy_key is defined
+  no_log: true
+
+- name: Scan GitHub host keys
+  ansible.builtin.command:
+    cmd: ssh-keyscan github.com
+  register: github_host_keys
+  changed_when: false
+  when: git_deploy_key is defined
+
+- name: Set GitHub known hosts
+  ansible.builtin.copy:
+    content: "{{ github_host_keys.stdout_lines | sort | join('\n') }}\n"
+    dest: "/home/{{ ansible_user }}/.ssh/known_hosts"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
+  when: git_deploy_key is defined
+
+- name: Verify SSH auth to GitHub
+  ansible.builtin.command:
+    cmd: ssh -o UserKnownHostsFile=/home/{{ ansible_user }}/.ssh/known_hosts -i /home/{{ ansible_user }}/.ssh/id_ed25519 -T git@github.com
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: git_ssh_verify
+  changed_when: false
+  failed_when: "'successfully authenticated' not in git_ssh_verify.stderr"
+  when: git_deploy_key is defined

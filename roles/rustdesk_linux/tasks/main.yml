@@ -1,0 +1,83 @@
+---
+# rustdesk_linux — PulseRemoteDesktopVM client for Linux
+#
+# Installs the custom RustDesk client deb from NAS, applies relay config,
+# and sets the device ID to the Ansible inventory hostname.
+#
+# Requires:
+#   rustdesk_config         — encrypted config string
+#   rustdesk_installer_dir  — local NAS path to deb directory
+#   rustdesk_installer_file — deb filename
+
+- name: Check if PulseRemoteDesktopVM is installed
+  ansible.builtin.stat:
+    path: /usr/bin/pulseremotedesktopvm
+  register: rustdesk_check
+
+- name: Copy PulseRemoteDesktopVM deb to target
+  ansible.builtin.copy:
+    src: "{{ rustdesk_installer_dir }}/{{ rustdesk_installer_file }}"
+    dest: "/tmp/{{ rustdesk_installer_file }}"
+    mode: "0644"
+  when: not rustdesk_check.stat.exists
+
+- name: Install PulseRemoteDesktopVM deb
+  ansible.builtin.apt:
+    deb: "/tmp/{{ rustdesk_installer_file }}"
+  when: not rustdesk_check.stat.exists
+
+- name: Verify PulseRemoteDesktopVM installation
+  ansible.builtin.stat:
+    path: /usr/bin/pulseremotedesktopvm
+  register: rustdesk_post_check
+  failed_when: not rustdesk_post_check.stat.exists
+
+- name: Apply PulseRemoteDesktopVM config from relay server
+  ansible.builtin.command:
+    cmd: "pulseremotedesktopvm --config {{ rustdesk_config }}"
+  changed_when: false
+  no_log: true
+
+- name: Get current PulseRemoteDesktopVM ID
+  ansible.builtin.command:
+    cmd: pulseremotedesktopvm --get-id
+  register: rustdesk_current_id
+  changed_when: false
+
+- name: Stop PulseRemoteDesktopVM service to set ID
+  ansible.builtin.systemd:
+    name: pulseremotedesktopvm
+    state: stopped
+  when: rustdesk_current_id.stdout | trim != inventory_hostname
+
+- name: Set PulseRemoteDesktopVM ID to inventory hostname
+  ansible.builtin.lineinfile:
+    path: /root/.config/pulseremotedesktopvm/PulseRemoteDesktopVM.toml
+    regexp: '^id ='
+    insertbefore: '^enc_id ='
+    line: "id = '{{ inventory_hostname }}'"
+  when: rustdesk_current_id.stdout | trim != inventory_hostname
+
+- name: Clear enc_id to force ID re-registration
+  ansible.builtin.lineinfile:
+    path: /root/.config/pulseremotedesktopvm/PulseRemoteDesktopVM.toml
+    regexp: '^enc_id ='
+    line: "enc_id = ''"
+  when: rustdesk_current_id.stdout | trim != inventory_hostname
+
+- name: Start PulseRemoteDesktopVM service after ID change
+  ansible.builtin.systemd:
+    name: pulseremotedesktopvm
+    state: started
+  when: rustdesk_current_id.stdout | trim != inventory_hostname
+
+- name: Verify PulseRemoteDesktopVM ID
+  ansible.builtin.command:
+    cmd: pulseremotedesktopvm --get-id
+  register: rustdesk_final_id
+  changed_when: false
+  failed_when: rustdesk_final_id.stdout | trim != inventory_hostname
+
+- name: Show PulseRemoteDesktopVM ID
+  ansible.builtin.debug:
+    msg: "PulseRemoteDesktopVM ID: {{ rustdesk_final_id.stdout | trim }}"

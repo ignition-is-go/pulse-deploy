@@ -1,0 +1,17 @@
+---
+# linux_base — Baseline configuration for Linux VMs
+#
+# Removes unnecessary packages and applies base system config.
+
+- name: Check if snapd is installed
+  ansible.builtin.command:
+    cmd: dpkg -l snapd
+  register: snapd_check
+  changed_when: false
+  failed_when: false
+
+- name: Remove snapd
+  ansible.builtin.command:
+    cmd: dpkg --remove --force-remove-reinstreq --force-depends snapd
+  when: snapd_check.rc == 0
+  changed_when: true
