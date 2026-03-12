@@ -45,19 +45,24 @@ Two sources: `hosts.yml` (manual) + `terraform.yml` (Terraform state) — never 
 ```
 windows (WinRM NTLM :5985, become: runas):
   ue:
-    ue_content:     windows-unreal-render-01, -02, -03, -04
-    ue_previs:      windows-unreal-render-05
+    ue_content:
+      ue_content_prod_01: ue-content-01..08  (terraform, prod-pve-01/02)
+      ue_content_prod_02: ue-content-09..16  (terraform, prod-pve-03+)
+    ue_previs:
+      ue_previs_prod_01:  ue-previs-01       (terraform, prod-pve-01)
+      ue_previs_prod_02:  ue-previs-02       (terraform, prod-pve-02)
     ue_editing:     windows-unreal-08
-    ue_staging:     ue-staging-01          (terraform)
-    ue_plugindev:  ue-plugindev-01, ue-plugindev-02
-    ue_runner:  ue-runner-01
+    ue_staging:     ue-staging-01            (terraform, dev-pve-03)
+    ue_plugindev:   ue-plugindev-01, -02     (terraform, dev-pve-03)
+    ue_runner:      ue-runner-01             (terraform, dev-pve-03)
+  workstation:      workstation-01           (terraform, dev-pve-02)
   touch:            windows-touch-01
 linux (SSH):
   proxmox:
-    proxmox_prod:   nyc-prod-pve-01, -02   (terraform)
-    proxmox_dev:    nyc-dev-pve-02, -03     (terraform)
+    proxmox_prod:   nyc-prod-pve-01, -02     (terraform)
+    proxmox_dev:    nyc-dev-pve-02, -03      (terraform)
   optik:            optik-01
-  pulse_admin:      pulse-admin            (local, root!)
+  pulse_admin:      pulse-admin              (local, root!)
   rship:            rship-01, rship-02, rship-03
 ```
 

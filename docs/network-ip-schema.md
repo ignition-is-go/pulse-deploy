@@ -37,6 +37,8 @@
  DEV GUESTS — .100-.159 (VMID = 1000 + octet)
  CX6 VFs: 2110 = 10.0.0.{octet}, smb = 10.0.1.{octet}
 
+ 192.168.1.101      optik-dev-01           VM 1101, dev-pve-03
+ 192.168.1.102-.109  —                     reserved — optik
  192.168.1.111      ue-staging-01          VM 1111, dev-pve-03
    10.0.0.111       2110
    10.0.1.111       smb
