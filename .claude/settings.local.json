@@ -36,7 +36,10 @@
       "WebFetch(domain:docs.semaphoreui.com)",
       "WebFetch(domain:semaphoreui.com)",
       "WebFetch(domain:salsa.debian.org)",
-      "WebFetch(domain:wiki.samba.org)"
+      "WebFetch(domain:wiki.samba.org)",
+      "WebFetch(domain:git.proxmox.com)",
+      "WebFetch(domain:canonical-subiquity.readthedocs-hosted.com)",
+      "WebFetch(domain:docs.cloud-init.io)"
     ]
   }
 }
