@@ -1,0 +1,99 @@
+---
+# pve_setpci_acs — Set ACS DirectTrans on PEX890xx PCIe switches
+#
+# Configures ACS register to 0x005D on Broadcom PEX890xx (1000:c030) ports:
+#   SrcValid=1, TransBlk=0, ReqRedir=1, CmpltRedir=1, UpstreamFwd=1,
+#   EgressCtrl=0, DirectTrans=1
+#
+# Keeps ReqRedir+CmpltRedir ON (IOMMU groups unchanged) while enabling
+# DirectTrans for ATS-capable devices (CX6 NICs with ATS_ENABLED=True)
+# to bypass redirect for direct GPU<->NIC DMA.
+#
+# Applied post-boot via systemd oneshot — setpci changes do not survive reboot.
+# Runs before pve-guests.service so VMs see the updated ACS state.
+#
+# Prerequisites: CX6 ATS_ENABLED=True in firmware (pve_cx6_sriov role)
+#
+# Ref: https://docs.nvidia.com/ai-enterprise/planning-resource/optimizing-vm-configuration-ai-inference/latest/appendix.html
+#      https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/troubleshooting.html#pci-access-control-services-acs
+
+# =================================================================
+# Preflight — verify PEX890xx devices exist
+# =================================================================
+
+- name: Check for PEX890xx PCIe switches
+  ansible.builtin.command:
+    argv: [lspci, -d, "1000:c030"]
+  register: pex_devices
+  changed_when: false
+  failed_when: false
+
+- name: Fail if no PEX890xx devices found
+  ansible.builtin.fail:
+    msg: "No PEX890xx (1000:c030) PCIe switches found on {{ inventory_hostname }}"
+  when: pex_devices.stdout | trim | length == 0
+
+- name: Show PEX890xx devices
+  ansible.builtin.debug:
+    msg: "{{ pex_devices.stdout_lines | length }} PEX890xx ports found"
+
+- name: Check for running QEMU VMs
+  ansible.builtin.command:
+    argv: [qm, list]
+  register: qm_list
+  changed_when: false
+
+- name: Fail if VMs are running
+  ansible.builtin.fail:
+    msg: >-
+      BLOCKED — running VMs detected on {{ inventory_hostname }}.
+      Changing ACS bits while VFIO passthrough is active is unsafe.
+      Stop all VMs first, then re-run.
+  when: qm_list.stdout_lines | select('search', 'running') | list | length > 0
+
+# =================================================================
+# Deploy systemd oneshot service
+# =================================================================
+
+- name: Deploy setpci ACS service
+  ansible.builtin.template:
+    src: pve-setpci-acs.service.j2
+    dest: /etc/systemd/system/pve-setpci-acs.service
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Restart PVE setpci ACS
+
+- name: Enable setpci ACS service
+  ansible.builtin.systemd:
+    name: pve-setpci-acs.service
+    enabled: true
+    daemon_reload: true
+
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers
+
+# =================================================================
+# Verify — check ACS state on PEX890xx ports
+# =================================================================
+
+- name: Read ACS register from PEX890xx ports
+  ansible.builtin.shell:
+    cmd: >-
+      set -o pipefail;
+      for bdf in $(lspci -d 1000:c030 -D | cut -d' ' -f1); do
+        val=$(setpci -s "$bdf" ECAP_ACS+0x6.w);
+        echo "$bdf ACSCtl=$val";
+      done
+  register: acs_verify
+  changed_when: false
+
+- name: Show ACS state
+  ansible.builtin.debug:
+    msg: "{{ acs_verify.stdout_lines }}"
+
+- name: Warn if any port not set to 005d
+  ansible.builtin.debug:
+    msg: "WARNING — not all PEX890xx ports have ACSCtl=005d"
+  when: acs_verify.stdout is not search('005d')

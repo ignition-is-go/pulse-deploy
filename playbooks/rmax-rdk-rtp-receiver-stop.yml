@@ -1,0 +1,29 @@
+---
+# Stop Rivermax Dev Kit rdk_rtp_receiver and clean up
+#
+# Usage:
+#   ansible-playbook playbooks/rmax-rdk-rtp-receiver-stop.yml --limit ue-content-02
+
+- name: Stop Rivermax Dev Kit rdk_rtp_receiver
+  hosts: windows
+  gather_facts: false
+
+  tasks:
+    - name: Stop rdk_rtp_receiver process
+      ansible.windows.win_command: taskkill /F /IM rdk_rtp_receiver.exe
+      failed_when: false
+      changed_when: false
+
+    - name: Stop and remove RX scheduled task
+      community.windows.win_scheduled_task:
+        name: RmaxRdkReceiver
+        state: absent
+
+    - name: Verify rdk_rtp_receiver stopped
+      ansible.windows.win_command: tasklist /FI "IMAGENAME eq rdk_rtp_receiver.exe" /NH
+      register: rx_status
+      changed_when: false
+
+    - name: Show stop result
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ 'STOPPED' if 'rdk_rtp_receiver.exe' not in rx_status.stdout else 'STILL RUNNING' }}"

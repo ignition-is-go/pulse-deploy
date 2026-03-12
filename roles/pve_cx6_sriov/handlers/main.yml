@@ -12,4 +12,4 @@
 
 - name: Warn cold reboot needed
   ansible.builtin.debug:
-    msg: "COLD REBOOT REQUIRED — CX6 firmware NUM_OF_VFS changed to {{ cx6_vf_count }}. Warm reboot is not sufficient."
+    msg: "COLD REBOOT REQUIRED — CX6 firmware changed. Warm reboot is not sufficient."

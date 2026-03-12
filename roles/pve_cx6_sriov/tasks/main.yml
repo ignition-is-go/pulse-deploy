@@ -141,6 +141,36 @@
   notify: Warn cold reboot needed
 
 # =================================================================
+# Firmware — ATS (Address Translation Services) for GPUDirect P2P
+#
+# ATS on the NIC allows DirectTrans ACS bit to enable direct P2P
+# between NIC and GPU without root complex redirect. Requires the
+# PEX switch ACS DirectTrans bit (set by pex-acs-p2p.service).
+# Ref: https://docs.nvidia.com/ai-enterprise/planning-resource/optimizing-vm-configuration-ai-inference/latest/appendix.html
+#      https://docs.nvidia.com/deeplearning/nccl/user-guide/docs/troubleshooting.html#pci-access-control-services-acs
+# =================================================================
+
+- name: Parse current ATS_ENABLED from firmware
+  ansible.builtin.set_fact:
+    cx6_fw_ats: >-
+      {{ cx6_fw_query.results | map(attribute='stdout')
+         | map('regex_search', 'ATS_ENABLED\s+(\S+)', '\1')
+         | map('first') | list }}
+
+- name: Set firmware ATS_ENABLED on CX6 cards where it differs
+  ansible.builtin.command:
+    argv: [mlxconfig, -d, "{{ item.pci_slots[0] }}", -y, set, "ATS_ENABLED=True"]
+  loop: "{{ cx6_cards }}"
+  loop_control:
+    label: "{{ item.pci_slots[0] }}"
+    index_var: idx
+  when:
+    - cx6_ats_enabled | default(false) | bool
+    - cx6_fw_ats[idx] | default('') != 'True(1)'
+  changed_when: true
+  notify: Warn cold reboot needed
+
+# =================================================================
 # udev rules (switchdev + VF creation)
 # =================================================================
 
@@ -151,6 +181,7 @@
     owner: root
     group: root
     mode: "0644"
+    backup: true
 
 # =================================================================
 # Uplink auto-detection — find which PF has cable on each card
@@ -225,6 +256,7 @@
     owner: root
     group: root
     mode: "0644"
+    backup: true
   notify: Restart CX6 OVS globals
 
 - name: Enable CX6 OVS globals service
@@ -251,6 +283,7 @@
     owner: root
     group: root
     mode: "0644"
+    backup: true
   notify: Reload network interfaces
 
 # =================================================================
@@ -264,6 +297,7 @@
     owner: root
     group: root
     mode: "0644"
+    backup: true
   loop: "{{ cx6_cards }}"
   loop_control:
     label: "{{ item.bridge }}"

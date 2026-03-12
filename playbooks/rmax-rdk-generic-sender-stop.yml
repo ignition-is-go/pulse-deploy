@@ -1,0 +1,29 @@
+---
+# Stop Rivermax Dev Kit rdk_generic_sender and clean up
+#
+# Usage:
+#   ansible-playbook playbooks/rmax-rdk-generic-sender-stop.yml --limit ue-content-01
+
+- name: Stop Rivermax Dev Kit rdk_generic_sender
+  hosts: windows
+  gather_facts: false
+
+  tasks:
+    - name: Stop rdk_generic_sender process
+      ansible.windows.win_command: taskkill /F /IM rdk_generic_sender.exe
+      failed_when: false
+      changed_when: false
+
+    - name: Stop and remove TX scheduled task
+      community.windows.win_scheduled_task:
+        name: RmaxRdkSender
+        state: absent
+
+    - name: Verify rdk_generic_sender stopped
+      ansible.windows.win_command: tasklist /FI "IMAGENAME eq rdk_generic_sender.exe" /NH
+      register: tx_status
+      changed_when: false
+
+    - name: Show stop result
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ 'STOPPED' if 'rdk_generic_sender.exe' not in tx_status.stdout else 'STILL RUNNING' }}"

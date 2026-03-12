@@ -1,0 +1,91 @@
+---
+# Start Rivermax Dev Kit rdk_latency client (runs for rmax_measure seconds, then exits)
+#
+# Measures round-trip ping-pong latency (software timestamps — HW timestamps
+# unavailable on CX6 VFs, see docs/ats-setpci.md). Server must be running first.
+#
+# SAFETY: Multicast destinations (224.0.0.0/4) are BLOCKED.
+#
+# Usage (unicast only):
+#   ansible-playbook playbooks/rmax-rdk-latency-client-start.yml --limit ue-content-01 -e "rmax_peer_ip=10.0.0.162"
+#   ansible-playbook playbooks/rmax-rdk-latency-client-start.yml --limit ue-content-01 -e "rmax_peer_ip=10.0.0.162 rmax_gpu_id=0"
+#   ansible-playbook playbooks/rmax-rdk-latency-client-start.yml --limit ue-content-01 -e "rmax_peer_ip=10.0.0.162 rmax_gpu_id=0 rmax_measure=30"
+
+- name: Start Rivermax Dev Kit rdk_latency client
+  hosts: windows
+  gather_facts: false
+
+  vars:
+    rmax_latency: '{{ rivermax_install_dir }}\devkit\rdk_latency.exe'
+    rmax_peer_ip: ""
+    rmax_dst_port: 3001
+    rmax_receive_port: 3000
+    rmax_allocator: malloc
+    rmax_gpu_id: ""
+    rmax_measure: "10"
+
+  tasks:
+    - name: Fail if peer IP not specified
+      ansible.builtin.fail:
+        msg: "rmax_peer_ip is required — pass via -e rmax_peer_ip=<server_ip_2110>"
+      when: rmax_peer_ip == ""
+
+    - name: Block multicast destinations
+      ansible.builtin.fail:
+        msg: "BLOCKED: {{ rmax_peer_ip }} is multicast. Use unicast for testing."
+      when: rmax_peer_ip | ansible.utils.ipaddr('224.0.0.0/4')
+
+    - name: Write latency client script
+      ansible.windows.win_copy:
+        content: |
+          & "{{ rmax_latency }}" `
+            --local-ip {{ ip_2110 }} `
+            --dst-ip {{ rmax_peer_ip }} --dst-port {{ rmax_dst_port }} `
+            --receive-ip {{ ip_2110 }} --receive-port {{ rmax_receive_port }} `
+            --mode pp `
+            --disable-ts `
+            --client `
+            --measure {{ rmax_measure }} `
+            --allocator-type {{ rmax_allocator }} `
+            {% if rmax_gpu_id != "" %}--gpu-id {{ rmax_gpu_id }} `{% endif %}
+            -v 2>&1 | Tee-Object -FilePath C:\Windows\Temp\rmax-latency-client.log
+        dest: C:\Windows\Temp\rmax-latency-client.ps1
+
+    - name: Create latency client scheduled task
+      community.windows.win_scheduled_task:
+        name: RmaxLatencyClient
+        description: Rivermax Dev Kit rdk_latency client
+        actions:
+          - path: powershell.exe
+            arguments: -ExecutionPolicy Bypass -File C:\Windows\Temp\rmax-latency-client.ps1
+        triggers: []
+        username: "{{ ansible_user }}"
+        password: "{{ ansible_password }}"
+        logon_type: interactive_token
+        run_level: highest
+        state: present
+        enabled: true
+
+    - name: Start latency client
+      ansible.windows.win_shell: |
+        Start-ScheduledTask -TaskName "RmaxLatencyClient"
+
+    - name: Wait for measurement to complete
+      ansible.windows.win_shell: |
+        (Get-ScheduledTask -TaskName "RmaxLatencyClient").State
+      register: client_state
+      until: client_state.stdout | trim == 'Ready'
+      retries: "{{ (rmax_measure | int / 5 + 10) | int }}"
+      delay: 5
+      changed_when: false
+      failed_when: false
+
+    - name: Read client results
+      ansible.windows.win_shell: |
+        Get-Content C:\Windows\Temp\rmax-latency-client.log
+      register: client_log
+      changed_when: false
+
+    - name: Show results
+      ansible.builtin.debug:
+        msg: "{{ client_log.stdout_lines }}"

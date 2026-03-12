@@ -1,0 +1,6 @@
+---
+- name: Restart PVE setpci ACS
+  ansible.builtin.systemd:
+    name: pve-setpci-acs.service
+    state: restarted
+    daemon_reload: true

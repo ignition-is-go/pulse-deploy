@@ -1,0 +1,16 @@
+[Unit]
+Description=Set ACS DirectTrans (0x005D) on PEX890xx switches for GPUDirect P2P
+After=systemd-modules-load.service
+Before=pve-guests.service
+
+[Service]
+Type=oneshot
+# Ref: setpci -s ${BDF} ECAP_ACS+0x6.w=0x5D
+# https://docs.nvidia.com/ai-enterprise/planning-resource/optimizing-vm-configuration-ai-inference/latest/appendix.html
+{% raw %}
+ExecStart=/bin/bash -c 'for bdf in $(lspci -d 1000:c030 -D | cut -d" " -f1); do setpci -v -s "$bdf" ECAP_ACS+0x6.w=005D; done'
+{% endraw %}
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

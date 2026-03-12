@@ -1,0 +1,66 @@
+---
+# Set GRUB kernel cmdline from group_vars (grub_cmdline variable)
+#
+# Ensures all Proxmox hosts have a consistent kernel cmdline. The canonical
+# value lives in group_vars/proxmox.yml. Parameters include:
+#
+#   amd_iommu=on iommu=pt          — IOMMU passthrough mode
+#   pci=realloc=on                  — allow kernel to reallocate PCI resources
+#   pcie_acs_override=downstream,multifunction — per-device IOMMU groups
+#   nofb nomodeset video=...        — disable framebuffer (headless servers)
+#
+# Requires reboot to take effect. Does NOT trigger a reboot.
+#
+# Usage:
+#   ansible-playbook playbooks/pve-grub-cmdline.yml --limit nyc-prod-pve-01
+#   ansible-playbook playbooks/pve-grub-cmdline.yml --limit proxmox_prod
+
+- name: Set GRUB kernel cmdline
+  hosts: proxmox
+  gather_facts: false
+
+  handlers:
+    - name: Update GRUB
+      ansible.builtin.command:
+        cmd: update-grub
+      changed_when: true
+
+  tasks:
+    - name: Fail if grub_cmdline not defined
+      ansible.builtin.fail:
+        msg: "grub_cmdline variable is not defined — set it in group_vars"
+      when: grub_cmdline is not defined
+
+    - name: Read current GRUB cmdline
+      ansible.builtin.command:
+        cmd: grep '^GRUB_CMDLINE_LINUX_DEFAULT=' /etc/default/grub
+      register: grub_current
+      changed_when: false
+
+    - name: Show current GRUB cmdline
+      ansible.builtin.debug:
+        msg: "{{ grub_current.stdout }}"
+
+    - name: Set GRUB cmdline
+      ansible.builtin.lineinfile:
+        path: /etc/default/grub
+        regexp: '^GRUB_CMDLINE_LINUX_DEFAULT=.*'
+        line: 'GRUB_CMDLINE_LINUX_DEFAULT="{{ grub_cmdline }}"'
+      register: grub_updated
+      notify: Update GRUB
+
+    - name: Flush handlers
+      ansible.builtin.meta: flush_handlers
+
+    - name: Read final GRUB cmdline
+      ansible.builtin.command:
+        cmd: grep '^GRUB_CMDLINE_LINUX_DEFAULT=' /etc/default/grub
+      register: grub_final
+      changed_when: false
+
+    - name: Show result
+      ansible.builtin.debug:
+        msg: >-
+          {{ inventory_hostname }}:
+          {{ 'CHANGED — reboot required' if grub_updated is changed else 'OK (no change)' }}
+          — {{ grub_final.stdout }}

@@ -1,0 +1,35 @@
+---
+# Stop Rivermax Dev Kit rdk_latency (server or client)
+#
+# Usage:
+#   ansible-playbook playbooks/rmax-rdk-latency-stop.yml --limit ue-content-02
+#   ansible-playbook playbooks/rmax-rdk-latency-stop.yml --limit ue-content-01:ue-content-02
+
+- name: Stop Rivermax Dev Kit rdk_latency
+  hosts: windows
+  gather_facts: false
+
+  tasks:
+    - name: Stop rdk_latency process
+      ansible.windows.win_shell: |
+        Get-Process -Name rdk_latency -ErrorAction SilentlyContinue | Stop-Process -Force
+      changed_when: false
+
+    - name: Remove latency scheduled tasks
+      community.windows.win_scheduled_task:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - RmaxLatencyServer
+        - RmaxLatencyClient
+      failed_when: false
+
+    - name: Verify rdk_latency stopped
+      ansible.windows.win_shell: |
+        (Get-Process -Name rdk_latency -ErrorAction SilentlyContinue).Id
+      register: check
+      changed_when: false
+
+    - name: Show stop result
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ 'STOPPED' if check.stdout | trim | length == 0 else 'STILL RUNNING (PID: ' ~ check.stdout | trim ~ ')' }}"

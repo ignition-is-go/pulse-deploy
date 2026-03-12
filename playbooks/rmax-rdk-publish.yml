@@ -1,0 +1,62 @@
+---
+# Publish Rivermax Dev Kit binaries: build host → NAS → target nodes
+#
+# Play 1: Copy built binaries from build host to NAS
+# Play 2: Copy binaries from NAS to target nodes
+#
+# Usage:
+#   ansible-playbook playbooks/rmax-rdk-publish.yml -e "rdk_build_host=ue-plugindev-01 rdk_targets=ue_content"
+
+- name: Copy Dev Kit binaries to NAS
+  hosts: "{{ rdk_build_host }}"
+  gather_facts: false
+
+  vars:
+    rdk_build_bin: '{{ rivermax_install_dir }}\dev-kit\build\binaries\apps'
+    rdk_nas_dir: '{{ nas_share }}\installers\rivermax\devkit'
+    rdk_binaries:
+      - rdk_generic_sender
+      - rdk_ipmx_receiver
+      - rdk_ipmx_sender
+      - rdk_ipo_receiver
+      - rdk_latency
+      - rdk_media_probe
+      - rdk_media_sender
+      - rdk_rtp_receiver
+
+  tasks:
+    - name: Create NAS destination directory
+      ansible.windows.win_file:
+        path: "{{ rdk_nas_dir }}"
+        state: directory
+
+    - name: Copy binaries to NAS
+      ansible.windows.win_command:
+        argv:
+          - robocopy
+          - "{{ rdk_build_bin }}\\{{ item }}\\Release"
+          - "{{ rdk_nas_dir }}"
+          - "{{ item }}.exe"
+          - /R:5
+          - /W:10
+      loop: "{{ rdk_binaries }}"
+      register: _rdk_copy
+      failed_when: _rdk_copy.rc >= 8
+      changed_when: _rdk_copy.rc != 0
+
+- name: Distribute Dev Kit binaries from NAS to targets
+  hosts: "{{ rdk_targets }}"
+  gather_facts: false
+
+  vars:
+    rdk_nas_dir: '{{ nas_share }}\installers\rivermax\devkit'
+    rdk_local_dir: '{{ rivermax_install_dir }}\devkit'
+
+  tasks:
+    - name: Copy binaries from NAS
+      ansible.builtin.include_role:
+        name: win_robocopy_from_nas
+      vars:
+        win_robocopy_from_nas_src: "{{ rdk_nas_dir }}"
+        win_robocopy_from_nas_file: "*.exe"
+        win_robocopy_from_nas_dest: "{{ rdk_local_dir }}"

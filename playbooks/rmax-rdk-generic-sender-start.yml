@@ -1,0 +1,89 @@
+---
+# Start Rivermax Dev Kit rdk_generic_sender (persistent, runs until stopped)
+#
+# SAFETY: Multicast destinations (224.0.0.0/4) are BLOCKED.
+#
+# Usage (unicast only):
+#   ansible-playbook playbooks/rmax-rdk-generic-sender-start.yml --limit ue-content-01 -e "rmax_dst_ip=10.0.0.162"
+#   ansible-playbook playbooks/rmax-rdk-generic-sender-start.yml --limit ue-content-01 -e "rmax_dst_ip=10.0.0.162 rmax_gpu_id=0"
+# yamllint disable-line rule:line-length
+#   ansible-playbook playbooks/rmax-rdk-generic-sender-start.yml --limit ue-content-01 -e "rmax_dst_ip=10.0.0.162 rmax_gpu_id=0 rmax_rate_bps=11880000000 rmax_packets=4"
+
+- name: Start Rivermax Dev Kit rdk_generic_sender
+  hosts: windows
+  gather_facts: false
+
+  vars:
+    rmax_sender: '{{ rivermax_install_dir }}\devkit\rdk_generic_sender.exe'
+    rmax_dst_ip: ""
+    rmax_dst_port: 50020
+    rmax_allocator: malloc
+    rmax_gpu_id: ""
+    rmax_rate_bps: ""
+    rmax_rate_burst: "1"
+    rmax_packets: ""
+
+  tasks:
+    - name: Fail if destination IP not specified
+      ansible.builtin.fail:
+        msg: "rmax_dst_ip is required — pass via -e rmax_dst_ip=<receiver_ip_2110>"
+      when: rmax_dst_ip == ""
+
+    - name: Block multicast destinations (IGMP snooping not verified)
+      ansible.builtin.fail:
+        msg: >-
+          BLOCKED: {{ rmax_dst_ip }} is multicast. Use unicast for testing.
+      when: rmax_dst_ip | ansible.utils.ipaddr('224.0.0.0/4')
+
+    - name: Write TX launch script
+      ansible.windows.win_copy:
+        content: |
+          & "{{ rmax_sender }}" `
+            --local-ip {{ ip_2110 }} `
+            --dst-ip {{ rmax_dst_ip }} `
+            --dst-port {{ rmax_dst_port }} `
+            --allocator-type {{ rmax_allocator }} `
+            {% if rmax_packets != "" %}--packets {{ rmax_packets }} `{% endif %}
+            {% if rmax_gpu_id != "" %}--gpu-id {{ rmax_gpu_id }} `{% endif %}
+            {% if rmax_rate_bps != "" %}--rate-bps {{ rmax_rate_bps }} --rate-burst {{ rmax_rate_burst }} `{% endif %}
+            -v 2>&1 | Tee-Object -FilePath C:\Windows\Temp\rmax-rdk-tx.log
+        dest: C:\Windows\Temp\rmax-rdk-tx.ps1
+
+    - name: Create TX scheduled task
+      community.windows.win_scheduled_task:
+        name: RmaxRdkSender
+        description: Rivermax Dev Kit rdk_generic_sender
+        actions:
+          - path: powershell.exe
+            arguments: -ExecutionPolicy Bypass -File C:\Windows\Temp\rmax-rdk-tx.ps1
+        triggers: []
+        username: "{{ ansible_user }}"
+        password: "{{ ansible_password }}"
+        logon_type: interactive_token
+        run_level: highest
+        state: present
+        enabled: true
+
+    - name: Start TX
+      ansible.windows.win_shell: |
+        Start-ScheduledTask -TaskName "RmaxRdkSender"
+
+    - name: Wait for rdk_generic_sender to start
+      ansible.windows.win_shell: |
+        (Get-Process -Name rdk_generic_sender -ErrorAction SilentlyContinue).Id
+      register: tx_check
+      until: tx_check.stdout | trim | length > 0
+      retries: 3
+      delay: 2
+      changed_when: false
+      failed_when: false
+
+    - name: Show TX status
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} ({{ ip_2110 }}): RUNNING (PID: {{ tx_check.stdout | trim }})"
+      when: tx_check.stdout | trim | length > 0
+
+    - name: Show TX failure
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} ({{ ip_2110 }}): FAILED TO START — check C:\\Windows\\Temp\\rmax-rdk-tx.log"
+      when: tx_check.stdout | trim | length == 0

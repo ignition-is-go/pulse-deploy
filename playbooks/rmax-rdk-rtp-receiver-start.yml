@@ -1,0 +1,90 @@
+---
+# Start Rivermax Dev Kit rdk_rtp_receiver (persistent, runs until stopped)
+#
+# SAFETY: Multicast destinations (224.0.0.0/4) are BLOCKED.
+#
+# Usage (unicast only):
+#   ansible-playbook playbooks/rmax-rdk-rtp-receiver-start.yml --limit ue-content-02 -e "rmax_src_ip=10.0.0.161"
+#   ansible-playbook playbooks/rmax-rdk-rtp-receiver-start.yml --limit ue-content-02 -e "rmax_src_ip=10.0.0.161 rmax_gpu_id=0"
+
+- name: Start Rivermax Dev Kit rdk_rtp_receiver
+  hosts: windows
+  gather_facts: false
+
+  vars:
+    rmax_receiver: '{{ rivermax_install_dir }}\devkit\rdk_rtp_receiver.exe'
+    rmax_src_ip: ""
+    rmax_dst_port: 50020
+    rmax_allocator: malloc
+    rmax_gpu_id: ""
+
+  tasks:
+    - name: Fail if source IP not specified
+      ansible.builtin.fail:
+        msg: "rmax_src_ip is required — pass via -e rmax_src_ip=<sender_ip_2110>"
+      when: rmax_src_ip == ""
+
+    - name: Block multicast on dst IP (IGMP snooping not verified)
+      ansible.builtin.fail:
+        msg: >-
+          BLOCKED: {{ ip_2110 }} is multicast. Use unicast for testing.
+      when: ip_2110 | ansible.utils.ipaddr('224.0.0.0/4')
+
+    - name: Write RX launch script
+      ansible.windows.win_copy:
+        content: |
+          & "{{ rmax_receiver }}" `
+            --local-ip {{ ip_2110 }} `
+            --src-ip {{ rmax_src_ip }} `
+            --dst-ip {{ ip_2110 }} `
+            -p {{ rmax_dst_port }} `
+            --allocator-type {{ rmax_allocator }} `
+            {% if rmax_gpu_id != "" %}--gpu-id {{ rmax_gpu_id }} --app-hdr-size 50 `{% endif %}
+            -v 2>&1 | Tee-Object -FilePath C:\Windows\Temp\rmax-rdk-rx.log
+        dest: C:\Windows\Temp\rmax-rdk-rx.ps1
+
+    - name: Create RX scheduled task
+      community.windows.win_scheduled_task:
+        name: RmaxRdkReceiver
+        description: Rivermax Dev Kit rdk_rtp_receiver
+        actions:
+          - path: powershell.exe
+            arguments: -ExecutionPolicy Bypass -File C:\Windows\Temp\rmax-rdk-rx.ps1
+        triggers: []
+        username: "{{ ansible_user }}"
+        password: "{{ ansible_password }}"
+        logon_type: interactive_token
+        run_level: highest
+        state: present
+        enabled: true
+
+    - name: Start RX
+      ansible.windows.win_shell: |
+        Start-ScheduledTask -TaskName "RmaxRdkReceiver"
+
+    - name: Wait for rdk_rtp_receiver to start
+      ansible.windows.win_shell: |
+        (Get-Process -Name rdk_rtp_receiver -ErrorAction SilentlyContinue).Id
+      register: rx_check
+      until: rx_check.stdout | trim | length > 0
+      retries: 3
+      delay: 2
+      changed_when: false
+      failed_when: false
+
+    - name: Show RX status
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} ({{ ip_2110 }}): RUNNING (PID: {{ rx_check.stdout | trim }})"
+      when: rx_check.stdout | trim | length > 0
+
+    - name: Read RX log on failure
+      ansible.windows.win_shell: |
+        if (Test-Path C:\Windows\Temp\rmax-rdk-rx.log) { Get-Content C:\Windows\Temp\rmax-rdk-rx.log -Tail 20 } else { Write-Host "No log file" }
+      register: rx_log
+      changed_when: false
+      when: rx_check.stdout | trim | length == 0
+
+    - name: Show RX failure
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} ({{ ip_2110 }}): FAILED TO START\n{{ rx_log.stdout }}"
+      when: rx_check.stdout | trim | length == 0
