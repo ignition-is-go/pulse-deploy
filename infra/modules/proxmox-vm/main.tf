@@ -8,6 +8,7 @@ locals {
   cpu_type  = coalesce(var.override_cpu_type, "host")
   needs_efi = local.bios == "ovmf"
   has_init  = var.cloud_init != null
+  has_user  = local.has_init && var.cloud_init.username != null
   has_pass  = local.has_init && var.cloud_init.password != null
   has_ssh   = local.has_init && length(var.cloud_init.ssh_keys) > 0
 }
@@ -107,8 +108,9 @@ resource "proxmox_virtual_environment_vm" "this" {
       }
 
       dynamic "user_account" {
-        for_each = local.has_pass || local.has_ssh ? [1] : []
+        for_each = local.has_user || local.has_pass || local.has_ssh ? [1] : []
         content {
+          username = local.has_user ? var.cloud_init.username : null
           password = local.has_pass ? var.cloud_init.password : null
           keys     = local.has_ssh ? var.cloud_init.ssh_keys : null
         }

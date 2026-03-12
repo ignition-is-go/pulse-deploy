@@ -57,6 +57,7 @@ module "linux_gpu_vm" {
     ip       = each.value.ip
     gateway  = var.network_gateway
     dns      = var.dns_servers
+    username = "lucid"
     ssh_keys = [var.ssh_public_key]
   }
 }

@@ -522,6 +522,20 @@ touch = {
     cx6_vf_offsets = [12, 13]
     started        = false
   }
+  "touch-02" = {
+    id             = 1186
+    ip             = "192.168.1.186"
+    ip_2110        = "10.0.0.186"
+    ip_smb         = "10.0.1.186"
+    node           = "nyc-prod-pve-02"
+    cores          = 16
+    memory_mb      = 98304
+    disk_gb        = 300
+    gpu_slots      = [3]
+    cx6_card       = 1
+    cx6_vf_offsets = [8, 9]
+    started        = true
+  }
 }
 
 # -----------------------------------------------------------------------------
@@ -561,7 +575,7 @@ workstation = {
     ip_smb     = "10.0.1.126"
     node       = "nyc-dev-pve-02"
     cores      = 32
-    memory_mb  = 98304
+    memory_mb  = 49152
     disk_gb    = 300
     gpu_slots  = [0]
     cx6_card       = 0
@@ -575,7 +589,7 @@ workstation = {
     ip_smb     = "10.0.1.127"
     node       = "nyc-dev-pve-02"
     cores      = 32
-    memory_mb  = 98304
+    memory_mb  = 49152
     disk_gb    = 300
     gpu_slots  = [1]
     cx6_card       = 0
