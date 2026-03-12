@@ -25,11 +25,18 @@
         msg: "UnrealEditor is already running on {{ inventory_hostname }}. Run ue-previs-stop.yml first."
       when: "'UnrealEditor.exe' in ue_check.stdout"
 
+    - name: Build INI override flags
+      ansible.builtin.set_fact:
+        ini_flags: >-
+          {% if node_settings is defined and node_settings %}
+          -ini:NodeSettings:{% for key, val in node_settings.items() %}[NodeSettings]:{{ key }}={{ val }}{% if not loop.last %},{% endif %}{% endfor %}
+          {% endif %}
+
     - name: Write previs launch script
       ansible.windows.win_copy:
         content: |
           @echo off
-          "{{ unreal_exe }}" "{{ unreal_project }}"
+          "{{ unreal_exe }}" "{{ unreal_project }}" {{ ini_flags | trim }}
         dest: C:\previs-launch.bat
 
     - name: Create previs scheduled task

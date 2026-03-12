@@ -108,9 +108,11 @@
           -dc_cfg="{{ ndisplay_config }}"
           -dc_node={{ ndisplay_node }}
           -dc_dev_mono
-          -ini:Engine:[/Script/Engine.Engine]:GameEngine=/Script/DisplayCluster.DisplayClusterGameEngine,[/Script/Engine.Engine]:GameViewportClientClassName=/Script/DisplayCluster.DisplayClusterViewportClient,[/Script/Engine.UserInterfaceSettings]:bAllowHighDPIInGameMode=True,[/Script/Engine.UserInterfaceSettings]:bAllowHighDpiWhenUnattended=True,[ConsoleVariables]:Rivermax.Output.EnableMultiSRD=1,[/Script/RivermaxCore.RivermaxSettings]:PTPInterfaceAddress=10.0.0.*{% if concert_server_ip is defined %},[/Script/UdpMessaging.UdpMessagingSettings]:MulticastEndpoint=0.0.0.0:0,[/Script/UdpMessaging.UdpMessagingSettings]:MulticastTimeToLive=0,[/Script/QuicMessaging.QuicMessagingSettings]:EnableTransport=False{% endif %}
-          -ini:Game:[/Script/EngineSettings.GeneralProjectSettings]:bUseBorderlessWindow=True
-          -ini:Input:[/Script/Engine.InputSettings]:DefaultPlayerInputClass=/Script/DisplayCluster.DisplayClusterPlayerInput
+          {{ ini_ndisplay_engine }}
+          {{ ini_ndisplay_input }}
+          {{ ini_rivermax | default('') }}
+          {{ ini_game | default('') }}
+          {% if concert_server_ip is defined %}{{ ini_concert }}{% endif %}
           -unattended
           -NoScreenMessages
           -nosplash

@@ -1,6 +1,15 @@
 ---
 nvidia_supported_gpus: ["RTX 6000 Ada"]
+
+# Rivermax GPUDirect RDMA — proven working on CX6 VFs + RTX 6000 Ada
+rivermax_gpudirect: true
 vdd_width: 2560
 vdd_height: 1440
 
 unreal_project: "{{ plastic_workspace }}/ue/HRLV_Previs/HRLV_Previs.uproject"
+
+# --- UE INI overrides ---
+# Custom project settings read by blueprints (Config/NodeSettings/NodeSettings.ini)
+# Add keys here as needed — rendered to -ini:NodeSettings:[NodeSettings]:Key=Val at launch
+node_settings:
+  NodeAmount: 8

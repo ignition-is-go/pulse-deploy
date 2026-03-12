@@ -2,6 +2,9 @@
 # nDisplay cluster configuration
 
 nvidia_supported_gpus: ["RTX 6000 Ada"]
+
+# Rivermax GPUDirect RDMA — proven working on CX6 VFs + RTX 6000 Ada
+rivermax_gpudirect: true
 vdd_width: 2560
 vdd_height: 1440
 
@@ -33,3 +36,25 @@ ndisplay_config: "{{ ndisplay_configs[config] }}"
 concert_server_port: 6666
 concert_session: "HRLV_Content"
 concert_server_name: "HRLV-MU-Server"
+
+# --- UE INI overrides (passed as -ini: flags at launch) ---
+# Each fragment is a separate -ini: flag. Multiple flags for the same INI file
+# are fine — UE processes them left to right, last key wins.
+# Add/remove fragments per group or per host to change launch behavior.
+
+# nDisplay engine — required for DisplayCluster game engine
+# yamllint disable-line rule:line-length
+ini_ndisplay_engine: "-ini:Engine:[/Script/Engine.Engine]:GameEngine=/Script/DisplayCluster.DisplayClusterGameEngine,[/Script/Engine.Engine]:GameViewportClientClassName=/Script/DisplayCluster.DisplayClusterViewportClient,[/Script/Engine.UserInterfaceSettings]:bAllowHighDPIInGameMode=True,[/Script/Engine.UserInterfaceSettings]:bAllowHighDpiWhenUnattended=True"
+
+# nDisplay input — prevents mouse from controlling camera
+ini_ndisplay_input: "-ini:Input:[/Script/Engine.InputSettings]:DefaultPlayerInputClass=/Script/DisplayCluster.DisplayClusterPlayerInput"
+
+# Rivermax — multi-SRD output + PTP interface binding
+ini_rivermax: "-ini:Engine:[ConsoleVariables]:Rivermax.Output.EnableMultiSRD=1,[/Script/RivermaxCore.RivermaxSettings]:PTPInterfaceAddress=10.0.0.*"
+
+# Game settings — borderless window mode for nDisplay
+ini_game: "-ini:Game:[/Script/EngineSettings.GeneralProjectSettings]:bUseBorderlessWindow=True"
+
+# Concert — disable multicast, disable QUIC (unicast only)
+# yamllint disable-line rule:line-length
+ini_concert: "-ini:Engine:[/Script/UdpMessaging.UdpMessagingSettings]:MulticastEndpoint=0.0.0.0:0,[/Script/UdpMessaging.UdpMessagingSettings]:MulticastTimeToLive=0,[/Script/QuicMessaging.QuicMessagingSettings]:EnableTransport=False"

@@ -63,7 +63,7 @@
             -CONCERTDISPLAYNAME="{{ inventory_hostname }}" ^
             -UDPMESSAGING_TRANSPORT_UNICAST={{ ansible_host }}:0 ^
             -UDPMESSAGING_TRANSPORT_STATIC={{ concert_server_ip }}:{{ concert_server_port }} ^
-            -ini:Engine:[/Script/UdpMessaging.UdpMessagingSettings]:MulticastEndpoint=0.0.0.0:0,[/Script/UdpMessaging.UdpMessagingSettings]:MulticastTimeToLive=0,[/Script/QuicMessaging.QuicMessagingSettings]:EnableTransport=False
+            {{ ini_concert }}
         dest: C:\concert-editor.bat
 
     - name: Create Concert editor scheduled task
