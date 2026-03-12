@@ -1,0 +1,102 @@
+---
+# deepstream/driver — NVIDIA driver via runfile (DeepStream 8.0 guide)
+
+- name: Check for NVIDIA GPU
+  ansible.builtin.command:
+    cmd: lspci
+  register: gpu_check
+  changed_when: false
+
+- name: Fail if no NVIDIA GPU detected
+  ansible.builtin.fail:
+    msg: "No NVIDIA GPU detected in lspci output"
+  when: gpu_check.stdout | regex_search('(?i)nvidia') is none
+
+- name: Check nvidia-smi
+  ansible.builtin.command:
+    cmd: nvidia-smi --query-gpu=driver_version --format=csv,noheader
+  register: nvsmi_check
+  changed_when: false
+  failed_when: false
+
+- name: Check if nouveau is loaded
+  ansible.builtin.command:
+    cmd: lsmod
+  register: lsmod_check
+  changed_when: false
+  when: nvsmi_check.rc != 0
+
+- name: Blacklist nouveau driver
+  ansible.builtin.copy:
+    content: |
+      blacklist nouveau
+      options nouveau modeset=0
+    dest: /etc/modprobe.d/blacklist-nouveau.conf
+    mode: "0644"
+  register: nouveau_blacklist
+  when:
+    - nvsmi_check.rc != 0
+    - lsmod_check.stdout is search('nouveau')
+
+- name: Rebuild initramfs after nouveau blacklist
+  ansible.builtin.command:
+    cmd: update-initramfs -u
+  when: nouveau_blacklist is changed
+  changed_when: true
+
+- name: Reboot to unload nouveau
+  ansible.builtin.reboot:
+    msg: "Rebooting to unload nouveau driver"
+    reboot_timeout: 300
+  when: nouveau_blacklist is changed
+
+- name: Wait for dpkg lock to be released
+  ansible.builtin.shell:
+    cmd: while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
+  changed_when: false
+  when: nvsmi_check.rc != 0
+
+- name: Install driver build dependencies
+  ansible.builtin.apt:
+    name:
+      - build-essential
+      - "linux-headers-{{ ansible_kernel }}"
+      - pkg-config
+      - libglvnd-dev
+    state: present
+    update_cache: true
+  when: nvsmi_check.rc != 0
+
+- name: Download NVIDIA driver runfile
+  ansible.builtin.get_url:
+    url: "https://us.download.nvidia.com/tesla/{{ nvidia_driver_version }}/NVIDIA-Linux-x86_64-{{ nvidia_driver_version }}.run"
+    dest: "/tmp/NVIDIA-Linux-x86_64-{{ nvidia_driver_version }}.run"
+    mode: "0755"
+  when: nvsmi_check.rc != 0
+
+- name: Install NVIDIA driver via runfile
+  ansible.builtin.command:
+    cmd: "/tmp/NVIDIA-Linux-x86_64-{{ nvidia_driver_version }}.run --silent --no-cc-version-check"
+  register: driver_install
+  changed_when: true
+  when: nvsmi_check.rc != 0
+
+- name: Reboot after driver install
+  ansible.builtin.reboot:
+    msg: "Rebooting for NVIDIA driver installation"
+    reboot_timeout: 300
+  when: driver_install is changed
+
+- name: Verify nvidia-smi
+  ansible.builtin.command:
+    argv:
+      - nvidia-smi
+      - --query-gpu=name,driver_version,memory.total
+      - --format=csv,noheader
+  register: nvsmi_verify
+  changed_when: false
+  failed_when: nvsmi_verify.rc != 0 or nvidia_driver_version not in nvsmi_verify.stdout
+
+- name: Show GPU status
+  ansible.builtin.debug:
+    msg: "{{ nvsmi_verify.stdout_lines }}"

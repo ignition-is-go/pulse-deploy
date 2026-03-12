@@ -232,12 +232,17 @@
     - ip_smb
     - samba_server
 
-- name: Optik — GPU driver + service
+- name: Optik — DeepStream + computer vision
   hosts: optik
-  gather_facts: false
+  gather_facts: true
   ignore_unreachable: true
   roles:
-    - nvidia_gpu_linux
+    - linux_vm_base
+    - deepstream
+    - linux_x11
+    - rustdesk_linux
+    - git_linux
+    - rust_linux
     - optik
 
 - name: Rship — server node setup

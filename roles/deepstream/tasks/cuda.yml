@@ -1,0 +1,39 @@
+---
+# deepstream/cuda — NVIDIA CUDA toolkit (DeepStream 8.0 guide)
+
+- name: Add NVIDIA CUDA repository key
+  ansible.builtin.apt_key:
+    url: https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/3bf863cc.pub
+    state: present
+
+- name: Add NVIDIA CUDA repository
+  ansible.builtin.apt_repository:
+    repo: "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/ /"
+    state: present
+    filename: cuda-ubuntu2404-x86_64
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Check CUDA compiler
+  ansible.builtin.stat:
+    path: "/usr/local/cuda-{{ cuda_toolkit_version | replace('-', '.') }}/bin/nvcc"
+  register: nvcc_check
+
+- name: Install CUDA toolkit
+  ansible.builtin.apt:
+    name: "cuda-toolkit-{{ cuda_toolkit_version }}"
+    state: present
+  when: not nvcc_check.stat.exists
+
+- name: Verify CUDA
+  ansible.builtin.command:
+    cmd: "/usr/local/cuda-{{ cuda_toolkit_version | replace('-', '.') }}/bin/nvcc --version"
+  register: nvcc_verify
+  changed_when: false
+  failed_when: nvcc_verify.rc != 0 or cuda_toolkit_version | replace('-', '.') not in nvcc_verify.stdout
+
+- name: Show CUDA version
+  ansible.builtin.debug:
+    msg: "{{ nvcc_verify.stdout_lines }}"

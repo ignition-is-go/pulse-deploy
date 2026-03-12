@@ -24,7 +24,7 @@ ndisplay_configs:
   rm_fullres_8node_prod1: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/8Node/nDisplayConfig_RM_FullRes_8Node_Prod1.ndisplay"
   rm_fullres_packed_8node_prod1: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/8Node/nDisplay_RM_FullRes_Packed_8Node_Prod1.ndisplay"
   rm_fullres_8node_prod2: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/8Node/nDisplayConfig_RM_FullRes_8Node_Prod2.ndisplay"
-  rm_fullres_packed_8node_prod2: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/8Node/nDisplay_RM_FullRes_Packed_8Node_Prod1.ndisplay"
+  rm_fullres_packed_8node_prod2: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/8Node/nDisplay_RM_FullRes_Packed_8Node_Prod2.ndisplay"
   rm_halfres_4node_prod1: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/4Node/nDisplayConfig_RM_HalfRes_4Node_Prod1.ndisplay"
   rm_16k_1node_prod1: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/1Node/nDisplayConfig_RM_1Node_16384_Prod1.ndisplay"
   rm_1920_1node_prod1: "{{ plastic_workspace }}/ue/HRLV_Content/Content/HRLV_Content/Stages/1Node/nDisplayConfig_RM_1Node_1920_Prod1.ndisplay"

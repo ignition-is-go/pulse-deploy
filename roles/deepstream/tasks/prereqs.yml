@@ -1,0 +1,33 @@
+---
+# deepstream/prereqs — System packages required by DeepStream 8.0
+
+- name: Wait for dpkg lock to be released
+  ansible.builtin.shell:
+    cmd: while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
+  changed_when: false
+
+- name: Install DeepStream prerequisite packages
+  ansible.builtin.apt:
+    name:
+      - libssl3
+      - libssl-dev
+      - libgles2-mesa-dev
+      - libgstreamer1.0-0
+      - gstreamer1.0-tools
+      - gstreamer1.0-plugins-good
+      - gstreamer1.0-plugins-bad
+      - gstreamer1.0-plugins-ugly
+      - gstreamer1.0-libav
+      - libgstreamer-plugins-base1.0-dev
+      - libgstrtspserver-1.0-0
+      - libjansson4
+      - libyaml-cpp-dev
+      - libjsoncpp-dev
+      - protobuf-compiler
+      - libmosquitto1
+      - gcc
+      - make
+      - git
+      - python3
+    state: present
+    update_cache: true

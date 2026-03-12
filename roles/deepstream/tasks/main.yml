@@ -1,0 +1,28 @@
+---
+# deepstream — DeepStream 8.0 SDK (full stack)
+#
+# Per NVIDIA DeepStream 8.0 dGPU guide:
+#   1. NVIDIA driver (runfile)
+#   2. CUDA toolkit (apt)
+#   3. System prerequisite packages
+#   4. TensorRT
+#   5. librdkafka (build from source)
+#   6. DeepStream SDK (deb)
+
+- name: Install NVIDIA driver
+  ansible.builtin.include_tasks: driver.yml
+
+- name: Install CUDA toolkit
+  ansible.builtin.include_tasks: cuda.yml
+
+- name: Install DeepStream prerequisite packages
+  ansible.builtin.include_tasks: prereqs.yml
+
+- name: Install TensorRT
+  ansible.builtin.include_tasks: tensorrt.yml
+
+- name: Install librdkafka
+  ansible.builtin.include_tasks: librdkafka.yml
+
+- name: Install DeepStream SDK
+  ansible.builtin.include_tasks: sdk.yml

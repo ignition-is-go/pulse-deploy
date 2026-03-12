@@ -1,0 +1,46 @@
+---
+# deepstream/sdk — DeepStream 8.0 SDK deb package
+
+- name: Check if DeepStream is installed
+  ansible.builtin.stat:
+    path: "/opt/nvidia/deepstream/deepstream-{{ deepstream_version }}"
+  register: ds_check
+
+- name: Copy DeepStream deb to target
+  ansible.builtin.copy:
+    src: "{{ deepstream_deb_source }}/{{ deepstream_deb }}"
+    dest: "/tmp/{{ deepstream_deb }}"
+    mode: "0644"
+  when: not ds_check.stat.exists
+
+- name: Install DeepStream SDK
+  ansible.builtin.apt:
+    deb: "/tmp/{{ deepstream_deb }}"
+  when: not ds_check.stat.exists
+
+- name: Copy librdkafka to DeepStream lib directory
+  ansible.builtin.shell:
+    cmd: cp /usr/local/lib/librdkafka* /opt/nvidia/deepstream/deepstream/lib/
+  changed_when: true
+  when: not ds_check.stat.exists
+
+- name: Run ldconfig after DeepStream install
+  ansible.builtin.command:
+    cmd: ldconfig
+  when: not ds_check.stat.exists
+  changed_when: true
+
+- name: Clean up DeepStream deb
+  ansible.builtin.file:
+    path: "/tmp/{{ deepstream_deb }}"
+    state: absent
+
+- name: Verify DeepStream installation
+  ansible.builtin.stat:
+    path: "/opt/nvidia/deepstream/deepstream-{{ deepstream_version }}"
+  register: ds_verify
+  failed_when: not ds_verify.stat.exists
+
+- name: Show DeepStream status
+  ansible.builtin.debug:
+    msg: "DeepStream {{ deepstream_version }} installed at /opt/nvidia/deepstream/deepstream-{{ deepstream_version }}"

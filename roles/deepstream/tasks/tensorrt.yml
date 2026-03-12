@@ -1,0 +1,36 @@
+---
+# deepstream/tensorrt — TensorRT (DeepStream 8.0 guide)
+
+- name: Check if TensorRT is installed
+  ansible.builtin.command:
+    cmd: dpkg -l libnvinfer10
+  register: tensorrt_check
+  changed_when: false
+  failed_when: false
+
+- name: Install TensorRT packages
+  ansible.builtin.apt:
+    name:
+      - "libnvinfer-dev={{ tensorrt_version }}"
+      - "libnvinfer-dispatch-dev={{ tensorrt_version }}"
+      - "libnvinfer-dispatch10={{ tensorrt_version }}"
+      - "libnvinfer-headers-dev={{ tensorrt_version }}"
+      - "libnvinfer-headers-plugin-dev={{ tensorrt_version }}"
+      - "libnvinfer-lean-dev={{ tensorrt_version }}"
+      - "libnvinfer-lean10={{ tensorrt_version }}"
+      - "libnvinfer-plugin-dev={{ tensorrt_version }}"
+      - "libnvinfer-plugin10={{ tensorrt_version }}"
+      - "libnvinfer-vc-plugin-dev={{ tensorrt_version }}"
+      - "libnvinfer-vc-plugin10={{ tensorrt_version }}"
+      - "libnvinfer10={{ tensorrt_version }}"
+      - "libnvonnxparsers-dev={{ tensorrt_version }}"
+      - "libnvonnxparsers10={{ tensorrt_version }}"
+      - "tensorrt-dev={{ tensorrt_version }}"
+    state: present
+    update_cache: true
+  when: tensorrt_check.rc != 0
+
+- name: Verify TensorRT installation
+  ansible.builtin.command:
+    cmd: dpkg -l libnvinfer10
+  changed_when: false

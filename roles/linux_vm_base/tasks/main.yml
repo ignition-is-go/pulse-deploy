@@ -1,17 +1,125 @@
 ---
-# linux_base — Baseline configuration for Linux VMs
+# linux_vm_base — Baseline configuration for Linux VMs
 #
-# Removes unnecessary packages and applies base system config.
+# Disables unattended-upgrades, removes snapd, pins kernel version.
+
+- name: Stop unattended-upgrades
+  ansible.builtin.systemd:
+    name: unattended-upgrades
+    state: stopped
+    enabled: false
+  failed_when: false
+
+- name: Disable automatic apt updates
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  loop:
+    - apt-daily.timer
+    - apt-daily-upgrade.timer
+  failed_when: false
+
+- name: Wait for dpkg lock to be released
+  ansible.builtin.shell:
+    cmd: while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do sleep 5; done
+  changed_when: false
+
+- name: Check for broken dpkg state
+  ansible.builtin.command:
+    cmd: dpkg --audit
+  register: dpkg_audit
+  changed_when: false
+  failed_when: false
+
+- name: Fix broken dpkg state
+  ansible.builtin.shell:
+    cmd: DEBIAN_FRONTEND=noninteractive dpkg --configure -a --force-confdef --force-confold
+  when: dpkg_audit.stdout | length > 0
+  changed_when: true
+
+- name: Purge unattended-upgrades
+  ansible.builtin.apt:
+    name: unattended-upgrades
+    state: absent
+    purge: true
 
 - name: Check if snapd is installed
   ansible.builtin.command:
-    cmd: dpkg -l snapd
+    cmd: dpkg-query -W -f='${Status}' snapd
   register: snapd_check
   changed_when: false
   failed_when: false
 
-- name: Remove snapd
+- name: Stop snapd services
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  loop:
+    - snapd.service
+    - snapd.socket
+    - snapd.seeded.service
+  failed_when: false
+  when: "'installed' in snapd_check.stdout"
+
+- name: Purge snapd
+  ansible.builtin.apt:
+    name: snapd
+    state: absent
+    purge: true
+  when: "'installed' in snapd_check.stdout"
+
+- name: Prevent snapd from being reinstalled
+  ansible.builtin.dpkg_selections:
+    name: snapd
+    selection: hold
+
+# --- Kernel pin ---------------------------------------------------------------
+
+- name: Check running kernel
   ansible.builtin.command:
-    cmd: dpkg --remove --force-remove-reinstreq --force-depends snapd
-  when: snapd_check.rc == 0
-  changed_when: true
+    cmd: uname -r
+  register: running_kernel
+  changed_when: false
+  when: linux_kernel_version is defined
+
+- name: Get installed kernel image packages
+  ansible.builtin.shell:
+    cmd: "dpkg -l 'linux-image-[0-9]*' 2>/dev/null | awk '/^ii/ && $2 !~ /{{ linux_kernel_version }}/ {print $2}'"
+  register: unwanted_kernels
+  changed_when: false
+  when: linux_kernel_version is defined
+
+- name: Remove unwanted kernel packages
+  ansible.builtin.apt:
+    name: "{{ unwanted_kernels.stdout_lines }}"
+    state: absent
+    purge: true
+  when:
+    - linux_kernel_version is defined
+    - unwanted_kernels.stdout_lines | length > 0
+
+- name: Check if kernel metapackage is installed
+  ansible.builtin.command:
+    cmd: dpkg-query -W -f='${Status}' linux-image-generic-hwe-24.04
+  register: kernel_meta_check
+  changed_when: false
+  failed_when: false
+  when: linux_kernel_version is defined
+
+- name: Hold kernel metapackage to prevent upgrades
+  ansible.builtin.dpkg_selections:
+    name: linux-image-generic-hwe-24.04
+    selection: hold
+  when:
+    - linux_kernel_version is defined
+    - "'installed' in kernel_meta_check.stdout"
+
+- name: Reboot into pinned kernel
+  ansible.builtin.reboot:
+    msg: "Rebooting into pinned kernel {{ linux_kernel_version }}"
+    reboot_timeout: 300
+  when:
+    - linux_kernel_version is defined
+    - linux_kernel_version not in running_kernel.stdout

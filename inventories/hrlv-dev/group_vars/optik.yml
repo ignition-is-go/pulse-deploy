@@ -4,9 +4,17 @@
 ansible_user: lucid
 ansible_become: true
 
-# NVIDIA driver + CUDA (pinned for DeepStream 8.0)
+# Kernel pin (must be compatible with NVIDIA driver)
+linux_kernel_version: "6.14"
+
+# DeepStream 8.0 stack
 nvidia_driver_version: "570.133.20"
 cuda_toolkit_version: "12-8"
+tensorrt_version: "10.9.0.34-1+cuda12.8"
+librdkafka_version: "v2.2.0"
+deepstream_version: "8.0"
+deepstream_deb: "deepstream-8.0_8.0.0-1_amd64.deb"
+deepstream_deb_source: "/mnt/datastore/tank/share/installers/deepstream/8.0"
 
 # Git deploy key (optik repo)
 git_deploy_key: "{{ vault_optik_deploy_key }}"

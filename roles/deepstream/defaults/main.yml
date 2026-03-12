@@ -1,0 +1,11 @@
+---
+# deepstream — DeepStream 8.0 SDK for Linux dGPU
+#
+# Required variables (set in group_vars):
+#   nvidia_driver_version — e.g. "570.133.20"
+#   cuda_toolkit_version  — e.g. "12-8"
+#   tensorrt_version      — e.g. "10.9.0.34-1+cuda12.8"
+#   librdkafka_version    — e.g. "v2.2.0"
+#   deepstream_version    — e.g. "8.0"
+#   deepstream_deb        — e.g. "deepstream-8.0_8.0.0-1_amd64.deb"
+#   deepstream_deb_source — path to deb on NAS
