@@ -7,35 +7,13 @@
 # Usage:
 #   ansible-playbook playbooks/ue-concert-server-start.yml
 
-- name: Reachability gate — verify editing node is online
+- name: Start Concert server
   hosts: ue_editing
   gather_facts: false
-  ignore_unreachable: true
-
   tasks:
-    - name: Check WinRM connectivity
-      ansible.windows.win_ping:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
 
-    - name: Add reachable hosts to dynamic group
-      ansible.builtin.group_by:
-        key: ue_node_reachable
-
-- name: Fail fast if editing node is unreachable
-  hosts: localhost
-  gather_facts: false
-  tasks:
-    - name: Assert editing node responded
-      ansible.builtin.assert:
-        that: groups['ue_node_reachable'] | default([]) | intersect(groups['ue_editing']) | length > 0
-        fail_msg: >-
-          Editing node is unreachable. Cannot start Concert server.
-
-- name: Configure Concert server
-  hosts: ue_editing
-  gather_facts: false
-  any_errors_fatal: true
-
-  tasks:
     - name: Check for already-running Concert server
       ansible.windows.win_command: tasklist /FI "IMAGENAME eq UnrealMultiUserServer.exe" /NH
       register: server_running_check

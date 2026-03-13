@@ -13,35 +13,14 @@
 #   ansible-playbook playbooks/mirror-nas-cluster.yml -e "force_recopy=true"  # re-copy even if size+timestamp match
 #   ansible-playbook playbooks/mirror-nas-cluster.yml -e "clean_copy=true"   # delete local workspace first (nuclear option)
 
-- name: Reachability gate — identify online nodes
+- name: Preflight — ensure UE is not running on destination nodes
   hosts: ue_cluster
   gather_facts: false
-  ignore_unreachable: true
 
   tasks:
-    - name: Check WinRM connectivity
-      ansible.windows.win_ping:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
 
-    - name: Add reachable hosts to dynamic group
-      ansible.builtin.group_by:
-        key: ue_node_reachable
-
-- name: Report reachability results
-  hosts: ue_node_reachable
-  gather_facts: false
-  tasks:
-    - name: Show skipped (unreachable) hosts
-      ansible.builtin.debug:
-        msg: >-
-          Reachable: {{ groups['ue_node_reachable'] | join(', ') }}
-          — Skipped: {{ groups['ue_cluster'] | difference(groups['ue_node_reachable']) | join(', ') | default('none', true) }}
-      run_once: true
-
-- name: Preflight — ensure UE is not running on destination nodes
-  hosts: ue_node_reachable
-  gather_facts: false
-
-  tasks:
     - name: Check for running UnrealEditor processes
       ansible.windows.win_shell: |
         $ue = Get-Process -Name UnrealEditor -ErrorAction SilentlyContinue
@@ -55,10 +34,13 @@
       when: "'RUNNING' in ue_proc_check.stdout"
 
 - name: Validate NAS workspace is accessible
-  hosts: ue_node_reachable
+  hosts: ue_cluster
   gather_facts: false
 
   tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
+
     - name: Check NAS workspace path exists
       ansible.windows.win_shell: |
         if (Test-Path "{{ staging_workspace_unc }}") { "EXISTS" } else { "MISSING" }
@@ -71,11 +53,14 @@
       when: "'MISSING' in nas_check.stdout"
 
 - name: Clean local workspace before copy
-  hosts: ue_node_reachable
+  hosts: ue_cluster
   serial: "{{ parallel_nodes | default(omit) }}"
   gather_facts: false
 
   tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
+
     - name: Delete local workspace (clean_copy)
       ansible.windows.win_file:
         path: "{{ plastic_workspace }}"
@@ -83,11 +68,14 @@
       when: clean_copy | default(false) | bool
 
 - name: Mirror workspace from NAS to local
-  hosts: ue_node_reachable
+  hosts: ue_cluster
   serial: "{{ parallel_nodes | default(omit) }}"
   gather_facts: false
 
   tasks:
+    - name: Skip offline hosts
+      ansible.builtin.include_tasks: tasks/skip_offline.yml
+
     - name: Mirror from NAS to local workspace
       ansible.windows.win_command: >-
         robocopy "{{ staging_workspace_unc }}" "{{ plastic_workspace }}"

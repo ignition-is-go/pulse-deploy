@@ -13,33 +13,10 @@
 
 # === Preflight ===
 
-- name: Reachability gate — identify online Windows nodes
+- name: Preflight — wait for Windows boot stability
   hosts: windows
   gather_facts: false
   ignore_unreachable: true
-
-  tasks:
-    - name: Check WinRM connectivity
-      ansible.windows.win_ping:
-
-    - name: Add reachable hosts to dynamic group
-      ansible.builtin.group_by:
-        key: ue_node_reachable
-
-- name: Report reachability results
-  hosts: ue_node_reachable
-  gather_facts: false
-  tasks:
-    - name: Show skipped (unreachable) hosts
-      ansible.builtin.debug:
-        msg: >-
-          Reachable: {{ groups['ue_node_reachable'] | join(', ') }}
-          — Skipped: {{ groups['windows'] | difference(groups['ue_node_reachable']) | join(', ') | default('none', true) }}
-      run_once: true
-
-- name: Preflight — wait for Windows boot stability
-  hosts: ue_node_reachable
-  gather_facts: false
   tasks:
     - name: Wait for OS boot to stabilize
       ansible.builtin.include_role:

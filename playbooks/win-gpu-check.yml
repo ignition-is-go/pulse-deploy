@@ -16,7 +16,6 @@
 - name: GPU health check
   hosts: "{{ gpu_check_hosts | default('ue') }}"
   gather_facts: false
-  any_errors_fatal: true
 
   tasks:
     - name: Skip offline hosts

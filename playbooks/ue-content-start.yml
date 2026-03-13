@@ -25,47 +25,21 @@
 #   ansible-playbook playbooks/ue-content-start.yml --limit ue-content-01 -e "config=rivermax_1node" -e "map=lookdev"  # single node
 #   ansible-playbook playbooks/ue-content-start.yml -e "skip_preflight=true"  # fast relaunch
 
-- name: Reachability gate — verify all content nodes are online
+- name: Preflight — verify all content nodes are online
   hosts: ue_content
   gather_facts: false
-  ignore_unreachable: true
 
   tasks:
     - name: Check WinRM connectivity
       ansible.windows.win_ping:
+      ignore_unreachable: true
+      register: _ping_result
 
-    - name: Add reachable hosts to dynamic group
-      ansible.builtin.group_by:
-        key: ue_node_reachable
+    - name: Fail if node is unreachable
+      ansible.builtin.fail:
+        msg: "{{ inventory_hostname }} is unreachable — cannot launch nDisplay with missing nodes"
+      when: _ping_result.unreachable | default(false)
 
-    - name: Record targeted hosts for assertion
-      ansible.builtin.set_fact:
-        _gate_targeted: "{{ ansible_play_hosts_all }}"
-      delegate_to: localhost
-      delegate_facts: true
-
-- name: Fail fast if any content nodes are unreachable
-  hosts: localhost
-  gather_facts: false
-  tasks:
-    - name: Assert all targeted content nodes responded
-      vars:
-        _targeted: "{{ _gate_targeted | default(groups['ue_content']) }}"
-        _reachable: "{{ groups['ue_node_reachable'] | default([]) }}"
-        _unreachable: "{{ _targeted | difference(_reachable) }}"
-      ansible.builtin.assert:
-        that: _unreachable | length == 0
-        fail_msg: >-
-          Unreachable content nodes: {{ _unreachable | join(', ') }}.
-          Cannot launch nDisplay with missing nodes.
-        success_msg: "All {{ _targeted | length }} content nodes are reachable"
-
-- name: Check for already-running UE instances
-  hosts: ue_content
-  gather_facts: false
-  any_errors_fatal: true
-
-  tasks:
     - name: Check if UnrealEditor is running
       ansible.windows.win_command: tasklist /FI "IMAGENAME eq UnrealEditor.exe" /NH
       register: ue_running_check
@@ -88,7 +62,6 @@
 - name: Preflight and prepare nDisplay launch
   hosts: ue_content
   gather_facts: false
-  any_errors_fatal: true
 
   vars_files:
     - ../roles/rivermax/defaults/main.yml
@@ -185,7 +158,6 @@
 - name: Launch nDisplay cluster
   hosts: ue_content
   gather_facts: false
-  any_errors_fatal: true
 
   tasks:
     - name: Start nDisplay on all nodes
