@@ -1,5 +1,5 @@
 ---
-# git — Git for Windows installation and SSH deploy key configuration
+# git_win — Git for Windows installation and SSH deploy key configuration
 #
 # Requires (group_vars):
 #   git_installer_dir:  NAS directory containing Git for Windows installer

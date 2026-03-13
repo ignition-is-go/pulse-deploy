@@ -1,5 +1,5 @@
 ---
-# samba_server — Samba file share
+# samba_server_linux — Samba file share
 #
 # Manages an authenticated SMB share with multiple auth users.
 # Each entry in smb_users gets a Linux passwd entry + Samba passdb entry.

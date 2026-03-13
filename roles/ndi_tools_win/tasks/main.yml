@@ -1,5 +1,5 @@
 ---
-# ndi_tools — NDI 6 Tools (runtime + Studio Monitor)
+# ndi_tools_win — NDI 6 Tools (runtime + Studio Monitor)
 #
 # Installs NDI Tools silently via Inno Setup installer.
 # Sets NDI_RUNTIME_DIR_V5 environment variable for UE NDI plugin.

@@ -1,12 +1,12 @@
 ---
-# git/tasks/clone.yml — Clone git repos defined in git_repos
+# git_win/tasks/clone.yml — Clone git repos defined in git_repos
 #
 # Requires:
 #   git_repos: list of {repo, dest} dicts
 #
 # Usage in site.yml:
 #   - ansible.builtin.include_role:
-#       name: git
+#       name: git_win
 #       tasks_from: clone
 
 - name: Clone git repos
