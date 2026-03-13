@@ -1,0 +1,52 @@
+---
+# nvidia_container_toolkit — NVIDIA Container Toolkit for Docker (Ubuntu)
+#
+# Required variables (set in group_vars):
+#   nvidia_container_toolkit_version — pinned version (e.g. "1.19.0-1")
+#   nvidia_cuda_image               — CUDA base image for GPU verify
+#
+# Requires: docker_linux role (Docker must be installed first)
+
+- name: Add NVIDIA Container Toolkit GPG key
+  ansible.builtin.shell:
+    cmd: >-
+      curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey
+      | gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+    creates: /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+    executable: /bin/bash
+
+- name: Add NVIDIA Container Toolkit repository
+  ansible.builtin.shell:
+    cmd: >-
+      curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list
+      | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g'
+      > /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    creates: /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    executable: /bin/bash
+
+- name: Install NVIDIA Container Toolkit
+  ansible.builtin.apt:
+    name: "nvidia-container-toolkit={{ nvidia_container_toolkit_version }}"
+    state: present
+    update_cache: true
+
+- name: Configure Docker NVIDIA runtime
+  ansible.builtin.command:
+    argv: [nvidia-ctk, runtime, configure, --runtime=docker]
+  register: nvidia_ctk_configure
+  changed_when: "'already present' not in nvidia_ctk_configure.stderr"
+  notify: Restart Docker
+
+- name: Flush handlers before GPU verify
+  ansible.builtin.meta: flush_handlers
+
+- name: Verify GPU access in container
+  ansible.builtin.command:
+    argv: [docker, run, --rm, --gpus, all, "{{ nvidia_cuda_image }}", nvidia-smi]
+  register: gpu_verify
+  changed_when: false
+  failed_when: gpu_verify.rc != 0
+
+- name: Show container GPU info
+  ansible.builtin.debug:
+    msg: "{{ gpu_verify.stdout_lines }}"

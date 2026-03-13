@@ -218,6 +218,8 @@
     - ip_smb
     - linux_smb_client
     - deepstream
+    - docker_linux
+    - nvidia_container_toolkit
     - linux_x11
     - rustdesk_linux
     - git_linux

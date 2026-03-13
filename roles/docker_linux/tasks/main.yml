@@ -1,0 +1,71 @@
+---
+# docker_linux — Docker Engine (Ubuntu)
+#
+# Required variables (set in group_vars):
+#   docker_ce_version — pinned version (e.g. "5:29.3.0-1~ubuntu.24.04~noble")
+
+- name: Install Docker prerequisites
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - gnupg
+    state: present
+
+- name: Create keyrings directory
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Add Docker GPG key
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+
+- name: Get Ubuntu codename
+  ansible.builtin.command:
+    argv: [lsb_release, -cs]
+  register: ubuntu_codename
+  changed_when: false
+
+- name: Add Docker apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ubuntu_codename.stdout }} stable"
+    state: present
+    filename: docker
+
+- name: Install Docker Engine
+  ansible.builtin.apt:
+    name:
+      - "docker-ce={{ docker_ce_version }}"
+      - "docker-ce-cli={{ docker_ce_version }}"
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    update_cache: true
+
+- name: Enable and start Docker service
+  ansible.builtin.systemd:
+    name: docker
+    enabled: true
+    state: started
+
+- name: Verify Docker with hello-world
+  ansible.builtin.command:
+    argv: [docker, run, --rm, hello-world]
+  register: docker_hello
+  changed_when: false
+  failed_when: "'Hello from Docker!' not in docker_hello.stdout"
+
+- name: Show Docker version
+  ansible.builtin.command:
+    argv: [docker, version, --format, "{{ '{{' }}.Server.Version{{ '}}' }}"]
+  register: docker_version
+  changed_when: false
+
+- name: Show Docker status
+  ansible.builtin.debug:
+    msg: "Docker {{ docker_version.stdout }} verified"
