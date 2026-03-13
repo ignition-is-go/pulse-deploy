@@ -20,6 +20,7 @@ packer/*/manifests/
 *.pkg
 *.msi
 *.bin
+*.deb
 
 # nDisplayConfig files
 *.ndisplay
