@@ -161,6 +161,7 @@
   roles:
     - win_remove_edge
     - win_chrome
+    - netbird_enroll
     - ndi_tools_win
     - unreal_engine
     - blender
