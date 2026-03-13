@@ -1,0 +1,16 @@
+---
+# Update Plastic SCM workspace on staging node
+# Usage: ansible-playbook playbooks/plastic-update-staging.yml
+#        ansible-playbook playbooks/plastic-update-staging.yml -e "changeset=1646"
+#        ansible-playbook playbooks/plastic-update-staging.yml -e "branch=/main/feature"
+
+- name: Plastic SCM — update staging
+  hosts: ue_staging
+  gather_facts: true
+  ignore_unreachable: true
+  tasks:
+    - name: Include Plastic SCM sync tasks
+      ansible.builtin.include_role:
+        name: plastic_scm
+        tasks_from: windows_sync.yml
+      when: ansible_os_family == "Windows" and plastic_workspace | length > 0

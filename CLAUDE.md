@@ -29,7 +29,8 @@ Layered roles: OS base → Drivers → Shared infra → Applications. Node ident
 
 | Group | Roles |
 |---|---|
-| `ue_content`/`ue_previs` | win_base → nvidia_gpu_win → rivermax(cond) → unreal_engine → render_worker |
+| `ue_content` | win_base → nvidia_gpu_win → rivermax(cond) → unreal_engine → render_worker |
+| `ue_previs` | win_base → nvidia_gpu_win → rivermax(cond) → plastic_scm → unreal_engine → render_worker |
 | `ue_staging` | win_base → plastic_scm → unreal_engine |
 | `ue_plugindev` | win_base → nvidia_gpu_win → plastic_scm → git → win_ue_build_deps → unreal_engine |
 | `ue_runner` | win_base → git → win_ue_build_deps → unreal_engine |

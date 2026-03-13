@@ -2,7 +2,7 @@
 # Start UE on all cluster nodes (ue_cluster = ue_content + ue_previs)
 #
 # Prerequisites:
-#   - Plastic SCM synced (playbooks/plastic-update.yml)
+#   - Plastic SCM synced (playbooks/plastic-update-staging.yml)
 #   - Content mirrored (playbooks/mirror-staging-nas-cluster.yml)
 #
 # Usage:

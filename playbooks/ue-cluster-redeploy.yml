@@ -17,7 +17,7 @@
   ansible.builtin.import_playbook: ue-cluster-down.yml
 
 - name: Update Plastic SCM on staging
-  ansible.builtin.import_playbook: plastic-update.yml
+  ansible.builtin.import_playbook: plastic-update-staging.yml
 
 - name: Mirror staging to NAS to cluster nodes
   ansible.builtin.import_playbook: mirror-staging-nas-cluster.yml

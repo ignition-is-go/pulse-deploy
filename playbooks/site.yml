@@ -78,8 +78,8 @@
   roles:
     - netbird
 
-- name: Plastic SCM — staging, plugin dev, touch, and workstation nodes
-  hosts: ue_staging:ue_plugindev:touch:workstation
+- name: Plastic SCM — staging, previs, plugin dev, touch, and workstation nodes
+  hosts: ue_staging:ue_previs:ue_plugindev:touch:workstation
   gather_facts: false
   ignore_unreachable: true
   roles:
@@ -108,6 +108,7 @@
   gather_facts: false
   ignore_unreachable: true
   roles:
+    - plastic_scm
     - ndi_tools_win
     - unreal_engine
     - render_worker
