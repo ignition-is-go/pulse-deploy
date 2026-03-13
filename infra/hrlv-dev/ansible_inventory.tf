@@ -325,9 +325,11 @@ resource "ansible_host" "optik" {
   for_each = var.optik
   name     = each.key
   groups   = ["optik"]
-  variables = {
-    ansible_host = each.value.ip
-  }
+  variables = merge(
+    { ansible_host = each.value.ip },
+    each.value.ip_smb != null ? { ip_smb = each.value.ip_smb } : {},
+    contains(keys(local.vm_mac_smb), each.key) ? { mac_smb = local.vm_mac_smb[each.key] } : {},
+  )
 }
 
 # --- LXC containers ----------------------------------------------------------

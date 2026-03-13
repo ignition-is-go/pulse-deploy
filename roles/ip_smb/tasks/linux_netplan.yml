@@ -1,0 +1,73 @@
+---
+# ip_smb/tasks/linux_netplan.yml — Static IP via netplan (Ubuntu VMs)
+#
+# Auto-detects a ConnectX interface with link and deploys a netplan config.
+# Inside a VM, passed-through VFs appear as regular devices (no physfn).
+#
+# Requires:
+#   ip_smb: static IP (e.g. "10.0.1.101")
+
+- name: Find ConnectX interfaces
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      for d in /sys/class/net/*/device/driver; do
+        [ -e "$d" ] || continue
+        iface=$(echo "$d" | cut -d/ -f5)
+        driver=$(basename "$(readlink "$d")")
+        if [ "$driver" = "mlx5_core" ]; then
+          echo "$iface"
+        fi
+      done
+    executable: /bin/bash
+  register: cx6_ifaces
+  changed_when: false
+
+- name: Fail if no ConnectX interface found
+  ansible.builtin.fail:
+    msg: "No ConnectX interface found on {{ inventory_hostname }}"
+  when: cx6_ifaces.stdout_lines | length == 0
+
+- name: Bring all ConnectX interfaces up for link detection
+  ansible.builtin.command:
+    argv: [ip, link, set, "{{ item }}", up]
+  loop: "{{ cx6_ifaces.stdout_lines }}"
+  changed_when: false
+
+- name: Wait for link negotiation
+  ansible.builtin.pause:
+    seconds: 3
+
+- name: Check link state on each interface
+  ansible.builtin.command:
+    argv: [ethtool, "{{ item }}"]
+  loop: "{{ cx6_ifaces.stdout_lines }}"
+  register: cx6_link_check
+  changed_when: false
+
+- name: Select first interface with link
+  ansible.builtin.set_fact:
+    smb_interface: >-
+      {{ cx6_link_check.results
+         | selectattr('stdout', 'search', 'Link detected: yes')
+         | map(attribute='item')
+         | first }}
+
+- name: Fail if no interface has link
+  ansible.builtin.fail:
+    msg: "No ConnectX interface has link on {{ inventory_hostname }}"
+  when: smb_interface is not defined or smb_interface | trim == ''
+
+- name: Deploy netplan SMB config
+  ansible.builtin.copy:
+    content: |
+      network:
+        version: 2
+        ethernets:
+          {{ smb_interface | trim }}:
+            addresses:
+              - {{ ip_smb }}/24
+            dhcp4: false
+    dest: /etc/netplan/90-smb.yaml
+    mode: "0600"
+  notify: Apply netplan

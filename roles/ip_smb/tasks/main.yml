@@ -1,18 +1,22 @@
 ---
 # ip_smb — Configure static IP on the SMB/storage network (10.0.1.x)
 #
-# Windows: Finds adapter by MAC, assigns IP via PowerShell
-# Linux:   Configures /etc/network/interfaces.d/ snippet, runs ifup
+# Windows:        Finds adapter by MAC, assigns IP via PowerShell
+# Linux ifupdown: /etc/network/interfaces.d/ snippet (Proxmox hosts)
+# Linux netplan:  /etc/netplan/ config (Ubuntu VMs)
 #
 # Requires:
-#   ip_smb:          static IP for the storage network (e.g. "10.0.1.31")
-#   smb_interface:   (Linux only) network interface name
-#   mac_smb:         (Windows only) expected MAC address
+#   ip_smb:    static IP for the storage network (e.g. "10.0.1.101")
+#   mac_smb:   (Windows only) expected MAC address
 
 - name: Include Windows SMB IP tasks
   ansible.builtin.include_tasks: windows.yml
   when: ansible_os_family == "Windows"
 
-- name: Include Linux SMB IP tasks
-  ansible.builtin.include_tasks: linux.yml
-  when: ansible_os_family != "Windows"
+- name: Include Linux netplan SMB IP tasks
+  ansible.builtin.include_tasks: linux_netplan.yml
+  when: ansible_os_family != "Windows" and ansible_facts['distribution'] == "Ubuntu"
+
+- name: Include Linux ifupdown SMB IP tasks
+  ansible.builtin.include_tasks: linux_ifupdown.yml
+  when: ansible_os_family != "Windows" and ansible_facts['distribution'] != "Ubuntu"

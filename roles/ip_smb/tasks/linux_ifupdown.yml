@@ -1,5 +1,5 @@
 ---
-# ip_smb/tasks/linux.yml — Configure static IP on SMB interface (Linux)
+# ip_smb/tasks/linux_ifupdown.yml — Static IP via ifupdown (Debian/Proxmox)
 #
 # Auto-detects a ConnectX PF with link, deploys an ifupdown snippet to
 # /etc/network/interfaces.d/, and brings the interface up.

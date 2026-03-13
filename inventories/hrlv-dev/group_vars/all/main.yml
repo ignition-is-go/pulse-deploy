@@ -28,6 +28,16 @@ proxmox_api_url: "{{ vault_proxmox_api_url }}"
 proxmox_api_user: "{{ vault_proxmox_api_user }}"
 proxmox_api_password: "{{ vault_proxmox_api_password }}"
 
+# Rivermax license (shared by Windows rivermax role + Linux evt_sdk role)
+rivermax_license_dir: "{{ nas_share }}\\installers\\rivermax\\license"
+rivermax_license_file: Rivermax-12022026-qty3-1a7da843cfd1.lic
+
+# SMB credentials — Windows (Administrator) vs Linux (root)
+win_smb_user: "{{ vault_win_user }}"
+win_smb_password: "{{ vault_win_password }}"
+linux_smb_user: "{{ vault_linux_user }}"
+linux_smb_password: "{{ vault_linux_password }}"
+
 # Linux VM credentials (cloud-init)
 linux_vm_user: "{{ vault_linux_vm_user }}"
 linux_vm_password: "{{ vault_linux_vm_password }}"

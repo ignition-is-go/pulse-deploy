@@ -14,7 +14,7 @@ tensorrt_version: "10.9.0.34-1+cuda12.8"
 librdkafka_version: "v2.2.0"
 deepstream_version: "8.0"
 deepstream_deb: "deepstream-8.0_8.0.0-1_amd64.deb"
-deepstream_deb_source: "/mnt/datastore/tank/share/installers/deepstream/8.0"
+deepstream_deb_source: "{{ smb_mount }}/installers/deepstream/8.0"
 
 # Git deploy key (optik repo)
 git_deploy_key: "{{ vault_optik_deploy_key }}"
@@ -23,6 +23,13 @@ git_deploy_key: "{{ vault_optik_deploy_key }}"
 optik_repo: "git@github.com:ignition-is-go/optik.git"
 optik_dest: "/opt/optik"
 
+# NAS SMB mount (storage VF network)
+smb_server: "10.0.1.31"
+smb_mount: "/mnt/nas"
+
+# EVT eSDK
+evt_sdk_zip: "eSDK_2_61_01_eCap_2_11_06_Ubuntu_24_04_6_14_0_x64.zip"
+evt_sdk_source: "{{ smb_mount }}/installers/evt/2.61.01"
 # PulseRemoteDesktopVM (RustDesk custom client)
-rustdesk_installer_dir: "/mnt/datastore/tank/share/installers/rustdesk/1.4.6"
+rustdesk_installer_dir: "{{ smb_mount }}/installers/rustdesk/1.4.6"
 rustdesk_installer_file: "pulseremotedesktopvm-x86_64.deb"

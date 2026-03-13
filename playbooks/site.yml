@@ -90,7 +90,7 @@
   gather_facts: false
   ignore_unreachable: true
   roles:
-    - ndi_tools
+    - ndi_tools_win
     - unreal_engine
     - render_worker
 
@@ -100,7 +100,7 @@
   ignore_unreachable: true
   roles:
     - plastic_scm
-    - ndi_tools
+    - ndi_tools_win
     - unreal_engine
 
 - name: Previs nodes — nDisplay render + worker
@@ -108,7 +108,7 @@
   gather_facts: false
   ignore_unreachable: true
   roles:
-    - ndi_tools
+    - ndi_tools_win
     - unreal_engine
     - render_worker
 
@@ -117,7 +117,7 @@
   gather_facts: false
   ignore_unreachable: true
   roles:
-    - ndi_tools
+    - ndi_tools_win
     - unreal_engine
 
 - name: Plugin dev nodes — IDE, build tools, UE
@@ -131,16 +131,16 @@
     - bun
     - gh_cli
     - netbird_enroll
-    - git
+    - git_win
     - win_ue_build_deps
     - vscode
     - visual_studio
-    - ndi_tools
+    - ndi_tools_win
     - unreal_engine
   tasks:
     - name: Clone git repos
       ansible.builtin.include_role:
-        name: git
+        name: git_win
         tasks_from: clone
       when: git_repos is defined
 
@@ -149,9 +149,9 @@
   gather_facts: false
   ignore_unreachable: true
   roles:
-    - git
+    - git_win
     - win_ue_build_deps
-    - ndi_tools
+    - ndi_tools_win
     - unreal_engine
 
 - name: Workstation nodes — DCC apps + UE
@@ -161,7 +161,7 @@
   roles:
     - win_remove_edge
     - win_chrome
-    - ndi_tools
+    - ndi_tools_win
     - unreal_engine
     - blender
     # TODO: adobe_cc (needs Admin Console deployment package)
@@ -207,7 +207,7 @@
   ignore_unreachable: true
   roles:
     - ip_smb
-    - samba_server
+    - samba_server_linux
 
 - name: Optik — DeepStream + computer vision
   hosts: optik
@@ -215,11 +215,14 @@
   ignore_unreachable: true
   roles:
     - linux_vm_base
+    - ip_smb
+    - linux_smb_client
     - deepstream
     - linux_x11
     - rustdesk_linux
     - git_linux
     - rust_linux
+    - evt_sdk
     - optik
 
 - name: Rship — server node setup

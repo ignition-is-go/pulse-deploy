@@ -15,7 +15,6 @@ winof2_installer_file: MLNX_WinOF2-24_10_50010_All_x64.exe
 
 # Rivermax (applied when rivermax: true)
 rivermax_version: "1.81.21"
-rivermax_license_file: Rivermax-12022026-qty3-1a7da843cfd1.lic
 
 # Plastic SCM
 plastic_exe: "C:/Program Files/PlasticSCM5/client/cm.exe"

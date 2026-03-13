@@ -1,0 +1,36 @@
+---
+# linux_smb_client — Mount NAS share via CIFS on Linux
+#
+# Required variables (set in group_vars):
+#   smb_server         — NAS IP (storage network)
+#   smb_mount          — local mount point
+#   linux_smb_user     — SMB username (from main.yml → vault)
+#   linux_smb_password — SMB password (from main.yml → vault)
+
+- name: Install cifs-utils
+  ansible.builtin.apt:
+    name: cifs-utils
+    state: present
+
+- name: Create mount point
+  ansible.builtin.file:
+    path: "{{ smb_mount }}"
+    state: directory
+    mode: "0755"
+
+- name: Create SMB credentials file
+  ansible.builtin.copy:
+    content: |
+      username={{ linux_smb_user }}
+      password={{ linux_smb_password }}
+    dest: /root/.smbcredentials
+    mode: "0600"
+  no_log: true
+
+- name: Mount NAS share
+  ansible.posix.mount:
+    src: "//{{ smb_server }}/share"
+    path: "{{ smb_mount }}"
+    fstype: cifs
+    opts: "credentials=/root/.smbcredentials,uid=0,gid=0,file_mode=0644,dir_mode=0755"
+    state: mounted

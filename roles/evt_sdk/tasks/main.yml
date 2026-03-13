@@ -1,0 +1,73 @@
+---
+# evt_sdk — Emergent Vision Technologies eSDK + Rivermax license
+#
+# Required variables (set in group_vars):
+#   evt_sdk_zip    — zip filename on NAS
+#   evt_sdk_source — path to zip (on SMB mount)
+#   smb_mount      — SMB mount point (from linux_smb_client)
+
+- name: Check if eSDK is installed
+  ansible.builtin.stat:
+    path: /opt/EVT/eSDK
+  register: evt_check
+
+- name: Copy eSDK zip from NAS
+  ansible.builtin.copy:
+    src: "{{ evt_sdk_source }}/{{ evt_sdk_zip }}"
+    dest: "/tmp/{{ evt_sdk_zip }}"
+    mode: "0644"
+    remote_src: true
+  when: not evt_check.stat.exists
+
+- name: Unzip eSDK
+  ansible.builtin.unarchive:
+    src: "/tmp/{{ evt_sdk_zip }}"
+    dest: /tmp/
+    remote_src: true
+  when: not evt_check.stat.exists
+
+- name: Install eSDK deb
+  ansible.builtin.apt:
+    deb: /tmp/emergent_camera.deb
+  when: not evt_check.stat.exists
+
+- name: Clean up temp files
+  ansible.builtin.file:
+    path: "/tmp/{{ item }}"
+    state: absent
+  loop:
+    - "{{ evt_sdk_zip }}"
+    - emergent_camera.deb
+  when: not evt_check.stat.exists
+
+- name: Verify eSDK installation
+  ansible.builtin.stat:
+    path: /opt/EVT/eSDK
+  register: evt_verify
+  failed_when: not evt_verify.stat.exists
+
+- name: Ensure Rivermax license directory exists
+  ansible.builtin.file:
+    path: /opt/mellanox/rivermax
+    state: directory
+    mode: "0755"
+
+- name: Ensure EVT license directory exists
+  ansible.builtin.file:
+    path: /var/lib/EVT
+    state: directory
+    mode: "0755"
+
+- name: Copy Rivermax license to Rivermax directory
+  ansible.builtin.copy:
+    src: "{{ smb_mount }}/installers/rivermax/license/{{ rivermax_license_file }}"
+    dest: /opt/mellanox/rivermax/rivermax.lic
+    mode: "0644"
+    remote_src: true
+
+- name: Copy Rivermax license to EVT directory
+  ansible.builtin.copy:
+    src: "{{ smb_mount }}/installers/rivermax/license/{{ rivermax_license_file }}"
+    dest: /var/lib/EVT/rivermax.lic
+    mode: "0644"
+    remote_src: true

@@ -326,10 +326,11 @@ variable "optik" {
     cores     = number
     memory_mb = number
     disk_gb   = number
-    gpu_slots = list(number)
+    gpu_slots      = list(number)
+    ip_smb         = optional(string)
     cx6_card       = optional(number)
     cx6_vf_offsets = optional(list(number), [])
-    started   = optional(bool, true)
+    started        = optional(bool, true)
   }))
   default = {}
 }
