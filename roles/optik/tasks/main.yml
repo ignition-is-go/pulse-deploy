@@ -30,6 +30,20 @@
   become_user: "{{ ansible_user }}"
   when: not optik_repo_check.stat.exists
 
+- name: Add wasm32 target for Leptos
+  ansible.builtin.command:
+    cmd: /home/{{ ansible_user }}/.cargo/bin/rustup target add wasm32-unknown-unknown --toolchain stable
+  become: true
+  become_user: "{{ ansible_user }}"
+  register: wasm_target
+  changed_when: "'installing' in wasm_target.stderr"
+
+- name: Run optik setup script
+  ansible.builtin.command:
+    cmd: bash setup.sh
+    chdir: "{{ optik_dest }}"
+  changed_when: true
+
 - name: Verify optik repo
   ansible.builtin.command:
     cmd: git -C {{ optik_dest }} rev-parse --short HEAD
