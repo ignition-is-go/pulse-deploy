@@ -53,6 +53,13 @@
     enabled: true
     state: started
 
+- name: Add connection user to docker group
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: true
+  when: ansible_user != 'root'
+
 - name: Verify Docker with hello-world
   ansible.builtin.command:
     argv: [docker, run, --rm, hello-world]
