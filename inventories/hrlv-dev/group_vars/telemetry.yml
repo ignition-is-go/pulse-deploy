@@ -1,0 +1,11 @@
+---
+# telemetry group_vars — Prometheus + Grafana monitoring stack
+
+# Prometheus
+prometheus_version: "3.10.0"
+prometheus_sha256: "41c50d97bb6a181623fc89d3fe61d0cc68ee69cc93da9091b8bba005f9690122"
+
+prometheus_scrape_configs: []
+
+# Grafana
+grafana_prometheus_url: "http://localhost:9090"

@@ -1,0 +1,29 @@
+{{ ansible_managed | comment }}
+
+global:
+  scrape_interval: {{ prometheus_scrape_interval | default('15s') }}
+  evaluation_interval: {{ prometheus_evaluation_interval | default('15s') }}
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+{% for job in prometheus_scrape_configs | default([]) %}
+  - job_name: '{{ job.name }}'
+{% if job.scrape_interval is defined %}
+    scrape_interval: {{ job.scrape_interval }}
+{% endif %}
+    static_configs:
+      - targets:
+{% for target in job.targets %}
+          - '{{ target }}'
+{% endfor %}
+{% if job.labels is defined %}
+        labels:
+{% for k, v in job.labels.items() %}
+          {{ k }}: '{{ v }}'
+{% endfor %}
+{% endif %}
+
+{% endfor %}
