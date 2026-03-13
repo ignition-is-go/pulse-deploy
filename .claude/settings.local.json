@@ -39,7 +39,8 @@
       "WebFetch(domain:wiki.samba.org)",
       "WebFetch(domain:git.proxmox.com)",
       "WebFetch(domain:canonical-subiquity.readthedocs-hosted.com)",
-      "WebFetch(domain:docs.cloud-init.io)"
+      "WebFetch(domain:docs.cloud-init.io)",
+      "WebFetch(domain:docs.docker.com)"
     ]
   }
 }
