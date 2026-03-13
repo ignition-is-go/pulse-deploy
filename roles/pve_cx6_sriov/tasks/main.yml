@@ -5,13 +5,13 @@
 # then verifies live runtime state. Only warns about reboot if the
 # running system doesn't match the desired config.
 #
-# Firmware: sets NUM_OF_VFS via mlxconfig (requires cold reboot to apply).
+# Firmware: sets NUM_OF_VFS + VF_LOG_BAR_SIZE via mlxconfig (requires cold reboot to apply).
 # Manual prerequisites: LINK_TYPE_P1/P2=2 (Ethernet), SRIOV_EN=1, VF_VPD_ENABLE=1
 # See docs/proxmox/CONNECTX6_SRIOV.md for mlxconfig steps
 #
 # Required variables:
 #   cx6_cards    — list of CX6 card defs (from Terraform via group_vars/proxmox.yml)
-#   cx6_vf_count, cx6_ovs_mtu
+#   cx6_vf_count, cx6_vf_log_bar_size, cx6_ovs_mtu
 
 # =================================================================
 # Preflight — validate hardware before writing any config
@@ -137,6 +137,43 @@
     label: "{{ item.pci_slots[0] }}"
     index_var: idx
   when: cx6_fw_numvfs[idx] | int != cx6_vf_count | int
+  changed_when: true
+  notify: Warn cold reboot needed
+
+# =================================================================
+# Firmware — set VF_LOG_BAR_SIZE via mlxconfig (first PF per card)
+#
+# Controls per-VF UAR BAR size: 2^N MB. Default 1 (2 MB) is too
+# small for large memory registrations (e.g. 2.3 GB GPU buffers).
+# Setting to 5 gives 32 MB per VF (matching the PF BAR size).
+# Total VF BAR per PF = 16 VFs × 32 MB = 512 MB — well within
+# 64-bit MMIO address space. Requires cold reboot to take effect.
+# =================================================================
+
+- name: Parse current VF_LOG_BAR_SIZE from firmware
+  ansible.builtin.set_fact:
+    cx6_fw_vf_bar: >-
+      {{ cx6_fw_query.results | map(attribute='stdout')
+         | map('regex_search', 'VF_LOG_BAR_SIZE\s+(\d+)', '\1')
+         | map('first') | list }}
+
+- name: Validate parsed VF_LOG_BAR_SIZE values
+  ansible.builtin.fail:
+    msg: "Could not parse VF_LOG_BAR_SIZE from mlxconfig output on {{ cx6_cards[idx].pci_slots[0] }}"
+  loop: "{{ cx6_fw_vf_bar }}"
+  loop_control:
+    index_var: idx
+    label: "{{ cx6_cards[idx].pci_slots[0] }}"
+  when: item is none or item | string == 'None'
+
+- name: Set firmware VF_LOG_BAR_SIZE on CX6 cards where it differs
+  ansible.builtin.command:
+    argv: [mlxconfig, -d, "{{ item.pci_slots[0] }}", -y, set, "VF_LOG_BAR_SIZE={{ cx6_vf_log_bar_size }}"]
+  loop: "{{ cx6_cards }}"
+  loop_control:
+    label: "{{ item.pci_slots[0] }}"
+    index_var: idx
+  when: cx6_fw_vf_bar[idx] | int != cx6_vf_log_bar_size | int
   changed_when: true
   notify: Warn cold reboot needed
 
