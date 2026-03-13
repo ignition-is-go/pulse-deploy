@@ -138,6 +138,7 @@
     - visual_studio
     - ndi_tools_win
     - unreal_engine
+    - claude_code_win
   tasks:
     - name: Clone git repos
       ansible.builtin.include_role:
@@ -238,5 +239,13 @@
   ignore_unreachable: true
   roles:
     - rship
+
+- name: Telemetry — Prometheus and Grafana monitoring stack
+  hosts: telemetry
+  gather_facts: true
+  ignore_unreachable: true
+  roles:
+    - prometheus
+    - grafana
 
 # === Cross-platform ===

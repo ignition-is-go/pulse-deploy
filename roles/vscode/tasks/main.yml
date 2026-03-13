@@ -36,6 +36,11 @@
   register: vscode_verify
   failed_when: not vscode_verify.stat.exists
 
+- name: Create desktop shortcut
+  community.windows.win_shortcut:
+    src: C:\Users\{{ ansible_user }}\AppData\Local\Programs\Microsoft VS Code\Code.exe
+    dest: C:\Users\Public\Desktop\Visual Studio Code.lnk
+
 - name: Clean up installer
   ansible.windows.win_file:
     path: "C:\\Windows\\Temp\\{{ vscode_installer_file }}"
