@@ -13,14 +13,14 @@
 #   ansible-playbook playbooks/ue-cluster-redeploy.yml -e "changeset=1646"
 #   ansible-playbook playbooks/ue-cluster-redeploy.yml -e "robocopy_dry_run=true"
 
-- name: "Phase 1 — Stop cluster"
+- name: Stop cluster
   ansible.builtin.import_playbook: ue-cluster-down.yml
 
-- name: "Phase 2 — Update Plastic SCM on staging"
+- name: Update Plastic SCM on staging
   ansible.builtin.import_playbook: plastic-update.yml
 
-- name: "Phase 3 — Mirror staging → NAS → cluster nodes"
+- name: Mirror staging to NAS to cluster nodes
   ansible.builtin.import_playbook: mirror-staging-nas-cluster.yml
 
-- name: "Phase 4 — Start cluster"
+- name: Start cluster
   ansible.builtin.import_playbook: ue-cluster-up.yml

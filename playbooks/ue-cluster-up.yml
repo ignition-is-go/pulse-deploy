@@ -9,8 +9,8 @@
 #   ansible-playbook playbooks/ue-cluster-up.yml
 #   ansible-playbook playbooks/ue-cluster-up.yml -e skip_preflight=true
 
-- name: "Phase 1 — Start nDisplay content nodes"
-  ansible.builtin.import_playbook: ue-content-start.yml
-
-- name: "Phase 2 — Start previs nodes"
+- name: Start previs nodes
   ansible.builtin.import_playbook: ue-previs-start.yml
+
+- name: Start content nodes
+  ansible.builtin.import_playbook: ue-content-start.yml
