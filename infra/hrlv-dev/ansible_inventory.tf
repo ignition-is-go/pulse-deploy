@@ -62,12 +62,12 @@ resource "ansible_group" "ue_cluster" {
 
 resource "ansible_group" "ue_cluster_a" {
   name     = "ue_cluster_a"
-  children = ["ue_content_prod_01", "ue_previs_prod_02"]
+  children = ["ue_content_prod_01", "ue_previs_prod_02", "ue_staging"]
 }
 
 resource "ansible_group" "ue_cluster_b" {
   name     = "ue_cluster_b"
-  children = ["ue_content_prod_02", "ue_previs_prod_01"]
+  children = ["ue_content_prod_02", "ue_previs_prod_01", "ue_staging"]
 }
 
 resource "ansible_group" "ue_content" {
