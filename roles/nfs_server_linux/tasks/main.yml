@@ -1,0 +1,58 @@
+---
+# nfs_server_linux — NFS file server
+#
+# Installs NFS server and exports ZFS datasets to specified clients.
+#
+# Requires (group_vars):
+#   nfs_exports:  List of export definitions:
+#                   - path:        Local filesystem path to export
+#                     clients:     CIDR or hostname pattern (e.g. "192.168.1.0/24")
+#                     options:     NFS export options (e.g. "rw,sync,no_subtree_check")
+#                     zfs_dataset: (optional) ZFS dataset to create before exporting
+
+- name: Ensure NFS server installed
+  ansible.builtin.apt:
+    name: nfs-kernel-server
+    state: present
+
+- name: Create ZFS datasets for exports
+  ansible.builtin.command:
+    argv:
+      - zfs
+      - create
+      - "{{ item.zfs_dataset }}"
+  loop: "{{ nfs_exports | selectattr('zfs_dataset', 'defined') }}"
+  loop_control:
+    label: "{{ item.zfs_dataset }}"
+  register: zfs_create
+  changed_when: zfs_create.rc == 0
+  failed_when: zfs_create.rc != 0 and 'dataset already exists' not in zfs_create.stderr
+
+- name: Ensure export directories exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0775"
+  loop: "{{ nfs_exports }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Configure NFS exports
+  ansible.builtin.lineinfile:
+    path: /etc/exports
+    line: "{{ item.path }} {{ item.clients }}({{ item.options }})"
+    regexp: "^{{ item.path | regex_escape }}\\s"
+    create: true
+    mode: "0644"
+  loop: "{{ nfs_exports }}"
+  loop_control:
+    label: "{{ item.path }}"
+  notify: Reload NFS exports
+
+- name: Ensure NFS server is running and enabled
+  ansible.builtin.service:
+    name: nfs-kernel-server
+    state: started
+    enabled: true

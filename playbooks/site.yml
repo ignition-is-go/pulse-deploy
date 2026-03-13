@@ -203,13 +203,14 @@
       ansible.builtin.wait_for_connection:
         timeout: 30
 
-- name: PBS — deploy share
+- name: PBS — deploy share + NFS exports
   hosts: pbs
   gather_facts: true
   ignore_unreachable: true
   roles:
     - ip_smb
     - samba_server_linux
+    - nfs_server_linux
 
 - name: Optik — DeepStream + computer vision
   hosts: optik

@@ -61,6 +61,7 @@
    10.0.0.141       2110
    10.0.1.141       smb
  192.168.1.142-.149  —                     reserved — runner
+ 192.168.1.150      telemetry-01           LXC 1150, dev-pve-03
  192.168.1.151-.159  —                     reserved — arnold/fusion
 
  PROD GUESTS — .160-.199 (VMID = 1000 + octet)

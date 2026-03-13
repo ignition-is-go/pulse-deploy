@@ -391,6 +391,19 @@ variable "rustdesk" {
   default = {}
 }
 
+variable "telemetry" {
+  description = "Telemetry stack — Prometheus + Grafana (LXC)"
+  type = map(object({
+    id        = number
+    ip        = string
+    node      = string
+    cores     = number
+    memory_mb = number
+    disk_gb   = number
+  }))
+  default = {}
+}
+
 # =============================================================================
 # Physical hosts (not provisioned by Terraform, inventory only)
 # =============================================================================

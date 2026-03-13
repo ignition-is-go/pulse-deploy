@@ -13,7 +13,7 @@ unreal_project: "{{ plastic_workspace }}/ue/HRLV_Content/HRLV_Content.uproject"
 # Available maps — select with: -e "map=lookdev"
 map_options:
   content: "/Game/HRLV_Content/Maps/PL_ContentHostSend_v7"
-  lookdev: "/Game/HRLV_Content/Maps/Dev/LookDev/ColorCharts_v3"
+  debug: "/Game/HRLV_Content/Maps/Dev/LookDev/ColorCharts_v3"
 
 # Default map (override with -e "map=...")
 map: content

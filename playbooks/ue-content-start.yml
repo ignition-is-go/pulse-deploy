@@ -138,6 +138,7 @@
       ansible.windows.win_copy:
         content: |
           @echo off
+          SET RS_CLUSTER_ID=ue_content_cluster_a
           "{{ unreal_exe }}" {{ ndisplay_args }}
         dest: C:\ndisplay-launch.bat
 

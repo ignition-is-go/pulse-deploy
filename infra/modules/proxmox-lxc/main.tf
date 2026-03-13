@@ -12,6 +12,10 @@ resource "proxmox_virtual_environment_container" "this" {
   unprivileged    = var.unprivileged
   protection      = var.protection
 
+  features {
+    nesting = true
+  }
+
   operating_system {
     template_file_id = var.template_file_id
     type             = var.os_type

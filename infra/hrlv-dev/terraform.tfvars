@@ -18,6 +18,7 @@
 #   pulse-admin           LXC          no      Control plane (Ansible, monitoring)
 #   pixelfarm             LXC          no      Render job orchestration
 #   rustdesk              LXC          no      Remote desktop server
+#   telemetry             LXC          no      Prometheus + Grafana
 #
 # Content pipeline:
 #   Artists (workstations) → Plastic SCM → Staging (sync + robocopy) → editor launch = rehearsal
@@ -37,6 +38,7 @@
 #   pulse-admin-01..NN     Control plane (LXC)                 (14)
 #   pixelfarm-01..NN       Render job orchestration (LXC)      (12)
 #   rustdesk-01..NN        RustDesk server (LXC)               (10)
+#   telemetry-01..NN       Prometheus + Grafana (LXC)          (13)
 #
 # Role assignment (content vs previs, nDisplay node ID, etc.) lives in
 # Ansible inventory groups, not hostnames. Physical host placement lives
@@ -375,7 +377,7 @@ linux_template_ids = {
   "nyc-dev-pve-02"  = 6508 # ubuntu-desktop-cloudinit-02
   "nyc-dev-pve-03"  = 6509 # ubuntu-desktop-cloudinit-03
 }
-lxc_template        = "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
+lxc_template        = "pbs-nfs:vztmpl/ubuntu-24.04-standard_24.04-2_amd64.tar.zst"
 
 # -----------------------------------------------------------------------------
 # Network
@@ -425,6 +427,21 @@ pixelfarm = {}
 # -----------------------------------------------------------------------------
 
 rustdesk = {}
+
+# -----------------------------------------------------------------------------
+# telemetry (LXC) — Prometheus + Grafana                              .150
+# -----------------------------------------------------------------------------
+
+telemetry = {
+  "telemetry-01" = {
+    id        = 1150
+    ip        = "192.168.1.150"
+    node      = "nyc-dev-pve-02"
+    cores     = 2
+    memory_mb = 4096
+    disk_gb   = 100
+  }
+}
 
 # -----------------------------------------------------------------------------
 # arnold_fusion (Windows + GPU)                                        .151-.159

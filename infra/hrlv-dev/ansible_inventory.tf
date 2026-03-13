@@ -379,6 +379,15 @@ resource "ansible_host" "rustdesk" {
   }
 }
 
+resource "ansible_host" "telemetry" {
+  for_each = var.telemetry
+  name     = each.key
+  groups   = ["telemetry"]
+  variables = {
+    ansible_host = each.value.ip
+  }
+}
+
 # --- Proxmox hypervisor groups ------------------------------------------------
 
 resource "ansible_group" "proxmox" {

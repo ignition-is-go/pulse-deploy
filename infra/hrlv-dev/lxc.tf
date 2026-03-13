@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# LXC containers — rship, pulse_admin, pixelfarm, rustdesk
+# LXC containers — rship, pulse_admin, pixelfarm, rustdesk, telemetry
 # -----------------------------------------------------------------------------
 
 locals {
@@ -8,6 +8,7 @@ locals {
     var.pulse_admin,
     var.pixelfarm,
     var.rustdesk,
+    var.telemetry,
   )
 
   lxc_tags = merge(
@@ -15,6 +16,7 @@ locals {
     { for k, _ in var.pulse_admin : k => ["linux", "lxc", "pulse-admin"] },
     { for k, _ in var.pixelfarm : k => ["linux", "lxc", "pixelfarm"] },
     { for k, _ in var.rustdesk : k => ["linux", "lxc", "rustdesk"] },
+    { for k, _ in var.telemetry : k => ["linux", "lxc", "telemetry"] },
   )
 
   lxc_descriptions = merge(
@@ -22,6 +24,7 @@ locals {
     { for k, _ in var.pulse_admin : k => "Control plane / monitoring" },
     { for k, _ in var.pixelfarm : k => "Pixel Farm render orchestration" },
     { for k, _ in var.rustdesk : k => "RustDesk remote desktop server" },
+    { for k, _ in var.telemetry : k => "Telemetry — Prometheus + Grafana" },
   )
 }
 
@@ -35,6 +38,7 @@ module "lxc" {
   node_name        = each.value.node
   tags             = sort(local.lxc_tags[each.key])
   template_file_id = var.lxc_template
+  os_type          = "ubuntu"
   cores            = each.value.cores
   memory_mb        = each.value.memory_mb
   disk_gb          = each.value.disk_gb

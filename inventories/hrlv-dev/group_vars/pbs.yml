@@ -1,5 +1,6 @@
 ---
 # Samba share on PBS — serves installers and workspaces to Windows and Linux clients
+# NFS exports — shared storage for Proxmox cluster (templates, ISOs)
 
 # SMB storage network (10.0.1.x) — CX6 direct attach
 ip_smb: "10.0.1.31"
@@ -12,3 +13,9 @@ smb_users:
 smb_force_user: root
 smb_share_name: share
 smb_share_path: /mnt/datastore/tank/share
+
+nfs_exports:
+  - path: /mnt/datastore/tank/nfs
+    clients: "192.168.1.0/24"
+    options: "rw,sync,no_subtree_check,no_root_squash"
+    zfs_dataset: tank/nfs
