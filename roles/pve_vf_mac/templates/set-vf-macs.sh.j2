@@ -7,6 +7,7 @@
 # Running VMs must be restarted to pick up new MACs.
 #
 # Uses ip link set (works on both CX6 switchdev and BF2 legacy).
+# Also sets VF MTU to {{ cx6_ovs_mtu }} to match PF jumbo frames.
 
 ERRORS=0
 
@@ -43,10 +44,21 @@ set_vf_mac() {
       local vfnum=${virtfn##*virtfn}
       local output
       if output=$(ip link set "$pf_iface" vf "$vfnum" mac "$mac" 2>&1); then
-        echo "OK   $pf_iface vf $vfnum → $mac"
+        echo "OK   $pf_iface vf $vfnum → mac $mac"
       else
-        echo "FAIL $vf_pci (VF$vfnum): $output"
+        echo "FAIL $vf_pci (VF$vfnum) mac: $output"
         ERRORS=$((ERRORS + 1))
+      fi
+      # Set VF MTU to match PF jumbo frames
+      local vf_iface
+      vf_iface=$(ls /sys/bus/pci/devices/"$vf_pci"/net/ 2>/dev/null | head -1)
+      if [ -n "$vf_iface" ]; then
+        if output=$(ip link set "$vf_iface" mtu {{ cx6_ovs_mtu }} 2>&1); then
+          echo "OK   $vf_iface mtu {{ cx6_ovs_mtu }}"
+        else
+          echo "FAIL $vf_pci (VF$vfnum) mtu: $output"
+          ERRORS=$((ERRORS + 1))
+        fi
       fi
       return
     fi

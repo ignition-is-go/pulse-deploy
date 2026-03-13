@@ -228,6 +228,7 @@
     - rust_linux
     - evt_sdk
     - optik
+    - claude_code
 
 - name: Rship — server node setup
   hosts: rship

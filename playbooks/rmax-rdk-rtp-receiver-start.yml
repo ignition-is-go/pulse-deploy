@@ -17,6 +17,8 @@
     rmax_dst_port: 50020
     rmax_allocator: malloc
     rmax_gpu_id: ""
+    rmax_packet_payload_size: ""
+    rmax_packets: ""
 
   tasks:
     - name: Fail if source IP not specified
@@ -39,6 +41,8 @@
             --dst-ip {{ ip_2110 }} `
             -p {{ rmax_dst_port }} `
             --allocator-type {{ rmax_allocator }} `
+            {% if rmax_packets != "" %}--packets {{ rmax_packets }} `{% endif %}
+            {% if rmax_packet_payload_size != "" %}--payload-size {{ rmax_packet_payload_size }} `{% endif %}
             {% if rmax_gpu_id != "" %}--gpu-id {{ rmax_gpu_id }} --app-hdr-size 50 `{% endif %}
             -v 2>&1 | Tee-Object -FilePath C:\Windows\Temp\rmax-rdk-rx.log
         dest: C:\Windows\Temp\rmax-rdk-rx.ps1
