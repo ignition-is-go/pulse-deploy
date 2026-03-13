@@ -1,0 +1,27 @@
+{{ ansible_managed | comment }}
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    send_batch_size: 1024
+    timeout: 10s
+
+exporters:
+  otlphttp/prometheus:
+    endpoint: {{ otel_prometheus_endpoint }}
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/prometheus]

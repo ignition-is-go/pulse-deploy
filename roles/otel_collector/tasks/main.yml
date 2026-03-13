@@ -1,0 +1,57 @@
+---
+# otel_collector — OpenTelemetry Collector (contrib)
+#
+# Installs otelcol-contrib from the official deb package and deploys
+# a templated pipeline configuration.
+#
+# Requires (group_vars):
+#   otel_collector_version:  Release version (e.g. "0.147.0")
+#   otel_collector_config:   Dict merged into the config template (optional)
+
+- name: Check if otelcol-contrib is installed
+  ansible.builtin.command:
+    argv:
+      - dpkg-query
+      - -W
+      - -f
+      - "${Version}"
+      - otelcol-contrib
+  register: otel_installed
+  changed_when: false
+  failed_when: false
+
+- name: Download otelcol-contrib {{ otel_collector_version }}
+  ansible.builtin.get_url:
+    url: "https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v{{ otel_collector_version }}/otelcol-contrib_{{ otel_collector_version }}_linux_amd64.deb"
+    dest: "/tmp/otelcol-contrib_{{ otel_collector_version }}_linux_amd64.deb"
+    mode: "0644"
+  when: otel_installed.rc != 0 or otel_collector_version not in otel_installed.stdout
+
+- name: Install otelcol-contrib package
+  ansible.builtin.apt:
+    deb: "/tmp/otelcol-contrib_{{ otel_collector_version }}_linux_amd64.deb"
+    state: present
+  when: otel_installed.rc != 0 or otel_collector_version not in otel_installed.stdout
+  notify: Restart otelcol
+
+- name: Deploy OTel Collector configuration
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: /etc/otelcol-contrib/config.yaml
+    owner: root
+    group: root
+    mode: "0644"
+    backup: true
+  notify: Restart otelcol
+
+- name: Ensure otelcol-contrib is running and enabled
+  ansible.builtin.service:
+    name: otelcol-contrib
+    state: started
+    enabled: true
+
+- name: Clean up deb package
+  ansible.builtin.file:
+    path: "/tmp/otelcol-contrib_{{ otel_collector_version }}_linux_amd64.deb"
+    state: absent
+  changed_when: false

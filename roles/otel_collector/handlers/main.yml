@@ -1,0 +1,5 @@
+---
+- name: Restart otelcol
+  ansible.builtin.service:
+    name: otelcol-contrib
+    state: restarted

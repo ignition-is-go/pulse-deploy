@@ -246,6 +246,7 @@
   ignore_unreachable: true
   roles:
     - prometheus
+    - otel_collector
     - grafana
 
 # === Cross-platform ===

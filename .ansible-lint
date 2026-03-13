@@ -4,6 +4,10 @@ exclude_paths:
   - inventories/*/group_vars/all/vault.yml
 
 # apply-role.yml uses {{ target }} which is undefined at lint time
+yaml_config:
+  line-length:
+    max: 300
+
 extra_vars:
   target: all
   role_name: win_base

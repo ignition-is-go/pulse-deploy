@@ -7,5 +7,9 @@ prometheus_sha256: "41c50d97bb6a181623fc89d3fe61d0cc68ee69cc93da9091b8bba005f969
 
 prometheus_scrape_configs: []
 
+# OpenTelemetry Collector
+otel_collector_version: "0.147.0"
+otel_prometheus_endpoint: "http://localhost:9090/api/v1/otlp"
+
 # Grafana
 grafana_prometheus_url: "http://localhost:9090"
