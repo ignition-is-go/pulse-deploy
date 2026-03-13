@@ -65,6 +65,7 @@
       auto {{ smb_interface | trim }}
       iface {{ smb_interface | trim }} inet static
           address {{ ip_smb }}/24
+          mtu 9000
     dest: "/etc/network/interfaces.d/{{ smb_interface | trim }}"
     mode: "0644"
   notify: Bring up SMB interface

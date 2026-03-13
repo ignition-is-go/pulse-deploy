@@ -1,0 +1,85 @@
+---
+# doca_ofed — NVIDIA DOCA-OFED networking stack (Ubuntu)
+#
+# Replaces inbox mlx5/ib_core with DOCA-OFED DKMS modules.
+# Required for nvidia_peermem (GPUDirect RDMA).
+#
+# Required variables (set in group_vars):
+#   doca_ofed_version — repo version (e.g. "3.3.0")
+#
+# Reference: https://linux.mellanox.com/public/repo/doca/
+
+- name: Install DKMS build prerequisites
+  ansible.builtin.apt:
+    name:
+      - dkms
+      - gcc
+      - make
+      - perl
+      - "linux-headers-{{ ansible_kernel }}"
+    state: present
+
+- name: Check if DOCA GPG key exists
+  ansible.builtin.stat:
+    path: /etc/apt/trusted.gpg.d/doca-mellanox.gpg
+  register: doca_gpg_stat
+
+- name: Download DOCA GPG key
+  ansible.builtin.get_url:
+    url: https://linux.mellanox.com/public/repo/doca/GPG-KEY-Mellanox.pub
+    dest: /tmp/doca-mellanox.pub
+    mode: "0644"
+  when: not doca_gpg_stat.stat.exists
+
+- name: Dearmor DOCA GPG key
+  ansible.builtin.command:
+    argv: [gpg, --dearmor, -o, /etc/apt/trusted.gpg.d/doca-mellanox.gpg, /tmp/doca-mellanox.pub]
+  when: not doca_gpg_stat.stat.exists
+  changed_when: true
+
+- name: Add DOCA-OFED apt repository
+  ansible.builtin.copy:
+    content: "deb [signed-by=/etc/apt/trusted.gpg.d/doca-mellanox.gpg] https://linux.mellanox.com/public/repo/doca/{{ doca_ofed_version }}/ubuntu24.04/x86_64/ ./\n"
+    dest: /etc/apt/sources.list.d/doca-ofed.list
+    mode: "0644"
+
+- name: Install DOCA-OFED
+  ansible.builtin.apt:
+    name: doca-ofed
+    state: present
+    update_cache: true
+  register: doca_install
+
+- name: Restart OpenIB driver stack
+  ansible.builtin.command:
+    argv: [/etc/init.d/openibd, restart]
+  when: doca_install.changed
+  changed_when: true
+
+- name: Persist nvidia_peermem on boot
+  ansible.builtin.copy:
+    content: "nvidia_peermem\n"
+    dest: /etc/modules-load.d/nvidia_peermem.conf
+    mode: "0644"
+
+- name: Check if NVIDIA driver is loaded
+  ansible.builtin.command:
+    cmd: nvidia-smi
+  register: nvidia_check
+  changed_when: false
+  failed_when: false
+
+- name: Load nvidia_peermem module
+  community.general.modprobe:
+    name: nvidia_peermem
+    state: present
+  when: nvidia_check.rc == 0
+
+- name: Verify nvidia_peermem is loaded
+  ansible.builtin.shell:
+    cmd: lsmod | grep nvidia_peermem
+    executable: /bin/bash
+  register: peermem_check
+  changed_when: false
+  failed_when: peermem_check.rc != 0
+  when: nvidia_check.rc == 0

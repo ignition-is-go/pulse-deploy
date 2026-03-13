@@ -22,6 +22,7 @@
     rmax_rate_bps: ""
     rmax_rate_burst: "1"
     rmax_packets: ""
+    rmax_packet_payload_size: ""
 
   tasks:
     - name: Fail if destination IP not specified
@@ -44,6 +45,7 @@
             --dst-port {{ rmax_dst_port }} `
             --allocator-type {{ rmax_allocator }} `
             {% if rmax_packets != "" %}--packets {{ rmax_packets }} `{% endif %}
+            {% if rmax_packet_payload_size != "" %}--payload-size {{ rmax_packet_payload_size }} `{% endif %}
             {% if rmax_gpu_id != "" %}--gpu-id {{ rmax_gpu_id }} `{% endif %}
             {% if rmax_rate_bps != "" %}--rate-bps {{ rmax_rate_bps }} --rate-burst {{ rmax_rate_burst }} `{% endif %}
             -v 2>&1 | Tee-Object -FilePath C:\Windows\Temp\rmax-rdk-tx.log

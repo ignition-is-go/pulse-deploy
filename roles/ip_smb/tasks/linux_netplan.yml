@@ -67,7 +67,14 @@
           {{ smb_interface | trim }}:
             addresses:
               - {{ ip_smb }}/24
+            mtu: 9000
             dhcp4: false
     dest: /etc/netplan/90-smb.yaml
     mode: "0600"
-  notify: Apply netplan
+  register: smb_netplan
+
+- name: Apply netplan SMB config
+  ansible.builtin.command:
+    cmd: netplan apply
+  when: smb_netplan is changed
+  changed_when: true

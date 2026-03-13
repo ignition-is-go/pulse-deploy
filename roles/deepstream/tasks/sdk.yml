@@ -10,6 +10,7 @@
   ansible.builtin.copy:
     src: "{{ deepstream_deb_source }}/{{ deepstream_deb }}"
     dest: "/tmp/{{ deepstream_deb }}"
+    remote_src: true
     mode: "0644"
   when: not ds_check.stat.exists
 

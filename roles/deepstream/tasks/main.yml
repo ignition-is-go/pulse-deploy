@@ -12,6 +12,12 @@
 - name: Install NVIDIA driver
   ansible.builtin.include_tasks: driver.yml
 
+- name: Load nvidia_peermem after driver install
+  community.general.modprobe:
+    name: nvidia_peermem
+    state: present
+  when: driver_install is defined and driver_install is changed
+
 - name: Install CUDA toolkit
   ansible.builtin.include_tasks: cuda.yml
 

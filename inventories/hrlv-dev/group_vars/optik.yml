@@ -32,6 +32,9 @@ docker_ce_version: "5:29.3.0-1~ubuntu.24.04~noble"
 nvidia_container_toolkit_version: "1.19.0-1"
 nvidia_cuda_image: "nvidia/cuda:12.8.0-base-ubuntu24.04"
 
+# DOCA-OFED (GPUDirect RDMA — nvidia_peermem)
+doca_ofed_version: "3.3.0"
+
 # EVT eSDK
 evt_sdk_zip: "eSDK_2_61_01_eCap_2_11_06_Ubuntu_24_04_6_14_0_x64.zip"
 evt_sdk_source: "{{ smb_mount }}/installers/evt/2.61.01"

@@ -217,6 +217,7 @@
     - linux_vm_base
     - ip_smb
     - linux_smb_client
+    - doca_ofed
     - deepstream
     - docker_linux
     - nvidia_container_toolkit

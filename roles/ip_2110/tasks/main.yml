@@ -47,3 +47,14 @@
     "CHANGED"
   register: nic_2110_ip
   changed_when: "'CHANGED' in nic_2110_ip.stdout"
+
+- name: Set jumbo frames on 2110 adapter
+  ansible.windows.win_shell: |
+    $mac = ("{{ mac_2110 }}" -replace ":", "-")
+    $nic = Get-NetAdapter | Where-Object { $_.MacAddress -eq $mac }
+    $jumbo = Get-NetAdapterAdvancedProperty -Name $nic.Name -RegistryKeyword '*JumboPacket' -ErrorAction SilentlyContinue
+    if ($jumbo.RegistryValue -eq '9014') { "OK"; return }
+    Set-NetAdapterAdvancedProperty -Name $nic.Name -RegistryKeyword '*JumboPacket' -RegistryValue '9014'
+    "CHANGED"
+  register: nic_2110_jumbo
+  changed_when: "'CHANGED' in nic_2110_jumbo.stdout"

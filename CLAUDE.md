@@ -34,7 +34,7 @@ Layered roles: OS base → Drivers → Shared infra → Applications. Node ident
 | `ue_plugindev` | win_base → nvidia_gpu_win → plastic_scm → git → win_ue_build_deps → unreal_engine |
 | `ue_runner` | win_base → git → win_ue_build_deps → unreal_engine |
 | `workstation` | win_base → nvidia_gpu_win → chrome → unreal_engine |
-| `pulse_admin` | linux_common → samba_server |
+| `pbs` | ip_smb → samba_server_linux |
 | `proxmox` | linux_common → pve_cx6_sriov(cond) |
 | `rship` | linux_common → rship |
 
